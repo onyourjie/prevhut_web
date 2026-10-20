@@ -62,3 +62,7 @@ coverage/
 */.cursor/
 */.devin/
 */.agents/
+skills-lock.json
+
+*.md
+!README.md
