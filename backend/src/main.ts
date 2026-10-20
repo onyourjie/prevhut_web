@@ -6,34 +6,90 @@ import { AppModule } from './app.module.js';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
-  // Enable CORS for Vite frontend
   app.enableCors({
     origin: ['http://localhost:5173', 'http://127.0.0.1:5173', '*'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
 
-  // Enable global validation pipe for DTOs
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
       transform: true,
       forbidNonWhitelisted: false,
+      stopAtFirstError: false,
     }),
   );
 
-  // Setup Swagger OpenAPI documentation
+  // Setup rich Swagger OpenAPI documentation
+  const swaggerDescription = `
+### Platform FIRELINE: Early Hazard Intelligence & Civic Transparency (WIA MIA 2026)
+
+REST API microservice inti untuk manajemen pengguna multi-peran, pelaporan titik api komunitas (*civic reporting*), penugasan relawan lapangan (*field dispatch*), panggilan darurat, dan sinkronisasi satelit NASA FIRMS.
+
+---
+
+### Akun Demo Cepat (Tinggal Copy-Paste untuk Menguji API):
+
+| Peran | Email | Kata Sandi | Kegunaan Uji Coba di Swagger |
+| :--- | :--- | :--- | :--- |
+| **ADMIN** | \`admin.posko@fireline.id\` | \`Admin123!\` | Menguji fitur dispatch relawan, moderasi laporan, trigger sync live |
+| **RELAWAN** | \`rangga.relawan@gmail.com\` | \`Rangga123!\` | Menguji terima/tolak tugas, update status penanganan, upload bukti |
+| **WARGA** | \`sarahwijiyatno@gmail.com\` | \`Sarah123!\` | Menguji buat laporan darurat kamera live, edit profil, aktivitas saya |
+| **WARGA 2** | \`rina.warga@gmail.com\` | \`Rina123!\` | Pelapor insiden kebakaran darurat Desa Bancoh |
+
+---
+
+### Kebijakan Validasi Kata Sandi (Password Policy):
+Setiap pendaftaran kata sandi baru **wajib** memenuhi:
+* Minimal **8 karakter**.
+* Mengandung minimal **1 huruf besar** (\`A-Z\`).
+* Mengandung minimal **1 huruf kecil** (\`a-z\`).
+* Mengandung minimal **1 angka** (\`0-9\`).
+* Mengandung minimal **1 karakter unik/simbol** (\`!@#$%^&*()_+-=[]{};':"|,.<>/?\`).
+* *Contoh valid:* \`Admin123!\`, \`Sarah123!\`, \`Rangga123!\`.
+
+---
+
+### Siklus Otomasi Sinkronisasi Satelit NASA FIRMS:
+* **Cron Otomatis:** Berjalan di latar belakang **setiap 3 jam** (\`01.00, 04.00, 07.00, 10.00, 13.00, 16.00, 19.00, 22.00 WIB\`).
+* **On-Demand:** Admin dapat memicu penarikan data kapan saja melalui endpoint \`POST /sync/trigger\`.
+`;
+
   const config = new DocumentBuilder()
-    .setTitle('FIRELINE Core Backend API')
-    .setDescription(
-      'Core REST API untuk Platform FIRELINE (WIA MIA 2026): Auth 3 Role (Warga, Relawan, Admin), Feed Komunitas & Laporan Warga, Penugasan Relawan Lapangan, Notifikasi, dan Integrasi Geospasial.',
-    )
+    .setTitle('FIRELINE Core API Documentation')
+    .setDescription(swaggerDescription)
     .setVersion('1.0.0')
-    .addBearerAuth()
+    .addBearerAuth(
+      {
+        type: 'http',
+        scheme: 'bearer',
+        bearerFormat: 'JWT',
+        name: 'Authorization',
+        description: 'Masukkan Token JWT (didapat dari response POST /auth/login)',
+        in: 'header',
+      },
+      'JWT-auth',
+    )
+    .addTag('1. Autentikasi (Auth)', 'Registrasi multi-step, Login dengan validasi password kuat, Cek sesi JWT aktif')
+    .addTag('2. Profil & Pengguna (Users)', 'Layar profil, edit data diri, toggle GPS selalu aktif, Aktivitas Saya, dan daftar relawan')
+    .addTag('3. Komunitas & Laporan Warga (Community)', 'Feed postingan darurat/informasi, simulasi kamera live & GPS, update pengirim, komentar, dan lapor hoax')
+    .addTag('4. Penugasan Relawan Lapangan (Assignments)', 'Sistem dispatch penugasan dari Admin Posko, pembaruan status lapangan, tolak tugas, dan upload verifikasi')
+    .addTag('5. Panggilan Darurat & Evakuasi (Emergency)', 'Nomor darurat Damkar 113, SAR 115, Polisi 110, Ambulans 119, dan 5 langkah evakuasi cepat')
+    .addTag('6. Pusat Notifikasi (Notifications)', 'Riwayat notifikasi bahaya P1 & pembaruan tugas dikelompokkan Hari Ini dan Sebelumnya')
+    .addTag('7. Otomasi Satelit & Sinkronisasi (Sync)', 'Status jadwal cron 3 jam dan tombol pembaruan data NASA FIRMS on-demand untuk Admin')
     .build();
 
   const document = SwaggerModule.createDocument(app, config);
-  SwaggerModule.setup('api/docs', app, document);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+      docExpansion: 'list',
+      filter: true,
+      showRequestDuration: true,
+    },
+    customSiteTitle: 'FIRELINE API Docs (Swagger UI)',
+  });
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);

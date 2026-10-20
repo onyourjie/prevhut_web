@@ -4,9 +4,8 @@ import bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Seeding PostgreSQL database for FIRELINE...');
+  console.log('Seeding PostgreSQL database...');
 
-  // 1. Clean existing records
   await prisma.notification.deleteMany();
   await prisma.volunteerAssignment.deleteMany();
   await prisma.postReport.deleteMany();
@@ -16,7 +15,13 @@ async function main() {
   await prisma.user.deleteMany();
   await prisma.emergencyContact.deleteMany();
 
-  const hashedPassword = await bcrypt.hash('password123', 10);
+  console.log('Database bersih! Memulai seeding data baru dengan password aman (kombinasi unik & min 8 karakter)...');
+
+  // Hash individual secure passwords
+  const passwordSarah = await bcrypt.hash('Sarah123!', 10);
+  const passwordRina = await bcrypt.hash('Rina123!', 10);
+  const passwordRangga = await bcrypt.hash('Rangga123!', 10);
+  const passwordAdmin = await bcrypt.hash('Admin123!', 10);
 
   // 2. Create Users (Warga, Relawan, Admin)
   const sarah = await prisma.user.create({
@@ -24,7 +29,7 @@ async function main() {
       name: 'Sarah Wijiyatno',
       phone: '+6281234567890',
       email: 'sarahwijiyatno@gmail.com',
-      password: hashedPassword,
+      password: passwordSarah,
       role: Role.WARGA,
       avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&q=80',
       province: 'Kalimantan Barat',
@@ -40,7 +45,7 @@ async function main() {
       name: 'Rina',
       phone: '+6281298765432',
       email: 'rina.warga@gmail.com',
-      password: hashedPassword,
+      password: passwordRina,
       role: Role.WARGA,
       avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80',
       province: 'Kalimantan Barat',
@@ -56,7 +61,7 @@ async function main() {
       name: 'Rangga Wicaksono',
       phone: '+6281355558888',
       email: 'rangga.relawan@gmail.com',
-      password: hashedPassword,
+      password: passwordRangga,
       role: Role.RELAWAN,
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80',
       province: 'Kalimantan Barat',
@@ -73,7 +78,7 @@ async function main() {
       name: 'Koordinator Posko BPBD Sintang',
       phone: '+6281100009999',
       email: 'admin.posko@fireline.id',
-      password: hashedPassword,
+      password: passwordAdmin,
       role: Role.ADMIN,
       avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=256&q=80',
       province: 'Kalimantan Barat',
@@ -84,9 +89,13 @@ async function main() {
     },
   });
 
-  console.log(`✅ Users created: Sarah (${sarah.role}), Rina (${rina.role}), Rangga (${rangga.role}), Admin (${admin.role})`);
+  console.log(`Users dibuat:`);
+  console.log(`   - Sarah (WARGA): sarahwijiyatno@gmail.com / Sarah123!`);
+  console.log(`   - Rina (WARGA): rina.warga@gmail.com / Rina123!`);
+  console.log(`   - Rangga (RELAWAN): rangga.relawan@gmail.com / Rangga123!`);
+  console.log(`   - Admin (ADMIN): admin.posko@fireline.id / Admin123!`);
 
-  // 3. Create Posts (matching Figma screens)
+  // 3. Create Posts 
   const emergencyPost = await prisma.post.create({
     data: {
       authorId: rina.id,
@@ -123,7 +132,7 @@ async function main() {
     },
   });
 
-  // 4. Create Post Updates ("Update Pengirim" on Figma)
+  // 4. Create Post Updates ("Update Pengirim")
   await prisma.postUpdate.create({
     data: {
       postId: emergencyPost.id,
@@ -133,7 +142,7 @@ async function main() {
     },
   });
 
-  // 5. Create Comments (matching Figma)
+  // 5. Create Comments
   await prisma.comment.create({
     data: {
       postId: emergencyPost.id,
@@ -163,7 +172,7 @@ async function main() {
     },
   });
 
-  // 7. Create Emergency Contacts (matching Figma Modal Panggilan Darurat)
+  // 7. Create Emergency Contacts 
   await prisma.emergencyContact.createMany({
     data: [
       { name: 'Pemadam Kebakaran', number: '113', category: 'Damkar', badgeColor: '#dc2626' },
@@ -191,7 +200,7 @@ async function main() {
     ],
   });
 
-  console.log('🎉 Seeding database successfully completed!');
+  console.log('Seeding database selesai 100%!');
 }
 
 main()

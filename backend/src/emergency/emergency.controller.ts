@@ -1,14 +1,18 @@
 import { Controller, Get } from '@nestjs/common';
-import { ApiTags, ApiOperation } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { PrismaService } from '../prisma/prisma.service.js';
 
-@ApiTags('Emergency & Protocol (Panggilan Darurat & Panduan Evakuasi)')
+@ApiTags('5. Panggilan Darurat & Evakuasi (Emergency)')
 @Controller('emergency')
 export class EmergencyController {
   constructor(private prisma: PrismaService) {}
 
   @Get('contacts')
-  @ApiOperation({ summary: 'Mendapatkan daftar nomor panggilan darurat (Modal Panggilan Darurat di Figma)' })
+  @ApiOperation({
+    summary: 'Mendapatkan daftar nomor panggilan darurat',
+    description: 'Menyediakan kontak siap panggil untuk Pemadam (113), Tim SAR (115), Polisi (110), dan Ambulans (119).',
+  })
+  @ApiResponse({ status: 200, description: 'Daftar nomor darurat terdaftar' })
   async getEmergencyContacts() {
     return this.prisma.emergencyContact.findMany({
       orderBy: { number: 'asc' },
@@ -16,7 +20,11 @@ export class EmergencyController {
   }
 
   @Get('protocol')
-  @ApiOperation({ summary: 'Mendapatkan 5 protokol panduan evakuasi cepat karhutla (Layar Panduan di Figma)' })
+  @ApiOperation({
+    summary: 'Mendapatkan 5 langkah protokol panduan evakuasi cepat karhutla',
+    description: 'Menampilkan protokol keselamatan pernapasan, arah angin, tas siaga, jalur evakuasi, dan instruksi posko.',
+  })
+  @ApiResponse({ status: 200, description: 'Langkah panduan evakuasi cepat' })
   getEvacuationProtocol() {
     return {
       title: 'Panduan & Protokol Evakuasi Cepat',
