@@ -1,0 +1,215 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  WARGA
+  RELAWAN
+  ADMIN
+}
+
+enum PostCategory {
+  DARURAT
+  INFORMASI
+}
+
+enum PostStatus {
+  MENUNGGU_VERIFIKASI
+  DALAM_PENANGANAN
+  SELESAI
+  DITOLAK
+}
+
+enum ModerationReason {
+  HOAX_INFO_PALSU
+  FOTO_LOKASI_TIDAK_SESUAI
+  SPAM
+  LAINNYA
+}
+
+enum AssignmentStatus {
+  ASSIGNED
+  ACCEPTED
+  REJECTED
+  ON_THE_WAY
+  ON_SITE
+  COMPLETED
+}
+
+enum PriorityLevel {
+  P1
+  P2
+  P3
+}
+
+enum NotificationType {
+  ALERT_PRIORITAS
+  TUGAS_BARU
+  UPDATE_STATUS
+  KOMENTAR
+  SISTEM
+}
+
+model User {
+  id                String    @id @default(uuid())
+  name              String
+  phone             String    @unique
+  email             String    @unique
+  password          String
+  role              Role      @default(WARGA)
+  avatarUrl         String?
+  province          String?   @default("Kalimantan Barat")
+  kabupaten         String?   @default("Kabupaten Sintang")
+  kecamatan         String?   @default("Kecamatan Sintang")
+  latitude          Float?
+  longitude         Float?
+  isGpsAlwaysActive Boolean   @default(false)
+  isAvailable       Boolean   @default(true) // Untuk Relawan Lapangan
+
+  posts             Post[]
+  postUpdates       PostUpdate[]
+  comments          Comment[]
+  moderationReports PostReport[]
+
+  volunteerTasks    VolunteerAssignment[] @relation("VolunteerTasks")
+  dispatchedTasks   VolunteerAssignment[] @relation("AdminDispatches")
+  notifications     Notification[]
+
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("users")
+}
+
+model Post {
+  id              String        @id @default(uuid())
+  authorId        String
+  category        PostCategory  @default(INFORMASI)
+  content         String        @db.Text
+  imageUrl        String?
+  isLiveCamera    Boolean       @default(true) // Foto diambil secara langsung menggunakan kamera perangkat
+  address         String        // Misal: "Jl. Tunas Rimba No. 18, RT 003/RW 002, Kec. Sungai Tebelian, Kab. Sintang"
+  province        String        @default("Kalimantan Barat")
+  kabupaten       String        @default("Kabupaten Sintang")
+  kecamatan       String        @default("Kecamatan Sungai Tebelian")
+  latitude        Float
+  longitude       Float
+  status          PostStatus    @default(MENUNGGU_VERIFIKASI)
+  clusterCode     String?       // Terkoneksi ke Area Pantau (misal: "Area Pantau 02")
+
+  author          User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  updates         PostUpdate[]
+  comments        Comment[]
+  reports         PostReport[]
+  assignments     VolunteerAssignment[]
+
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("posts")
+}
+
+model PostUpdate {
+  id              String        @id @default(uuid())
+  postId          String
+  authorId        String
+  content         String        @db.Text
+  imageUrl        String?
+
+  post            Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author          User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime      @default(now())
+
+  @@map("post_updates")
+}
+
+model Comment {
+  id              String        @id @default(uuid())
+  postId          String
+  authorId        String
+  content         String        @db.Text
+  imageUrl        String?
+
+  post            Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author          User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime      @default(now())
+
+  @@map("comments")
+}
+
+model PostReport {
+  id              String            @id @default(uuid())
+  postId          String
+  reporterId      String
+  reason          ModerationReason
+  notes           String?           @db.Text
+  isResolved      Boolean           @default(false)
+
+  post            Post              @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reporter        User              @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+
+  createdAt       DateTime          @default(now())
+
+  @@map("post_reports")
+}
+
+model VolunteerAssignment {
+  id                  String            @id @default(uuid())
+  adminId             String
+  volunteerId         String
+  postId              String?
+  clusterCode         String?           // Misal: "Area Pantau 02"
+  priorityLevel       PriorityLevel     @default(P1)
+  status              AssignmentStatus  @default(ASSIGNED)
+  notes               String?           @db.Text
+  rejectionReason     String?           @db.Text
+  verificationPhoto   String?
+  verificationGpsLat  Float?
+  verificationGpsLon  Float?
+
+  admin               User              @relation("AdminDispatches", fields: [adminId], references: [id])
+  volunteer           User              @relation("VolunteerTasks", fields: [volunteerId], references: [id])
+  post                Post?             @relation(fields: [postId], references: [id], onDelete: SetNull)
+
+  assignedAt          DateTime          @default(now())
+  completedAt         DateTime?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+
+  @@map("volunteer_assignments")
+}
+
+model Notification {
+  id          String            @id @default(uuid())
+  userId      String
+  title       String
+  message     String            @db.Text
+  type        NotificationType  @default(SISTEM)
+  isRead      Boolean           @default(false)
+  metadata    Json?
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt   DateTime          @default(now())
+
+  @@map("notifications")
+}
+
+model EmergencyContact {
+  id          String            @id @default(uuid())
+  name        String            // "Pemadam", "Tim SAR", "Kepolisian", "Ambulans"
+  number      String            // "113", "115", "110", "119"
+  category    String
+  badgeColor  String?
+
+  createdAt   DateTime          @default(now())
+
+  @@map("emergency_contacts")
+}
