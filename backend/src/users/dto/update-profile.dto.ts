@@ -32,7 +32,7 @@ export class UpdateProfileDto {
   @IsOptional()
   kecamatan?: string;
 
-  @ApiProperty({ example: true, description: 'Toggle GPS Selalu Aktif dari Figma profil', required: false })
+  @ApiProperty({ example: true, description: 'Toggle GPS Selalu Aktif dari profil', required: false })
   @IsBoolean()
   @IsOptional()
   isGpsAlwaysActive?: boolean;
