@@ -9,6 +9,7 @@ import { CommunityModule } from './community/community.module.js';
 import { AssignmentsModule } from './assignments/assignments.module.js';
 import { EmergencyModule } from './emergency/emergency.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
+import { AppSchedulerModule } from './scheduler/scheduler.module.js';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { NotificationsModule } from './notifications/notifications.module.js';
       envFilePath: '.env',
     }),
     PrismaModule,
+    AppSchedulerModule,
     AuthModule,
     UsersModule,
     CommunityModule,

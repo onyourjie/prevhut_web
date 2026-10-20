@@ -1,6 +1,10 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, IsNumber } from 'class-validator';
+import { IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, MinLength, Matches, IsNumber } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { Role } from '@prisma/client';
+
+export enum RegisterableRole {
+  WARGA = 'WARGA',
+  RELAWAN = 'RELAWAN',
+}
 
 export class RegisterDto {
   @ApiProperty({ example: 'Sarah Wijiyatno', description: 'Nama lengkap pengguna' })
@@ -17,14 +21,26 @@ export class RegisterDto {
   @IsEmail()
   email: string;
 
-  @ApiProperty({ example: 'password123', description: 'Kata sandi minimal 6 karakter' })
+  @ApiProperty({
+    example: 'Sarah123!',
+    description: 'Kata sandi minimal 8 karakter, wajib kombinasi huruf besar, kecil, angka, dan karakter unik (simbol)',
+  })
   @IsString()
-  @MinLength(6)
+  @MinLength(8, { message: 'Kata sandi minimal harus 8 karakter' })
+  @Matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?])/, {
+    message: 'Kata sandi harus mengandung kombinasi huruf besar, huruf kecil, angka, dan karakter unik/simbol (contoh: Sarah123!)',
+  })
   password: string;
 
-  @ApiProperty({ enum: Role, default: Role.WARGA, description: 'Peran pengguna: WARGA atau RELAWAN' })
-  @IsEnum(Role)
-  role: Role;
+  @ApiProperty({
+    enum: RegisterableRole,
+    default: RegisterableRole.WARGA,
+    description: 'Pilihan peran saat mendaftar: WARGA atau RELAWAN (Akun Admin Posko murni akun internal dan tidak dapat didaftarkan secara publik)',
+  })
+  @IsEnum(RegisterableRole, {
+    message: 'Peran pendaftaran hanya diizinkan untuk WARGA atau RELAWAN. Akun Admin Posko dikelola secara internal oleh instansi.',
+  })
+  role: RegisterableRole;
 
   @ApiProperty({ example: 'Kalimantan Barat', required: false })
   @IsString()
