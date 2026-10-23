@@ -12,13 +12,34 @@ export class RegisterDto {
   @IsNotEmpty()
   name: string;
 
-  @ApiProperty({ example: '+6281234567890', description: 'Nomor telepon aktif' })
+  @ApiProperty({ example: "sarahwijiyatno", description: "Username unik pengguna (tanpa spasi)" })
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: "Username wajib diisi" })
+  @MinLength(3, { message: "Username minimal 3 karakter" })
+  @Matches(/^[a-zA-Z0-9_]+$/, { message: "Username hanya boleh berisi huruf, angka, dan underscore" })
+  username: string;
+
+
+  @ApiProperty({
+    example: '+6281234567890',
+    description: 'Nomor telepon seluler Indonesia aktif (bisa format 08xx, 628xx, atau +628xx)',
+  })
+  @IsString()
+  @IsNotEmpty({ message: 'Nomor telepon wajib diisi' })
+  @Matches(/^(?:\+62|62|0)8[1-9][0-9]{7,11}$/, {
+    message: 'Nomor telepon harus nomor seluler Indonesia yang valid (contoh: 081234567890 atau +6281234567890)',
+  })
   phone: string;
 
-  @ApiProperty({ example: 'sarahwijiyatno@gmail.com', description: 'Alamat email pengguna' })
-  @IsEmail()
+  @ApiProperty({
+    example: 'sarahwijiyatno@gmail.com',
+    description: 'Alamat email aktif pengguna (domain umum seperti .com, .id, .co.id, .go.id, dll)',
+  })
+  @IsNotEmpty({ message: 'Email wajib diisi' })
+  @IsEmail({}, { message: 'Format alamat email tidak valid (contoh: nama@email.com atau nama@instansi.go.id)' })
+  @Matches(/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, {
+    message: 'Domain email harus lengkap dengan ekstensi yang valid (seperti .com, .id, .co.id, atau .go.id)',
+  })
   email: string;
 
   @ApiProperty({
