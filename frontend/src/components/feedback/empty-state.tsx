@@ -1,4 +1,5 @@
 import React from 'react'
+import { ClipboardList } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
@@ -27,8 +28,8 @@ export function EmptyState({
       )}
       {...props}
     >
-      <div className="w-12 h-12 rounded-full bg-neutral-100 flex items-center justify-center text-xl text-neutral-600 mb-1">
-        {icon || '📋'}
+      <div className="w-12 h-12 rounded-full bg-neutral-100 flex items-center justify-center text-neutral-600 mb-1">
+        {icon || <ClipboardList className="w-6 h-6" />}
       </div>
       <div className="flex flex-col gap-1 max-w-sm">
         <h3 className="text-base font-bold text-neutral-1000">{title}</h3>

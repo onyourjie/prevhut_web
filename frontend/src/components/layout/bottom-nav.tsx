@@ -1,5 +1,6 @@
 import React from 'react'
 import { Link, useRouterState } from '@tanstack/react-router'
+import { Home, Map, Users, Palette } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface NavItem {
@@ -14,10 +15,10 @@ export interface BottomNavProps {
 }
 
 const defaultNavItems: NavItem[] = [
-  { to: '/', label: 'Beranda', icon: '🏠' },
-  { to: '/map', label: 'Peta', icon: '🗺️' },
-  { to: '/community', label: 'Komunitas', icon: '👥' },
-  { to: '/ui-kit', label: 'UI Kit', icon: '🎨' },
+  { to: '/', label: 'Beranda', icon: <Home className="w-5 h-5" /> },
+  { to: '/map', label: 'Peta', icon: <Map className="w-5 h-5" /> },
+  { to: '/community', label: 'Komunitas', icon: <Users className="w-5 h-5" /> },
+  { to: '/ui-kit', label: 'UI Kit', icon: <Palette className="w-5 h-5" /> },
 ]
 
 export function BottomNav({ items = defaultNavItems, className }: BottomNavProps) {
@@ -47,7 +48,7 @@ export function BottomNav({ items = defaultNavItems, className }: BottomNavProps
                   : 'text-neutral-600 font-medium hover:text-neutral-900',
               )}
             >
-              <span className="text-base leading-none" aria-hidden="true">
+              <span className="flex items-center justify-center leading-none" aria-hidden="true">
                 {item.icon}
               </span>
               <span className="text-[11px] leading-tight truncate max-w-[72px]">{item.label}</span>
