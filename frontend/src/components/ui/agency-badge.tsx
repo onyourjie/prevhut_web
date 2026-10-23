@@ -1,4 +1,5 @@
 import React from 'react'
+import { Shield, ShieldAlert, Flame, Ambulance } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type AgencyType = 'police' | 'fire' | 'bpbd' | 'medical'
@@ -10,11 +11,11 @@ export interface AgencyBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   onCall?: () => void
 }
 
-const agencyConfig: Record<AgencyType, { badgeBg: string; label: string; icon: string }> = {
-  police: { badgeBg: 'bg-agency-police text-white', label: 'Polisi', icon: '👮' },
-  fire: { badgeBg: 'bg-error-600 text-white', label: 'Damkar', icon: '🚒' },
-  bpbd: { badgeBg: 'bg-warning-600 text-white', label: 'BPBD', icon: '🛡️' },
-  medical: { badgeBg: 'bg-accent-900 text-white', label: 'Medis', icon: '🚑' },
+const agencyConfig: Record<AgencyType, { badgeBg: string; label: string; icon: React.ReactNode }> = {
+  police: { badgeBg: 'bg-agency-police text-white', label: 'Polisi', icon: <ShieldAlert className="w-5 h-5" /> },
+  fire: { badgeBg: 'bg-error-600 text-white', label: 'Damkar', icon: <Flame className="w-5 h-5" /> },
+  bpbd: { badgeBg: 'bg-warning-600 text-white', label: 'BPBD', icon: <Shield className="w-5 h-5" /> },
+  medical: { badgeBg: 'bg-accent-900 text-white', label: 'Medis', icon: <Ambulance className="w-5 h-5" /> },
 }
 
 export function AgencyBadge({
@@ -38,7 +39,7 @@ export function AgencyBadge({
       <div className="flex items-center gap-3">
         <div
           className={cn(
-            'w-10 h-10 rounded-[var(--radius-sm)] flex items-center justify-center text-lg shrink-0',
+            'w-10 h-10 rounded-[var(--radius-sm)] flex items-center justify-center shrink-0',
             config.badgeBg,
           )}
           aria-hidden="true"

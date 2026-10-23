@@ -1,3 +1,4 @@
+import { AlertTriangle } from "lucide-react";
 import React from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
@@ -27,7 +28,7 @@ export function ErrorState({
       {...props}
     >
       <div className="w-10 h-10 rounded-full bg-error-100 flex items-center justify-center text-lg text-error-700">
-        ⚠️
+        <AlertTriangle className="w-5 h-5 text-error-700" />
       </div>
 
       <div className="flex flex-col gap-1 max-w-sm">

@@ -1,3 +1,4 @@
+import { AlertCircle } from "lucide-react";
 import React, { useId } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -91,7 +92,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
         {error ? (
           <p id={errorId} className="text-xs font-medium text-error-700 flex items-center gap-1">
-            <span aria-hidden="true">⚠️</span>
+            <AlertCircle className="w-3.5 h-3.5 shrink-0" />
             <span>{error}</span>
           </p>
         ) : hint ? (

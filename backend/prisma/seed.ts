@@ -27,6 +27,7 @@ async function main() {
   const sarah = await prisma.user.create({
     data: {
       name: 'Sarah Wijiyatno',
+      username: 'sarahwijiyatno',
       phone: '+6281234567890',
       email: 'sarahwijiyatno@gmail.com',
       password: passwordSarah,
@@ -43,6 +44,7 @@ async function main() {
   const rina = await prisma.user.create({
     data: {
       name: 'Rina',
+      username: 'rinawarga',
       phone: '+6281298765432',
       email: 'rina.warga@gmail.com',
       password: passwordRina,
@@ -59,6 +61,7 @@ async function main() {
   const rangga = await prisma.user.create({
     data: {
       name: 'Rangga Wicaksono',
+      username: 'ranggawicaksono',
       phone: '+6281355558888',
       email: 'rangga.relawan@gmail.com',
       password: passwordRangga,
@@ -76,6 +79,7 @@ async function main() {
   const admin = await prisma.user.create({
     data: {
       name: 'Koordinator Posko BPBD Sintang',
+      username: 'adminposko',
       phone: '+6281100009999',
       email: 'admin.posko@fireline.id',
       password: passwordAdmin,
@@ -90,10 +94,10 @@ async function main() {
   });
 
   console.log(`Users dibuat:`);
-  console.log(`   - Sarah (WARGA): sarahwijiyatno@gmail.com / Sarah123!`);
-  console.log(`   - Rina (WARGA): rina.warga@gmail.com / Rina123!`);
-  console.log(`   - Rangga (RELAWAN): rangga.relawan@gmail.com / Rangga123!`);
-  console.log(`   - Admin (ADMIN): admin.posko@fireline.id / Admin123!`);
+  console.log(`   - Sarah (WARGA): @sarahwijiyatno (sarahwijiyatno@gmail.com) / Sarah123!`);
+  console.log(`   - Rina (WARGA): @rinawarga (rina.warga@gmail.com) / Rina123!`);
+  console.log(`   - Rangga (RELAWAN): @ranggawicaksono (rangga.relawan@gmail.com) / Rangga123!`);
+  console.log(`   - Admin (ADMIN): @adminposko (admin.posko@fireline.id) / Admin123!`);
 
   // 3. Create Posts 
   const emergencyPost = await prisma.post.create({

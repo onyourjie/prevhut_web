@@ -1,3 +1,4 @@
+import { MapPin, Flame, Tent } from 'lucide-react'
 import { useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Button } from '@/components/ui/button'
@@ -129,7 +130,7 @@ function UiKitShowcase() {
 
             <Input
               label="Lokasi Patroli"
-              leftIcon={<span aria-hidden="true">📍</span>}
+              leftIcon={<MapPin className="w-4 h-4 text-neutral-500" />}
               placeholder="Pilih atau cari kecamatan"
             />
 
@@ -296,7 +297,7 @@ function UiKitShowcase() {
                 title="Titik Panas"
                 value="12"
                 subtitle="24 jam terakhir"
-                icon={<span aria-hidden="true">🔥</span>}
+                icon={<Flame className="w-5 h-5 text-brand-700" />}
               />
               <MetricCard
                 type="weather"
@@ -310,7 +311,7 @@ function UiKitShowcase() {
                 title="Posko Siaga"
                 value="2,4 km"
                 subtitle="Posko Terdekat"
-                icon={<span aria-hidden="true">🏕️</span>}
+                icon={<Tent className="w-5 h-5 text-accent-800" />}
               />
             </div>
           </div>
