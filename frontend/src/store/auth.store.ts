@@ -1,0 +1,62 @@
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+
+export type UserRole = "WARGA" | "RELAWAN" | "ADMIN";
+
+export interface User {
+  id: string;
+  name: string;
+  username: string;
+  email: string;
+  phone: string;
+  role: UserRole;
+  avatarUrl?: string | null;
+  province?: string | null;
+  kabupaten?: string | null;
+  kecamatan?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  isGpsAlwaysActive?: boolean;
+  isAvailable?: boolean;
+  createdAt?: string;
+}
+
+export interface AuthStore {
+  user: User | null;
+  token: string | null;
+  isAuthenticated: boolean;
+  hasHydrated: boolean;
+  setAuth: (user: User, token: string) => void;
+  logout: () => void;
+  setHasHydrated: (val: boolean) => void;
+}
+
+export const useAuthStore = create<AuthStore>()(
+  persist(
+    (set) => ({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      hasHydrated: false,
+      setAuth: (user, token) => {
+        if (typeof window !== "undefined") {
+          localStorage.setItem("firezone_token", token);
+        }
+        set({ user, token, isAuthenticated: true });
+      },
+      logout: () => {
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("firezone_token");
+        }
+        set({ user: null, token: null, isAuthenticated: false });
+      },
+      setHasHydrated: (val) => set({ hasHydrated: val }),
+    }),
+    {
+      name: "firezone_auth",
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
+    }
+  )
+);
