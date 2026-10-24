@@ -10,18 +10,33 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as UiKitRouteImport } from './routes/ui-kit'
+import { Route as CommunityIndexRouteImport } from './routes/community/index'
+import { Route as CommunityPostIdRouteImport } from './routes/community/$postId'
+import { Route as CommunityCreateRouteImport } from './routes/community/create'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const EmergencyRoute = EmergencyRouteImport.update({
+  id: '/emergency',
+  path: '/emergency',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProfileRoute = ProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RegisterRoute = RegisterRouteImport.update({
@@ -34,39 +49,102 @@ const UiKitRoute = UiKitRouteImport.update({
   path: '/ui-kit',
   getParentRoute: () => rootRouteImport,
 } as any)
+const CommunityIndexRoute = CommunityIndexRouteImport.update({
+  id: '/community/',
+  path: '/community/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunityPostIdRoute = CommunityPostIdRouteImport.update({
+  id: '/community/$postId',
+  path: '/community/$postId',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CommunityCreateRoute = CommunityCreateRouteImport.update({
+  id: '/community/create',
+  path: '/community/create',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/ui-kit': typeof UiKitRoute
+  '/community/$postId': typeof CommunityPostIdRoute
+  '/community/create': typeof CommunityCreateRoute
+  '/community/': typeof CommunityIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/ui-kit': typeof UiKitRoute
+  '/community/$postId': typeof CommunityPostIdRoute
+  '/community/create': typeof CommunityCreateRoute
+  '/community': typeof CommunityIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
+  '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/ui-kit': typeof UiKitRoute
+  '/community/$postId': typeof CommunityPostIdRoute
+  '/community/create': typeof CommunityCreateRoute
+  '/community/': typeof CommunityIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register' | '/ui-kit'
+  fullPaths:
+    | '/'
+    | '/emergency'
+    | '/login'
+    | '/profile'
+    | '/register'
+    | '/ui-kit'
+    | '/community/$postId'
+    | '/community/create'
+    | '/community/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/register' | '/ui-kit'
-  id: '__root__' | '/' | '/login' | '/register' | '/ui-kit'
+  to:
+    | '/'
+    | '/emergency'
+    | '/login'
+    | '/profile'
+    | '/register'
+    | '/ui-kit'
+    | '/community/$postId'
+    | '/community/create'
+    | '/community'
+  id:
+    | '__root__'
+    | '/'
+    | '/emergency'
+    | '/login'
+    | '/profile'
+    | '/register'
+    | '/ui-kit'
+    | '/community/$postId'
+    | '/community/create'
+    | '/community/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  EmergencyRoute: typeof EmergencyRoute
   LoginRoute: typeof LoginRoute
+  ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   UiKitRoute: typeof UiKitRoute
+  CommunityPostIdRoute: typeof CommunityPostIdRoute
+  CommunityCreateRoute: typeof CommunityCreateRoute
+  CommunityIndexRoute: typeof CommunityIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -78,11 +156,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/emergency': {
+      id: '/emergency'
+      path: '/emergency'
+      fullPath: '/emergency'
+      preLoaderRoute: typeof EmergencyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
       fullPath: '/login'
       preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/profile': {
+      id: '/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof ProfileRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/register': {
@@ -99,14 +191,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UiKitRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/community/': {
+      id: '/community/'
+      path: '/community'
+      fullPath: '/community/'
+      preLoaderRoute: typeof CommunityIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/community/$postId': {
+      id: '/community/$postId'
+      path: '/community/$postId'
+      fullPath: '/community/$postId'
+      preLoaderRoute: typeof CommunityPostIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/community/create': {
+      id: '/community/create'
+      path: '/community/create'
+      fullPath: '/community/create'
+      preLoaderRoute: typeof CommunityCreateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  EmergencyRoute: EmergencyRoute,
   LoginRoute: LoginRoute,
+  ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   UiKitRoute: UiKitRoute,
+  CommunityPostIdRoute: CommunityPostIdRoute,
+  CommunityCreateRoute: CommunityCreateRoute,
+  CommunityIndexRoute: CommunityIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
