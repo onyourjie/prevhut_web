@@ -211,3 +211,33 @@ body {
   outline: 2px solid var(--color-brand-700);
   outline-offset: 2px;
 }
+
+/* Leaflet divIcon reset */
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Basemap OSM diredam supaya marker prioritas lebih menonjol */
+.basemap-osm .leaflet-tile-pane {
+  filter: saturate(0.55) contrast(0.95) brightness(1.04);
+}
+
+.leaflet-control-attribution {
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border-radius: 8px 0 0 0;
+}
+
+.leaflet-tooltip.area-tooltip {
+  padding: 6px 10px;
+  border: 1px solid var(--color-neutral-200);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--color-neutral-1000);
+  font-size: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.leaflet-tooltip.area-tooltip::before {
+  display: none;
+}
