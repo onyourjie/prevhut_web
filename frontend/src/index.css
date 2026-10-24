@@ -52,7 +52,6 @@ select {
 }
 
 @theme {
-  --color-*: initial;
 
   --color-white: #ffffff;
   --color-black: #000000;
