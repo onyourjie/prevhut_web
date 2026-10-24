@@ -1,35 +1,81 @@
-import { z } from 'zod'
+import { z } from 'zod';
 
-const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000'
+export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
 export class ApiError extends Error {
-  readonly status: number
+  readonly status: number;
+  readonly errors?: any;
 
-  constructor(status: number, message: string) {
-    super(message)
-    this.status = status
+  constructor(status: number, message: string, errors?: any) {
+    super(message);
+    this.status = status;
+    this.errors = errors;
   }
 }
 
+export function getAuthToken(): string | null {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('firezone_token');
+}
+
 /**
- * Wrapper fetch tipis. Cookie httpOnly dikirim lewat credentials: 'include',
- * sehingga token tidak pernah disentuh JavaScript. Respons divalidasi dengan Zod.
+ * Universal fetch wrapper for FIREZONE Backend.
+ * Automatically injects JWT Bearer token and JSON headers.
+ */
+export async function apiRequest<T = any>(
+  path: string,
+  options: RequestInit = {},
+): Promise<T> {
+  const token = getAuthToken();
+  const headers = new Headers(options.headers || {});
+
+  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+    headers.set('Content-Type', 'application/json');
+  }
+
+  if (token && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const url = path.startsWith('http') ? path : `${API_URL}${path}`;
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (!response.ok) {
+    let errorMessage = response.statusText;
+    let errorBody: any = null;
+    try {
+      errorBody = await response.json();
+      if (Array.isArray(errorBody.message)) {
+        errorMessage = errorBody.message.join(', ');
+      } else if (errorBody.message) {
+        errorMessage = errorBody.message;
+      }
+    } catch {
+      // response is not JSON
+    }
+    throw new ApiError(response.status, errorMessage, errorBody);
+  }
+
+  // Handle empty 204 responses
+  if (response.status === 204) {
+    return {} as T;
+  }
+
+  return response.json();
+}
+
+/**
+ * Schema-validated API call with Zod
  */
 export async function api<T>(
   path: string,
   schema: z.ZodType<T>,
   init: RequestInit = {},
 ): Promise<T> {
-  const response = await fetch(`${API_URL}${path}`, {
-    ...init,
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...init.headers },
-  })
-
-  if (!response.ok) {
-    const body = (await response.json().catch(() => null)) as { message?: string } | null
-    throw new ApiError(response.status, body?.message ?? response.statusText)
-  }
-
-  return schema.parse(await response.json())
+  const data = await apiRequest<any>(path, init);
+  return schema.parse(data);
 }
