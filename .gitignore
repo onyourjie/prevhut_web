@@ -70,3 +70,5 @@ skills-lock.json
 
 *.md
 !README.md
+
+docs/
