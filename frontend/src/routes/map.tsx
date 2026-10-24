@@ -35,7 +35,6 @@ function MapPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
-  // Ambil data observasi area pantau dengan query hook
   const { data } = usePriorityAreas({
     district: filter.district,
     priorities: filter.priorities,
@@ -43,7 +42,6 @@ function MapPage() {
 
   const areas = data?.areas || []
 
-  // Hitung filter aktif
   const activeFilterCount = useMemo(() => {
     let count = 0
     if (filter.district !== null) count += 1
@@ -79,12 +77,9 @@ function MapPage() {
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-neutral-100 flex flex-col select-none">
-      {/* 1. Header Desktop (Khusus Layar Desktop lg:) */}
       <MainNavbar />
 
-      {/* 2. Kontainer Utama: Sidebar Kiri + Kanvas Peta */}
       <div className="flex-1 relative w-full overflow-hidden flex flex-col lg:flex-row h-full">
-        {/* Panel Samping (Muncul di lg:) */}
         <MapSidebar
           areas={areas}
           selectedArea={selectedArea}
@@ -101,7 +96,6 @@ function MapPage() {
           className="hidden lg:flex"
         />
 
-        {/* Kanvas Peta Responsif */}
         <div className="flex-1 relative h-full w-full overflow-hidden">
           <HotspotMap
             areas={areas}
@@ -112,7 +106,6 @@ function MapPage() {
             className="w-full h-full"
           />
 
-          {/* Panel Rincian Desktop Mengambang di Kanan Peta */}
           {selectedArea && (
             <AreaDetailPanel
               key={selectedArea.id}
@@ -122,7 +115,6 @@ function MapPage() {
             />
           )}
 
-          {/* Legenda Desktop Mengambang di Kiri Bawah Peta */}
           <div className="absolute bottom-6 left-6 z-[400] hidden lg:flex pointer-events-auto">
             <MapLegend
               activePriorities={filter.priorities}
@@ -133,11 +125,6 @@ function MapPage() {
         </div>
       </div>
 
-      {/* ============================================================== */}
-      {/* 3. TAMPILAN KHUSUS MOBILE (lg:hidden)                           */}
-      {/* ============================================================== */}
-
-      {/* Floating Header Mobile di Bagian Atas (disembunyikan saat kartu rincian terbuka) */}
       {!selectedArea && (
         <div className="absolute top-0 inset-x-0 z-30 p-4 pt-[max(1rem,env(safe-area-inset-top))] max-w-md mx-auto pointer-events-none lg:hidden">
           <MapHeader
@@ -153,17 +140,14 @@ function MapPage() {
         </div>
       )}
 
-      {/* Floating Bottom Controls Mobile (Tampil saat tidak ada area yang di-detail) */}
       {!selectedArea && (
         <div className="absolute bottom-0 inset-x-0 z-30 p-4 pb-20 max-w-md mx-auto pointer-events-none flex flex-col gap-2.5 lg:hidden">
-          {/* Pil Legenda P1 & P2 */}
           <MapLegend
             activePriorities={filter.priorities}
             onTogglePriority={handleTogglePriority}
             showP3={filter.priorities.includes('P3')}
           />
 
-          {/* Kartu Status Prioritas di Lokasi Pengguna */}
           {data?.currentAreaInside && (
             <MapStatusCard
               area={data.currentAreaInside}
@@ -172,7 +156,6 @@ function MapPage() {
             />
           )}
 
-          {/* Bilah Pemicu Laci Daftar Area Prioritas */}
           <PriorityDrawerBanner
             totalCount={data?.totalAreasFound ?? 0}
             regencyName={filter.district || 'Kab. Sintang'}
@@ -182,10 +165,8 @@ function MapPage() {
         </div>
       )}
 
-      {/* Navigasi Bawah Mengambang Mobile */}
       {!selectedArea && <BottomNav variant="floating" className="lg:hidden" />}
 
-      {/* Lembar Rincian Area Pantauan (Detail Sheet Mobile) */}
       {selectedArea && (
         <AreaDetailSheet
           area={selectedArea}
@@ -194,7 +175,6 @@ function MapPage() {
         />
       )}
 
-      {/* Lembar Daftar Seluruh Area Pantau (List Sheet Mobile) */}
       <PriorityListSheet
         areas={areas}
         regencyName={filter.district || 'Kab. Sintang'}
@@ -204,7 +184,6 @@ function MapPage() {
         className="lg:hidden"
       />
 
-      {/* Lembar Filter Wilayah & Parameter (Filter Sheet Mobile) */}
       <MapFilterSheet
         isOpen={isFilterOpen}
         currentFilter={filter}
