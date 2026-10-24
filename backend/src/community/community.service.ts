@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import * as path from 'path';
+import * as fs from 'fs';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { CreatePostDto } from './dto/create-post.dto.js';
 import { CreateUpdateDto } from './dto/create-update.dto.js';
@@ -220,6 +222,49 @@ export class CommunityService {
     return {
       message: 'Laporan pelanggaran konten telah diterima untuk ditinjau oleh Admin Posko.',
       report,
+    };
+  }
+  async uploadMedia(body: { data?: string; filename?: string }) {
+    if (!body || !body.data) {
+      throw new BadRequestException("Data file media base64 wajib disertakan");
+    }
+
+    const uploadsDir = path.join(process.cwd(), "uploads");
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    let mime = "video/mp4";
+    let base64Content = body.data;
+
+    if (body.data.startsWith("data:")) {
+      const commaIdx = body.data.indexOf(",");
+      const meta = body.data.substring(0, commaIdx);
+      base64Content = body.data.substring(commaIdx + 1);
+      const mimeMatch = meta.match(/data:([^;]+)/);
+      if (mimeMatch) mime = mimeMatch[1];
+    }
+
+    let ext = "mp4";
+    if (mime.includes("webm")) ext = "webm";
+    else if (mime.includes("jpeg") || mime.includes("jpg")) ext = "jpg";
+    else if (mime.includes("png")) ext = "png";
+    else if (mime.includes("mp4")) ext = "mp4";
+
+    const cleanFilename = body.filename
+      ? body.filename.replace(/[^a-zA-Z0-9._-]/g, "_")
+      : `media-${Date.now()}-${Math.random().toString(36).substring(2, 8)}.${ext}`;
+    
+    const filePath = path.join(uploadsDir, cleanFilename);
+    const buffer = Buffer.from(base64Content, "base64");
+    fs.writeFileSync(filePath, buffer);
+
+    const baseUrl = process.env.BASE_URL || "http://localhost:3000";
+    return {
+      url: `${baseUrl}/uploads/${cleanFilename}`,
+      filename: cleanFilename,
+      mimeType: mime,
+      size: buffer.length,
     };
   }
 }

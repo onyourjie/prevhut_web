@@ -107,4 +107,13 @@ export class CommunityController {
   ) {
     return this.communityService.flagPost(userId, id, dto);
   }
+  @Post("upload")
+  @ApiOperation({
+    summary: "Upload media foto / rekaman video lapangan ke storage server lokal",
+    description: "Menyimpan file media (foto/video) ke storage lokal dan mengembalikan URL statis yang mendukung HTTP range-request.",
+  })
+  @ApiResponse({ status: 201, description: "File berhasil diunggah" })
+  uploadMedia(@Body() body: { data?: string; filename?: string }) {
+    return this.communityService.uploadMedia(body);
+  }
 }
