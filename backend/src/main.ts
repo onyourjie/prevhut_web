@@ -1,3 +1,6 @@
+import express, { json, urlencoded } from 'express';
+import * as path from 'path';
+import * as fs from 'fs';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
@@ -6,11 +9,25 @@ import { AppModule } from './app.module.js';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  app.use(json({ limit: '50mb' }));
+  app.use(urlencoded({ extended: true, limit: '50mb' }));
+
   app.enableCors({
     origin: ['http://localhost:5173', 'http://127.0.0.1:5173', '*'],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
     credentials: true,
   });
+
+    // Serve static uploaded files with HTTP Range-Request support for video playback
+  const uploadsDir = path.join(process.cwd(), "uploads");
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+  app.use("/uploads", express.static(uploadsDir, {
+    setHeaders: (res) => {
+      res.setHeader("Accept-Ranges", "bytes");
+    }
+  }));
 
   app.useGlobalPipes(
     new ValidationPipe({
