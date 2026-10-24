@@ -11,8 +11,8 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MapRouteImport } from './routes/map'
 import { Route as RegisterRouteImport } from './routes/register'
-import { Route as UiKitRouteImport } from './routes/ui-kit'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -24,49 +24,49 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UiKitRoute = UiKitRouteImport.update({
-  id: '/ui-kit',
-  path: '/ui-kit',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/register': typeof RegisterRoute
-  '/ui-kit': typeof UiKitRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/register': typeof RegisterRoute
-  '/ui-kit': typeof UiKitRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/register': typeof RegisterRoute
-  '/ui-kit': typeof UiKitRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/register' | '/ui-kit'
+  fullPaths: '/' | '/login' | '/map' | '/register'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/register' | '/ui-kit'
-  id: '__root__' | '/' | '/login' | '/register' | '/ui-kit'
+  to: '/' | '/login' | '/map' | '/register'
+  id: '__root__' | '/' | '/login' | '/map' | '/register'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  MapRoute: typeof MapRoute
   RegisterRoute: typeof RegisterRoute
-  UiKitRoute: typeof UiKitRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -85,18 +85,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/register': {
       id: '/register'
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ui-kit': {
-      id: '/ui-kit'
-      path: '/ui-kit'
-      fullPath: '/ui-kit'
-      preLoaderRoute: typeof UiKitRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -105,8 +105,8 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  MapRoute: MapRoute,
   RegisterRoute: RegisterRoute,
-  UiKitRoute: UiKitRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

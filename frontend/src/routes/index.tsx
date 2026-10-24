@@ -151,15 +151,24 @@ function Home() {
           </div>
         )}
 
-        <Card className="flex flex-col gap-3">
-          <h3 className="text-sm font-bold text-neutral-1000">Etalase Komponen UI Kit</h3>
-          <p className="text-xs text-neutral-700 leading-relaxed">
-            Seluruh komponen tombol, input, badge status, kartu metrik, baris sumber data, dan
-            pola state siap ditinjau di rute khusus.
-          </p>
-          <Link to="/ui-kit" className="w-full">
-            <Button variant="primary" size="long">
-              Buka Halaman UI Kit
+        <Card className="flex flex-col gap-3 border-2 border-brand-500/30 bg-gradient-to-b from-brand-50/40 to-white shadow-sm">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-xs">
+              <Flame className="w-5 h-5" />
+            </div>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-800 border border-brand-200">
+              FITUR BARU
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <h3 className="text-base font-bold text-neutral-1000">Peta Sebaran Titik Panas</h3>
+            <p className="text-xs text-neutral-600 leading-relaxed mt-1">
+              Pantau 10 Area Pantau Prioritas di Kabupaten Sintang dengan status risiko P1, P2, P3, analisis FRP, dan filter wilayah interaktif.
+            </p>
+          </div>
+          <Link to="/map" className="w-full">
+            <Button variant="primary" size="long" className="w-full">
+              Buka Peta Interaktif
             </Button>
           </Link>
         </Card>
