@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 export const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+export const DATA_SERVICE_URL = import.meta.env.VITE_DATA_SERVICE_URL ?? 'http://localhost:8000/api';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -37,7 +38,15 @@ export async function apiRequest<T = any>(
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const url = path.startsWith('http') ? path : `${API_URL}${path}`;
+  let url: string;
+  if (path.startsWith('http')) {
+    url = path;
+  } else if (path.startsWith('/hotspots/')) {
+    // Rute mikroservis satelit FIRMS & Cuaca ke FastAPI (port 8000)
+    url = `${DATA_SERVICE_URL}${path.replace(/^\/hotspots/, '')}`;
+  } else {
+    url = `${API_URL}${path}`;
+  }
 
   const response = await fetch(url, {
     ...options,
