@@ -14,7 +14,6 @@ import { VolunteerPrioritySection } from '@/components/home/VolunteerPrioritySec
 import { VolunteerAvailabilityCard } from '@/components/home/VolunteerAvailabilityCard'
 import { LocationStatusCard } from '@/components/home/LocationStatusCard'
 import { CitizenActionsSection } from '@/components/home/CitizenActionsSection'
-import { MapIntelBanner } from '@/components/home/MapIntelBanner'
 
 export const Route = createFileRoute('/')({
   component: HomePage,
@@ -247,13 +246,6 @@ function HomePage() {
             onOpenEmergencyModal={() => setIsEmergencyModalOpen(true)}
           />
         )}
-
-        {/* PETA INTELIJEN SEBARAN TITIK PANAS BANNER */}
-        <MapIntelBanner
-          totalAreas={priorityData?.totalAreasFound ?? null}
-          isSample={priorityData?.isSample}
-          displayLocation={displayLocation}
-        />
       </div>
 
       {/* MODAL PANDUAN & PROTOKOL EVAKUASI CEPAT */}
