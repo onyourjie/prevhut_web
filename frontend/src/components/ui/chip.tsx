@@ -32,7 +32,6 @@ export const Chip = React.forwardRef<HTMLButtonElement, ChipProps>(
         aria-pressed={selected}
         disabled={disabled}
         className={cn(
-          // 44px touch target area per DESIGN.md 6.4
           'inline-flex items-center justify-center gap-1.5 min-h-[44px] px-3.5 py-2 rounded-[var(--radius-full)] select-none cursor-pointer',
           'text-xs font-semibold transition-colors duration-150 focus-ring',
           size === 'lg' ? 'text-sm px-4' : 'text-xs px-3',

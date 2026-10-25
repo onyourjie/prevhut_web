@@ -12,9 +12,9 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as MapRouteImport } from './routes/map'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegisterRouteImport } from './routes/register'
-import { Route as UiKitRouteImport } from './routes/ui-kit'
 import { Route as CommunityIndexRouteImport } from './routes/community/index'
 import { Route as CommunityPostIdRouteImport } from './routes/community/$postId'
 import { Route as CommunityCreateRouteImport } from './routes/community/create'
@@ -34,6 +34,11 @@ const LoginRoute = LoginRouteImport.update({
   path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MapRoute = MapRouteImport.update({
+  id: '/map',
+  path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -42,11 +47,6 @@ const ProfileRoute = ProfileRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const UiKitRoute = UiKitRouteImport.update({
-  id: '/ui-kit',
-  path: '/ui-kit',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommunityIndexRoute = CommunityIndexRouteImport.update({
@@ -69,9 +69,9 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/ui-kit': typeof UiKitRoute
   '/community/$postId': typeof CommunityPostIdRoute
   '/community/create': typeof CommunityCreateRoute
   '/community/': typeof CommunityIndexRoute
@@ -80,9 +80,9 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/ui-kit': typeof UiKitRoute
   '/community/$postId': typeof CommunityPostIdRoute
   '/community/create': typeof CommunityCreateRoute
   '/community': typeof CommunityIndexRoute
@@ -92,9 +92,9 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
+  '/map': typeof MapRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
-  '/ui-kit': typeof UiKitRoute
   '/community/$postId': typeof CommunityPostIdRoute
   '/community/create': typeof CommunityCreateRoute
   '/community/': typeof CommunityIndexRoute
@@ -105,9 +105,9 @@ export interface FileRouteTypes {
     | '/'
     | '/emergency'
     | '/login'
+    | '/map'
     | '/profile'
     | '/register'
-    | '/ui-kit'
     | '/community/$postId'
     | '/community/create'
     | '/community/'
@@ -116,9 +116,9 @@ export interface FileRouteTypes {
     | '/'
     | '/emergency'
     | '/login'
+    | '/map'
     | '/profile'
     | '/register'
-    | '/ui-kit'
     | '/community/$postId'
     | '/community/create'
     | '/community'
@@ -127,9 +127,9 @@ export interface FileRouteTypes {
     | '/'
     | '/emergency'
     | '/login'
+    | '/map'
     | '/profile'
     | '/register'
-    | '/ui-kit'
     | '/community/$postId'
     | '/community/create'
     | '/community/'
@@ -139,9 +139,9 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   EmergencyRoute: typeof EmergencyRoute
   LoginRoute: typeof LoginRoute
+  MapRoute: typeof MapRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
-  UiKitRoute: typeof UiKitRoute
   CommunityPostIdRoute: typeof CommunityPostIdRoute
   CommunityCreateRoute: typeof CommunityCreateRoute
   CommunityIndexRoute: typeof CommunityIndexRoute
@@ -170,6 +170,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/map': {
+      id: '/map'
+      path: '/map'
+      fullPath: '/map'
+      preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -182,13 +189,6 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ui-kit': {
-      id: '/ui-kit'
-      path: '/ui-kit'
-      fullPath: '/ui-kit'
-      preLoaderRoute: typeof UiKitRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/community/': {
@@ -219,9 +219,9 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   EmergencyRoute: EmergencyRoute,
   LoginRoute: LoginRoute,
+  MapRoute: MapRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
-  UiKitRoute: UiKitRoute,
   CommunityPostIdRoute: CommunityPostIdRoute,
   CommunityCreateRoute: CommunityCreateRoute,
   CommunityIndexRoute: CommunityIndexRoute,

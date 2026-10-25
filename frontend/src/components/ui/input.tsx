@@ -47,12 +47,10 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           className={cn(
             'flex items-center w-full min-h-[44px] rounded-[var(--radius-sm)] border bg-white px-3',
             'transition-colors duration-150',
-            // Default border & text states per DESIGN.md 6.3
             error
               ? 'border-error-600 focus-within:border-error-700'
               : 'border-neutral-500 focus-within:border-brand-700',
             disabled && 'bg-neutral-50 border-neutral-200 cursor-not-allowed',
-            // Focus ring indicator
             'focus-within:outline-none focus-within:ring-2 focus-within:ring-brand-700 focus-within:ring-offset-2',
             error && 'focus-within:ring-error-600',
           )}

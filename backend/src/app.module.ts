@@ -10,6 +10,7 @@ import { AssignmentsModule } from './assignments/assignments.module.js';
 import { EmergencyModule } from './emergency/emergency.module.js';
 import { NotificationsModule } from './notifications/notifications.module.js';
 import { AppSchedulerModule } from './scheduler/scheduler.module.js';
+import { HotspotsModule } from './hotspots/hotspots.module.js';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { AppSchedulerModule } from './scheduler/scheduler.module.js';
     }),
     PrismaModule,
     AppSchedulerModule,
+    HotspotsModule,
     AuthModule,
     UsersModule,
     CommunityModule,

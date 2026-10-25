@@ -1,4 +1,5 @@
 import React from 'react'
+import { ArrowLeft } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface PageHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
@@ -32,7 +33,7 @@ export function PageHeader({
             className="min-h-[44px] min-w-[44px] flex items-center justify-center rounded-[var(--radius-sm)] text-neutral-700 hover:bg-neutral-100 focus-ring"
             aria-label="Kembali ke halaman sebelumnya"
           >
-            ←
+            <ArrowLeft className="w-5 h-5" aria-hidden="true" />
           </button>
         )}
         <div className="flex flex-col">

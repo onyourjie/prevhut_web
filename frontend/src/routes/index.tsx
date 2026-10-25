@@ -1,16 +1,17 @@
-import { createFileRoute, Link } from '@tanstack/react-router';
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
   Flame,
   Users,
   ArrowRight,
   AlertTriangle,
   Radio,
-} from 'lucide-react';
-import { AppLayout } from '@/components/layout/app-layout';
-import { Card } from '@/components/ui/card';
-import { useAuthStore } from '@/store/auth.store';
+} from "lucide-react";
+import { AppLayout } from "@/components/layout/app-layout";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useAuthStore } from "@/store/auth.store";
 
-export const Route = createFileRoute('/')({
+export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
@@ -112,7 +113,7 @@ function HomePage() {
               <img
                 src={
                   user.avatarUrl ||
-                  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&q=80'
+                  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&q=80"
                 }
                 alt={user.name}
                 className="w-11 h-11 rounded-full object-cover border border-neutral-200"
@@ -125,7 +126,7 @@ function HomePage() {
                   </span>
                 </div>
                 <p className="text-[11px] text-neutral-400">
-                  {user.kabupaten || 'Kabupaten Sintang'}, {user.province || 'Kalimantan Barat'}
+                  {user.kabupaten || "Kabupaten Sintang"}, {user.province || "Kalimantan Barat"}
                 </p>
               </div>
             </div>
@@ -140,19 +141,26 @@ function HomePage() {
           </div>
         )}
 
-        {/* UI Kit & Documentation Link */}
-        <Card className="flex items-center justify-between p-4">
-          <div>
-            <h4 className="text-xs font-bold text-neutral-900">Etalase UI Kit & Token Warna</h4>
-            <p className="text-[11px] text-neutral-500">
-              Desain sistem, tipografi Plus Jakarta Sans, dan komponen sesuai mockup Figma.
+        {/* Peta Sebaran Titik Panas - Fitur Utama */}
+        <Card className="flex flex-col gap-3 border-2 border-brand-500/30 bg-gradient-to-b from-brand-50/40 to-white shadow-sm p-5">
+          <div className="flex items-center justify-between">
+            <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-xs">
+              <Flame className="w-5 h-5" />
+            </div>
+            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-800 border border-brand-200">
+              FITUR BARU
+            </span>
+          </div>
+          <div className="flex flex-col">
+            <h3 className="text-base font-bold text-neutral-900">Peta Sebaran Titik Panas</h3>
+            <p className="text-xs text-neutral-600 leading-relaxed mt-1">
+              Pantau 10 Area Pantau Prioritas di Kabupaten Sintang dengan status risiko P1, P2, P3, analisis FRP, dan filter wilayah interaktif.
             </p>
           </div>
-          <Link
-            to="/ui-kit"
-            className="px-3 py-1.5 rounded-xl border border-neutral-200 hover:bg-neutral-50 text-xs font-bold text-neutral-700 transition"
-          >
-            Buka UI Kit
+          <Link to="/map" className="w-full">
+            <Button variant="primary" size="long" className="w-full">
+              Buka Peta Interaktif
+            </Button>
           </Link>
         </Card>
       </div>

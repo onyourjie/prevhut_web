@@ -1,4 +1,5 @@
 import React from 'react'
+import { Flame, AlertCircle, Info, Minus } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export type BadgeVariant = 'success' | 'danger' | 'warning' | 'neutral' | 'accent'
@@ -21,7 +22,7 @@ export function Badge({ children, variant = 'neutral', icon, className, ...props
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 px-2.5 py-0.5 rounded-[var(--radius-full)] text-xs font-semibold select-none',
+        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-[var(--radius-full)] text-xs font-semibold select-none',
         variantStyles[variant],
         className,
       )}
@@ -37,11 +38,14 @@ export interface RiskBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
   level: RiskLevel
 }
 
-const riskConfig: Record<RiskLevel, { label: string; variant: BadgeVariant; iconText: string }> = {
-  high: { label: 'Risiko Tinggi', variant: 'danger', iconText: '▲' },
-  medium: { label: 'Risiko Sedang', variant: 'warning', iconText: '!' },
-  low: { label: 'Risiko Rendah', variant: 'accent', iconText: '●' },
-  nodata: { label: 'Belum ada data', variant: 'neutral', iconText: '—' },
+const riskConfig: Record<
+  RiskLevel,
+  { label: string; variant: BadgeVariant; icon: React.ReactNode }
+> = {
+  high: { label: 'Risiko Tinggi', variant: 'danger', icon: <Flame className="w-3.5 h-3.5" aria-hidden="true" /> },
+  medium: { label: 'Risiko Sedang', variant: 'warning', icon: <AlertCircle className="w-3.5 h-3.5" aria-hidden="true" /> },
+  low: { label: 'Risiko Rendah', variant: 'accent', icon: <Info className="w-3.5 h-3.5" aria-hidden="true" /> },
+  nodata: { label: 'Belum ada data', variant: 'neutral', icon: <Minus className="w-3.5 h-3.5" aria-hidden="true" /> },
 }
 
 export function RiskBadge({ level, className, ...props }: RiskBadgeProps) {
@@ -50,7 +54,7 @@ export function RiskBadge({ level, className, ...props }: RiskBadgeProps) {
     <Badge
       variant={config.variant}
       className={cn('font-bold', className)}
-      icon={<span aria-hidden="true">{config.iconText}</span>}
+      icon={config.icon}
       {...props}
     >
       {config.label}
