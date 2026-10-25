@@ -3,7 +3,7 @@ import { Plus, Minus, LocateFixed, Layers, Map as MapIcon, Mountain, Satellite, 
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { cn } from '@/lib/utils'
-import { USER_CURRENT_LOCATION } from '../mock-data'
+import { USER_CURRENT_LOCATION } from '../hotspot-data'
 import { BASEMAPS } from '../basemaps'
 import type { BasemapId } from '../basemaps'
 

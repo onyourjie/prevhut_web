@@ -12,6 +12,7 @@ export interface AreaFilterFormProps {
   currentFilter: MapFilter
   onApply: (filter: MapFilter) => void
   onReset?: () => void
+  isLoading?: boolean
   className?: string
 }
 
@@ -19,6 +20,7 @@ export function AreaFilterForm({
   currentFilter,
   onApply,
   onReset,
+  isLoading = false,
   className,
 }: AreaFilterFormProps) {
   const { user } = useAuthStore()
@@ -205,9 +207,14 @@ export function AreaFilterForm({
         <Button
           type="submit"
           variant="primary"
-          className="flex-2 h-11 text-xs font-bold bg-brand-700 hover:bg-brand-800 text-white shadow-xs cursor-pointer"
+          disabled={isLoading}
+          className="flex-2 h-11 text-xs font-bold bg-brand-700 hover:bg-brand-800 text-white shadow-xs cursor-pointer disabled:opacity-75 disabled:cursor-wait flex items-center justify-center gap-1.5"
         >
-          Terapkan Filter
+          {isLoading ? (
+            <span>Sedang mengambil data...</span>
+          ) : (
+            <span>Terapkan Filter</span>
+          )}
         </Button>
       </div>
     </form>

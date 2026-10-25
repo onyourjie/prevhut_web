@@ -5,8 +5,6 @@ interface LocationStatusCardProps {
   displayLocation: string
   displayProvince: string
   isPerhatianKhusus: boolean
-  ispuValue: number
-  ispuCategory: string
   totalHotspots: number
   weatherText: string
   tempText: string
@@ -17,8 +15,6 @@ export function LocationStatusCard({
   displayLocation,
   displayProvince,
   isPerhatianKhusus,
-  ispuValue,
-  ispuCategory,
   totalHotspots,
   weatherText,
   tempText,
@@ -60,8 +56,8 @@ export function LocationStatusCard({
             </span>
           </div>
 
-          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200">
-            ISPU {ispuValue} • Kualitas {ispuCategory}
+          <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-neutral-100 text-neutral-600 border border-neutral-200">
+            Live Satelit & Cuaca
           </span>
         </div>
 
