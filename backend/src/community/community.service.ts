@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException, BadRequestException, Logger } from '@nestjs/common';
 import * as path from 'path';
 import * as fs from 'fs';
 import { PrismaService } from '../prisma/prisma.service.js';
@@ -10,7 +10,34 @@ import { PostCategory, PostStatus } from '@prisma/client';
 
 @Injectable()
 export class CommunityService {
+  private readonly logger = new Logger(CommunityService.name);
+  private readonly dataServiceUrl = process.env.DATA_SERVICE_URL || 'http://localhost:8000';
+
   constructor(private prisma: PrismaService) {}
+
+  async getUserQuota(userId: string) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("Pengguna tidak ditemukan");
+
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const postsToday = await this.prisma.post.count({
+      where: {
+        authorId: userId,
+        createdAt: { gte: oneDayAgo },
+      },
+    });
+
+    const maxDaily = user.role === "WARGA" ? 3 : 999;
+    const remainingQuota = Math.max(0, maxDaily - postsToday);
+
+    return {
+      role: user.role,
+      postsToday,
+      maxDaily,
+      remainingQuota,
+      canPost: postsToday < maxDaily,
+    };
+  }
 
   async getPosts(query: {
     category?: PostCategory;
@@ -68,6 +95,13 @@ export class CommunityService {
             updates: true,
           },
         },
+        assignments: {
+          orderBy: { createdAt: "desc" },
+          take: 1,
+          include: {
+            volunteer: { select: { id: true, name: true, phone: true } },
+          },
+        },
       },
     });
   }
@@ -118,6 +152,23 @@ export class CommunityService {
   }
 
   async createPost(userId: string, dto: CreatePostDto) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException("Pengguna tidak ditemukan");
+
+    // Rate Limit 3x per 24 jam untuk WARGA
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const postsToday = await this.prisma.post.count({
+      where: {
+        authorId: userId,
+        createdAt: { gte: oneDayAgo },
+      },
+    });
+
+    if (user.role === "WARGA" && postsToday >= 3) {
+      throw new BadRequestException(
+        "Batas kuota pelaporan harian tercapai (maksimal 3 laporan per 24 jam untuk Warga). Hal ini untuk mencegah laporan spam dan duplikasi. Anda dapat menambahkan komentar atau informasi tambahan pada postingan yang sudah ada."
+      );
+    }
     const post = await this.prisma.post.create({
       data: {
         authorId: userId,
@@ -141,11 +192,32 @@ export class CommunityService {
       },
     });
 
+    // Teruskan laporan darurat warga ke microservice data & clustering (FastAPI) untuk live citizen boost
+    try {
+      fetch(`${this.dataServiceUrl}/api/community/reports`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          author: { name: user.name, role: user.role },
+          category: dto.category === PostCategory.DARURAT ? "Darurat" : "Informasi",
+          address: dto.address,
+          content: dto.content,
+          image_url: dto.imageUrl,
+          coordinates: {
+            latitude: dto.latitude,
+            longitude: dto.longitude,
+            kabupaten: dto.kabupaten,
+            kecamatan: dto.kecamatan,
+          },
+        }),
+      }).catch((err) => this.logger.warn(`Gagal meneruskan laporan ke data service: ${err.message}`));
+    } catch {}
+
     return {
       message:
         dto.category === PostCategory.DARURAT
-          ? 'Postingan darurat berhasil dipublikasikan dan disematkan di komunitas!'
-          : 'Informasi berhasil dibagikan ke komunitas!',
+          ? "Postingan darurat berhasil dipublikasikan dan disematkan di komunitas!"
+          : "Informasi berhasil dibagikan ke komunitas!",
       post,
     };
   }

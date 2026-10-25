@@ -14,7 +14,19 @@ import { PostCategory, PostStatus } from '@prisma/client';
 export class CommunityController {
   constructor(private communityService: CommunityService) {}
 
-  @Get('posts')
+  @Get("quota")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth("JWT-auth")
+  @ApiOperation({
+    summary: "Cek sisa kuota postingan harian pengguna (Maks 3 per hari untuk akun Warga)",
+    description: "Mengembalikan jumlah laporan yang dibuat dalam 24 jam terakhir dan sisa kuota yang dapat digunakan.",
+  })
+  @ApiResponse({ status: 200, description: "Informasi sisa kuota postingan" })
+  getUserQuota(@CurrentUser("id") userId: string) {
+    return this.communityService.getUserQuota(userId);
+  }
+
+  @Get("posts")
   @ApiOperation({
     summary: 'Melihat feed postingan komunitas (Filter: Darurat/Informasi, Lokasi, Pencarian)',
     description: 'Menampilkan feed kabar warga & relawan. Postingan Darurat otomatis disematkan di posisi teratas.',
