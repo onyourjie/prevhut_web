@@ -39,9 +39,10 @@ export const PriorityAreaSchema = z.object({
   priority: PriorityLevelSchema,
   priorityLabel: z.string(), // "Prioritas Tinggi", "Perhatian Meningkat", "Tetap Dipantau"
   score: z.number(), // Misal: 85.2
+  province: z.string().optional(),
   regency: z.string(), // Kabupaten, misal: "Kabupaten Sintang"
   district: z.string(), // Kecamatan, misal: "Kecamatan Sintang"
-  hotspotCount: z.number(),
+  hotspotCount: z.number().nullable(),
   lastUpdatedText: z.string(), // Contoh: "01.00 WIB" atau "12 jam yang lalu"
   coordinates: z.object({
     lat: z.number(),
@@ -59,7 +60,8 @@ export const PriorityAreaSchema = z.object({
 export type PriorityArea = z.infer<typeof PriorityAreaSchema>
 
 export const MapFilterSchema = z.object({
-  regency: z.string(),
+  province: z.string().nullable().default(null),
+  regency: z.string().nullable().default(null),
   district: z.string().nullable().default(null),
   date: z.string(), // format YYYY-MM-DD
   priorities: z.array(PriorityLevelSchema).default(['P1', 'P2', 'P3']),
@@ -67,6 +69,7 @@ export const MapFilterSchema = z.object({
 export type MapFilter = z.infer<typeof MapFilterSchema>
 
 export const AreaPrioritySummarySchema = z.object({
+  isSample: z.boolean().optional(),
   currentLocationName: z.string(),
   currentLocationStatusText: z.string(),
   currentAreaInside: PriorityAreaSchema.nullable(),

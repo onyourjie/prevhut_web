@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AssignmentsRouteImport } from './routes/assignments'
 import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MapRouteImport } from './routes/map'
@@ -22,6 +23,11 @@ import { Route as CommunityCreateRouteImport } from './routes/community/create'
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AssignmentsRoute = AssignmentsRouteImport.update({
+  id: '/assignments',
+  path: '/assignments',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EmergencyRoute = EmergencyRouteImport.update({
@@ -67,6 +73,7 @@ const CommunityCreateRoute = CommunityCreateRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/assignments': typeof AssignmentsRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
@@ -78,6 +85,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/assignments': typeof AssignmentsRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
@@ -90,6 +98,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/assignments': typeof AssignmentsRoute
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
@@ -103,6 +112,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/assignments'
     | '/emergency'
     | '/login'
     | '/map'
@@ -114,6 +124,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/assignments'
     | '/emergency'
     | '/login'
     | '/map'
@@ -125,6 +136,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/assignments'
     | '/emergency'
     | '/login'
     | '/map'
@@ -137,6 +149,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AssignmentsRoute: typeof AssignmentsRoute
   EmergencyRoute: typeof EmergencyRoute
   LoginRoute: typeof LoginRoute
   MapRoute: typeof MapRoute
@@ -154,6 +167,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/assignments': {
+      id: '/assignments'
+      path: '/assignments'
+      fullPath: '/assignments'
+      preLoaderRoute: typeof AssignmentsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/emergency': {
@@ -217,6 +237,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AssignmentsRoute: AssignmentsRoute,
   EmergencyRoute: EmergencyRoute,
   LoginRoute: LoginRoute,
   MapRoute: MapRoute,

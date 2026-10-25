@@ -4,6 +4,7 @@ import { ArrowLeft, MoreVertical, Flag, RefreshCw } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { FlagModal } from '@/components/community/flag-modal';
 import { PostDetailMainCard } from '@/components/community/post-detail-main-card';
+import { ResponseTrackingSection } from '@/components/community/response-tracking-section';
 import { PostUpdatesSection } from '@/components/community/post-updates-section';
 import { PostCommentsSection } from '@/components/community/post-comments-section';
 import { PostCommentInputBar } from '@/components/community/post-comment-input-bar';
@@ -204,6 +205,18 @@ function PostDetailPage() {
           post={post}
           onMediaClick={(url) => setLightboxMediaUrl(url)}
         />
+
+        {/* SECTION: Lacak Progres Penanganan Transparan */}
+        {post.category === 'DARURAT' ? (
+          <ResponseTrackingSection
+            post={post}
+            onMediaClick={(url) => setLightboxMediaUrl(url)}
+          />
+        ) : (
+          <div className="p-5 bg-white rounded-2xl border border-neutral-200 text-sm text-neutral-600">
+            Informasi komunitas telah dipublikasikan.
+          </div>
+        )}
 
         {/* SECTION: Update Pengirim */}
         <PostUpdatesSection

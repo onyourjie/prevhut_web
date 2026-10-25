@@ -1,7 +1,8 @@
 import React from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Map, PlusCircle, Users, User } from "lucide-react";
+import { Home, Map, PlusCircle, Users, User, Shield } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth.store";
 
 export interface NavItem {
   to: string;
@@ -16,26 +17,48 @@ export interface BottomNavProps {
   className?: string;
 }
 
-const defaultNavItems: NavItem[] = [
-  { to: "/", label: "Beranda", icon: <Home className="w-5 h-5" /> },
-  { to: "/map", label: "Peta", icon: <Map className="w-5 h-5" /> },
-  {
-    to: "/community/create",
-    label: "Lapor",
-    icon: <PlusCircle className="w-6 h-6" />,
-    isSpecial: true,
-  },
-  { to: "/community", label: "Komunitas", icon: <Users className="w-5 h-5" /> },
-  { to: "/profile", label: "Profil", icon: <User className="w-5 h-5" /> },
-];
-
 export function BottomNav({
-  items = defaultNavItems,
+  items,
   variant = "fixed",
   className,
 }: BottomNavProps) {
   const routerState = useRouterState();
   const currentPath = routerState.location.pathname;
+  const { user, isAuthenticated } = useAuthStore();
+
+  const isVolunteer = isAuthenticated && (user?.role === "RELAWAN" || user?.role === "ADMIN");
+
+  const effectiveItems: NavItem[] = items || (isVolunteer
+    ? [
+        { to: "/", label: "Beranda", icon: <Home className="w-5 h-5" /> },
+        { to: "/map", label: "Peta", icon: <Map className="w-5 h-5" /> },
+        {
+          to: "/assignments",
+          label: "Tugas",
+          icon: <Shield className="w-6 h-6 text-white" />,
+          isSpecial: true,
+        },
+        { to: "/community", label: "Komunitas", icon: <Users className="w-5 h-5" /> },
+        { to: "/profile", label: "Profil", icon: <User className="w-5 h-5" /> },
+      ]
+    : [
+        { to: "/", label: "Beranda", icon: <Home className="w-5 h-5" /> },
+        { to: "/map", label: "Peta", icon: <Map className="w-5 h-5" /> },
+        {
+          to: "/community/create",
+          label: "Lapor",
+          icon: <PlusCircle className="w-6 h-6 text-white" />,
+          isSpecial: true,
+        },
+        { to: "/community", label: "Komunitas", icon: <Users className="w-5 h-5" /> },
+        { to: "/profile", label: "Profil", icon: <User className="w-5 h-5" /> },
+      ]);
+
+  const activeItem = effectiveItems.reduce<NavItem | undefined>((best, item) => {
+    const matches = currentPath === item.to ||
+      (item.to !== "/" && currentPath.startsWith(`${item.to}/`));
+    return matches && (!best || item.to.length > best.to.length) ? item : best;
+  }, undefined);
 
   if (variant === "floating") {
     return (
@@ -47,20 +70,24 @@ export function BottomNav({
         )}
       >
         <div className="max-w-md mx-auto bg-white/95 backdrop-blur-md rounded-3xl border border-neutral-200/90 shadow-xl px-2 py-1.5 flex items-center justify-around pointer-events-auto">
-          {items.map((item) => {
-            const isActive =
-              item.to === "/"
-                ? currentPath === "/"
-                : currentPath.startsWith(item.to);
+          {effectiveItems.map((item) => {
+            const isActive = item === activeItem;
 
             if (item.isSpecial) {
               return (
                 <Link
                   key={item.to}
                   to={item.to}
+                  activeOptions={{ exact: true }}
+                  aria-current={isActive ? "page" : undefined}
                   className="flex flex-col items-center justify-center -mt-5 group"
                 >
-                  <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-600 to-red-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/40 group-hover:scale-105 active:scale-95 transition">
+                  <div className={cn(
+                    "w-12 h-12 rounded-full flex items-center justify-center shadow-lg group-hover:scale-105 active:scale-95 transition",
+                    isVolunteer
+                      ? "bg-gradient-to-tr from-emerald-600 to-teal-600 shadow-emerald-500/40"
+                      : "bg-gradient-to-tr from-brand-600 to-red-600 shadow-brand-500/40"
+                  )}>
                     {item.icon}
                   </div>
                   <span className="text-[10px] font-bold text-neutral-800 mt-0.5">
@@ -74,6 +101,7 @@ export function BottomNav({
               <Link
                 key={item.to}
                 to={item.to}
+                activeOptions={{ exact: true }}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "flex flex-col items-center justify-center min-h-[44px] min-w-[56px] px-3 py-1 rounded-2xl transition-all focus-ring",
@@ -105,20 +133,24 @@ export function BottomNav({
       )}
     >
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
-        {items.map((item) => {
-          const isActive =
-            item.to === "/"
-              ? currentPath === "/"
-              : currentPath.startsWith(item.to);
+        {effectiveItems.map((item) => {
+          const isActive = item === activeItem;
 
           if (item.isSpecial) {
             return (
               <Link
                 key={item.to}
                 to={item.to}
+                activeOptions={{ exact: true }}
+                aria-current={isActive ? "page" : undefined}
                 className="flex flex-col items-center justify-center -mt-5 group"
               >
-                <div className="w-12 h-12 rounded-full bg-gradient-to-tr from-brand-600 to-red-600 text-white flex items-center justify-center shadow-lg shadow-brand-500/40 group-hover:scale-105 active:scale-95 transition">
+                <div className={cn(
+                  "w-12 h-12 rounded-full flex items-center justify-center shadow-lg group-hover:scale-105 active:scale-95 transition",
+                  isVolunteer
+                    ? "bg-gradient-to-tr from-emerald-600 to-teal-600 shadow-emerald-500/40"
+                    : "bg-gradient-to-tr from-brand-600 to-red-600 shadow-brand-500/40"
+                )}>
                   {item.icon}
                 </div>
                 <span className="text-[10px] font-bold text-neutral-800 mt-1">
@@ -132,6 +164,8 @@ export function BottomNav({
             <Link
               key={item.to}
               to={item.to}
+              activeOptions={{ exact: true }}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] gap-1 text-xs transition-colors",
                 isActive

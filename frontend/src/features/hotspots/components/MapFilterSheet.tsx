@@ -8,6 +8,7 @@ export interface MapFilterSheetProps {
   currentFilter: MapFilter
   onApply: (filter: MapFilter) => void
   onClose: () => void
+  isLoading?: boolean
   className?: string
 }
 
@@ -16,6 +17,7 @@ export function MapFilterSheet({
   currentFilter,
   onApply,
   onClose,
+  isLoading = false,
   className,
 }: MapFilterSheetProps) {
   if (!isOpen) return null
@@ -56,6 +58,7 @@ export function MapFilterSheet({
         <div className="px-5 py-4 overflow-y-auto no-scrollbar flex-1">
           <AreaFilterForm
             currentFilter={currentFilter}
+            isLoading={isLoading}
             onApply={(filter) => {
               onApply(filter)
               onClose()

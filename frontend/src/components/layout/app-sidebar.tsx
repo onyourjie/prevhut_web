@@ -2,7 +2,8 @@ import React from 'react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import {
   Flame,
-  MapPin,
+  Home,
+  Map,
   Users,
   PlusCircle,
   Shield,
@@ -26,9 +27,15 @@ export interface NavItemDef {
 const navItems: NavItemDef[] = [
   {
     to: '/',
-    label: 'Beranda & Peta',
+    label: 'Beranda',
+    description: 'Status wilayah & peringatan dini',
+    icon: <Home className="w-5 h-5 text-brand-600" />,
+  },
+  {
+    to: '/map',
+    label: 'Peta',
     description: 'Peta klaster titik panas NASA FIRMS',
-    icon: <MapPin className="w-5 h-5 text-brand-600" />,
+    icon: <Map className="w-5 h-5 text-orange-600" />,
   },
   {
     to: '/community',
