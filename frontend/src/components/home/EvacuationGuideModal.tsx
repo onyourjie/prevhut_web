@@ -1,3 +1,4 @@
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { X } from 'lucide-react'
 
 interface EvacuationGuideModalProps {
@@ -34,22 +35,25 @@ const EVACUATION_STEPS = [
 ]
 
 export function EvacuationGuideModal({ isOpen, onClose }: EvacuationGuideModalProps) {
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in overflow-y-auto">
-      <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-neutral-200 space-y-4 my-8">
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-w-lg">
         <div className="flex items-center justify-between border-b border-neutral-100 pb-3">
           <div>
-            <h3 className="font-black text-base text-neutral-900">
-              Panduan & Protokol Evakuasi Cepat
-            </h3>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              Tetap tenang, perhatikan arah angin, dan ikuti langkah darurat berikut:
-            </p>
+            <DialogTitle asChild>
+              <h3 className="font-black text-base text-neutral-900">
+                Panduan & Protokol Evakuasi Cepat
+              </h3>
+            </DialogTitle>
+            <DialogDescription asChild>
+              <p className="text-xs text-neutral-500 mt-0.5">
+                Tetap tenang, perhatikan arah angin, dan ikuti langkah darurat berikut:
+              </p>
+            </DialogDescription>
           </div>
           <button
             type="button"
+            aria-label="Tutup dialog"
             onClick={onClose}
             className="w-8 h-8 rounded-full bg-neutral-100 hover:bg-neutral-200 flex items-center justify-center text-neutral-500 transition cursor-pointer"
           >
@@ -85,7 +89,7 @@ export function EvacuationGuideModal({ isOpen, onClose }: EvacuationGuideModalPr
         >
           Kembali ke Beranda
         </button>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }

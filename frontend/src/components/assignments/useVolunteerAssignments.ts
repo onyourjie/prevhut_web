@@ -27,8 +27,8 @@ export function useVolunteerAssignments() {
 
   const [verifyingTask, setVerifyingTask] = useState<Assignment | null>(null)
   const [verificationPhoto, setVerificationPhoto] = useState<string>('')
-  const [verificationLat, setVerificationLat] = useState<number>(-0.1255)
-  const [verificationLon, setVerificationLon] = useState<number>(111.4822)
+  const [verificationLat, setVerificationLat] = useState<number | null>(null)
+  const [verificationLon, setVerificationLon] = useState<number | null>(null)
   const [isDetectingGps, setIsDetectingGps] = useState(false)
   const [completionNotes, setCompletionNotes] = useState('')
   const [isSubmittingVerify, setIsSubmittingVerify] = useState(false)
@@ -137,7 +137,16 @@ export function useVolunteerAssignments() {
     e.preventDefault()
     if (!verifyingTask) return
     if (!verificationPhoto) {
-      showErrorToast('Harap unggah atau pilih foto bukti verifikasi pemadaman')
+      showErrorToast('Harap unggah foto bukti verifikasi pemadaman')
+      return
+    }
+
+    if (
+      verificationLat == null || verificationLon == null ||
+      !Number.isFinite(verificationLat) || !Number.isFinite(verificationLon) ||
+      Math.abs(verificationLat) > 90 || Math.abs(verificationLon) > 180
+    ) {
+      showErrorToast('Deteksi GPS atau masukkan koordinat verifikasi yang valid terlebih dahulu')
       return
     }
 
@@ -219,7 +228,9 @@ export function useVolunteerAssignments() {
       ? activeAssignments
       : activeTab === 'completed'
       ? completedAssignments
-      : rejectedAssignments
+      : activeTab === 'rejected'
+      ? rejectedAssignments
+      : assignments
 
   return {
     assignments,

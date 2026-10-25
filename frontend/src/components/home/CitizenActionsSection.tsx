@@ -4,10 +4,11 @@ import type { PriorityArea } from '@/features/hotspots/schemas'
 
 interface CitizenActionsSectionProps {
   weatherText: string
-  totalHotspots: number
+  totalHotspots: number | null
   tempText: string
   displayLocation: string
   topCluster?: PriorityArea
+  isSample?: boolean
   observedAt?: string
   lastSyncTime: string
   onOpenEvacuationModal: () => void
@@ -21,6 +22,7 @@ export function CitizenActionsSection({
   displayLocation,
   topCluster,
   observedAt,
+  isSample,
   lastSyncTime,
   onOpenEvacuationModal,
   onOpenEmergencyModal,
@@ -35,17 +37,17 @@ export function CitizenActionsSection({
 
         <div className="space-y-1.5">
           <h4 className="font-extrabold text-sm text-neutral-900">
-            Cuaca {weatherText.toLowerCase()}, {totalHotspots} titik panas terpantau satelit.
+            Cuaca: {weatherText}. {totalHotspots != null ? `${totalHotspots} titik panas ${isSample ? 'dalam data sampel' : 'terpantau satelit'}.` : 'Titik panas: Data tidak tersedia.'}
           </h4>
           <p className="text-xs text-neutral-600 leading-relaxed">
-            Suhu sekitar {tempText}. Dalam pengamatan satelit NASA FIRMS terakhir, terpantau total {totalHotspots} titik panas di {displayLocation} dan sekitarnya.
+            Suhu: {tempText}. {totalHotspots != null ? `${isSample ? 'Data sampel menunjukkan' : 'Pengamatan satelit menunjukkan'} ${totalHotspots} titik panas di ${displayLocation} dan sekitarnya.` : 'Pengamatan satelit: Data tidak tersedia.'}
             {topCluster ? ` Area pantau tertinggi adalah ${topCluster.name} (${topCluster.district}) dengan skor risiko ${topCluster.score}.` : ''}
           </p>
         </div>
 
         <div className="pt-2 border-t border-neutral-100 flex flex-wrap items-center justify-between gap-2 text-[10px] text-neutral-400">
-          <span>Sumber Cuaca: Stasiun Meteorologi • {observedAt || 'WIB'}</span>
-          <span>Sumber Titik Panas: {lastSyncTime}</span>
+          <span>Waktu Pengamatan Cuaca: {observedAt || 'Data tidak tersedia'}</span>
+          <span>Sumber Titik Panas: {isSample ? 'Data sampel • ' : ''}{lastSyncTime}</span>
         </div>
       </div>
 

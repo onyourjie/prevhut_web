@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 import { AppLayout } from "@/components/layout/app-layout";
@@ -39,13 +39,40 @@ function CreatePostPage() {
     canPost: boolean;
   } | null>(null);
 
-  useEffect(() => {
-    if (isAuthenticated) {
-      apiRequest("/community/quota")
-        .then((data) => setQuota(data))
-        .catch(() => {});
+  const [quotaError, setQuotaError] = useState(false);
+  const [isLoadingQuota, setIsLoadingQuota] = useState(false);
+
+  // Review & Confirmation Modals
+  const [showEmergencyHelpPrompt, setShowEmergencyHelpPrompt] = useState(false);
+  const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
+
+  const loadQuota = useCallback(async () => {
+    setIsLoadingQuota(true);
+    setQuotaError(false);
+    try {
+      const data = await apiRequest<NonNullable<typeof quota>>("/community/quota", { cache: "no-store" });
+      setQuota(data);
+      if (!data.canPost) {
+        setShowPublishConfirmation(false);
+        setShowEmergencyHelpPrompt(false);
+      }
+      return data;
+    } catch {
+      setQuota(null);
+      setQuotaError(true);
+      setShowPublishConfirmation(false);
+      setShowEmergencyHelpPrompt(false);
+      return null;
+    } finally {
+      setIsLoadingQuota(false);
     }
-  }, [isAuthenticated]);
+  }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) void loadQuota();
+  }, [isAuthenticated, loadQuota]);
+
+  const quotaBlocked = isAuthenticated && (isLoadingQuota || quotaError || quota?.canPost !== true);
 
   // Lokasi otomatis mengikuti profil akun
   const [province, setProvince] = useState(user?.province || "Kalimantan Barat");
@@ -57,10 +84,6 @@ function CreatePostPage() {
   const [longitude, setLongitude] = useState(
     typeof user?.longitude === "number" && user.longitude !== 0 ? user.longitude : 111.4822
   );
-
-  // Review & Confirmation Modals
-  const [showEmergencyHelpPrompt, setShowEmergencyHelpPrompt] = useState(false);
-  const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -111,6 +134,7 @@ function CreatePostPage() {
 
   const handleReviewClick = (e: React.FormEvent) => {
     e.preventDefault();
+    if (quotaBlocked) return;
     if (!content.trim()) {
       showErrorToast("Deskripsi kondisi kejadian wajib diisi");
       return;
@@ -125,18 +149,30 @@ function CreatePostPage() {
 
   const handleProceedEmergency = () => {
     setShowEmergencyHelpPrompt(false);
-    setShowPublishConfirmation(true);
+    if (!quotaBlocked) setShowPublishConfirmation(true);
   };
 
   const handleFinalSubmit = async () => {
+    if (isSubmitting) return;
     if (!isAuthenticated) {
       showErrorToast("Silakan masuk terlebih dahulu untuk mempublikasikan laporan");
       navigate({ to: "/login" });
       return;
     }
 
+    if (quotaBlocked) {
+      setShowPublishConfirmation(false);
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+      const latestQuota = await loadQuota();
+      if (!latestQuota?.canPost) {
+        setShowPublishConfirmation(false);
+        if (latestQuota) showErrorToast("Batas kuota harian tercapai");
+        return;
+      }
       await apiRequest("/community/posts", {
         method: "POST",
         body: JSON.stringify({
@@ -241,19 +277,28 @@ function CreatePostPage() {
             longitude={longitude}
           />
 
+          {quotaError && (
+            <div role="alert" className="p-3 rounded-xl bg-red-50 text-red-800 text-xs space-y-2">
+              <p>Gagal memuat kuota postingan. Coba lagi sebelum melanjutkan.</p>
+              <button type="button" onClick={() => void loadQuota()} disabled={isLoadingQuota} className="font-bold underline cursor-pointer">
+                Coba lagi
+              </button>
+            </div>
+          )}
+
           {/* Action Button */}
           <div className="pt-2">
             <button
               type="submit"
-              disabled={quota?.canPost === false}
+              disabled={quotaBlocked || isSubmitting}
               className={`w-full py-3.5 rounded-xl text-xs font-extrabold text-white transition shadow-md active:scale-[0.99] ${
-                quota?.canPost === false
+                (quotaBlocked || isSubmitting)
                   ? "bg-neutral-400 cursor-not-allowed"
                   : "bg-brand-600 hover:bg-brand-700 cursor-pointer"
               }`}
-              style={quota?.canPost === false ? { backgroundColor: "#9ca3af" } : { backgroundColor: "#eb5314" }}
+              style={quotaBlocked || isSubmitting ? { backgroundColor: "#9ca3af" } : { backgroundColor: "#eb5314" }}
             >
-              {quota?.canPost === false
+              {isLoadingQuota ? "Memuat kuota..." : quotaError ? "Kuota tidak tersedia" : quota?.canPost === false
                 ? "Batas Kuota Harian Tercapai (Maks 3x/Hari)"
                 : "Tinjau Postingan"}
             </button>
@@ -268,7 +313,7 @@ function CreatePostPage() {
       />
 
       <PublishConfirmationModal
-        isOpen={showPublishConfirmation}
+        isOpen={showPublishConfirmation && (!isAuthenticated || quota?.canPost === true) && !quotaError}
         category={category}
         isSubmitting={isSubmitting}
         onConfirm={handleFinalSubmit}

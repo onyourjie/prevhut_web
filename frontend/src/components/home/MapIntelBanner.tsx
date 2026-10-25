@@ -2,11 +2,12 @@ import { Link } from '@tanstack/react-router'
 import { Flame, ArrowRight } from 'lucide-react'
 
 interface MapIntelBannerProps {
-  totalAreas: number
+  totalAreas: number | null
+  isSample?: boolean
   displayLocation: string
 }
 
-export function MapIntelBanner({ totalAreas, displayLocation }: MapIntelBannerProps) {
+export function MapIntelBanner({ totalAreas, displayLocation, isSample }: MapIntelBannerProps) {
   return (
     <div className="p-5 rounded-2xl bg-gradient-to-br from-neutral-900 to-neutral-950 text-white shadow-xl border border-neutral-800 space-y-3">
       <div className="flex items-center justify-between">
@@ -19,13 +20,13 @@ export function MapIntelBanner({ totalAreas, displayLocation }: MapIntelBannerPr
           </span>
         </div>
         <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-white/10 text-brand-300 border border-white/10">
-          Live Satelit NASA
+          {isSample ? 'Data sampel' : totalAreas != null ? 'Satelit NASA' : 'Data tidak tersedia'}
         </span>
       </div>
 
       <div>
         <h4 className="font-extrabold text-sm text-white">
-          Pantau {totalAreas} Area Prioritas di {displayLocation}
+          {totalAreas != null ? `Pantau ${totalAreas} Area Prioritas di ${displayLocation}` : 'Data tidak tersedia'}
         </h4>
         <p className="text-xs text-neutral-300 leading-relaxed mt-1">
           Visualisasi klaster titik panas DBSCAN, intensitas FRP (Fire Radiative Power), arah angin, dan radius bahaya pemukiman.

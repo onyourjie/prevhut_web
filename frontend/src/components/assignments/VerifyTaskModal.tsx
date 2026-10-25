@@ -5,32 +5,21 @@ import type { Assignment } from './assignment.types'
 interface VerifyTaskModalProps {
   task: Assignment | null
   photo: string
-  lat: number
-  lon: number
+  lat: number | null
+  lon: number | null
   notes: string
   isUploading: boolean
   isDetectingGps: boolean
   isSubmitting: boolean
   onPhotoChange: (url: string) => void
-  onLatChange: (lat: number) => void
-  onLonChange: (lon: number) => void
+  onLatChange: (lat: number | null) => void
+  onLonChange: (lon: number | null) => void
   onNotesChange: (notes: string) => void
   onDetectGps: () => void
   onFileUpload: (e: React.ChangeEvent<HTMLInputElement>) => void
   onClose: () => void
   onSubmit: (e: React.FormEvent) => void
 }
-
-const SAMPLE_PHOTOS = [
-  {
-    label: 'Pemadaman Gambut Selesai',
-    url: 'https://images.unsplash.com/photo-1589656966895-2f33e7653819?auto=format&fit=crop&w=800&q=80',
-  },
-  {
-    label: 'Pendinginan Lahan Aman',
-    url: 'https://images.unsplash.com/photo-1542385151-efd9000785a0?auto=format&fit=crop&w=800&q=80',
-  },
-]
 
 export function VerifyTaskModal({
   task,
@@ -109,32 +98,6 @@ export function VerifyTaskModal({
                     className="hidden"
                   />
                 </label>
-
-                {/* Preset samples */}
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider">
-                    Atau pilih sampel foto verifikasi simulasi:
-                  </span>
-                  <div className="grid grid-cols-2 gap-2">
-                    {SAMPLE_PHOTOS.map((sample) => (
-                      <button
-                        key={sample.url}
-                        type="button"
-                        onClick={() => onPhotoChange(sample.url)}
-                        className="p-1.5 rounded-xl border border-neutral-200 hover:border-emerald-500 flex items-center gap-2 text-left transition bg-neutral-50 cursor-pointer"
-                      >
-                        <img
-                          src={sample.url}
-                          alt={sample.label}
-                          className="w-10 h-10 rounded-lg object-cover"
-                        />
-                        <span className="text-[11px] font-semibold text-neutral-700 leading-tight">
-                          {sample.label}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
             )}
           </div>
@@ -155,6 +118,11 @@ export function VerifyTaskModal({
                 <span>{isDetectingGps ? 'Mendeteksi...' : 'Ambil GPS Sekarang'}</span>
               </button>
             </div>
+            {task.post?.latitude != null && task.post?.longitude != null && (
+              <p className="text-[10px] text-neutral-500">
+                Referensi lokasi laporan: {task.post.latitude}, {task.post.longitude}
+              </p>
+            )}
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <span className="text-[10px] text-neutral-500">Latitude:</span>
@@ -162,8 +130,10 @@ export function VerifyTaskModal({
                   type="number"
                   step="any"
                   required
-                  value={lat}
-                  onChange={(e) => onLatChange(Number(e.target.value))}
+                  value={lat ?? ''}
+                  min={-90}
+                  max={90}
+                  onChange={(e) => onLatChange(e.target.value === '' ? null : e.target.valueAsNumber)}
                   className="w-full px-3 py-1.5 rounded-xl border border-neutral-300 text-xs font-mono"
                 />
               </div>
@@ -173,8 +143,10 @@ export function VerifyTaskModal({
                   type="number"
                   step="any"
                   required
-                  value={lon}
-                  onChange={(e) => onLonChange(Number(e.target.value))}
+                  value={lon ?? ''}
+                  min={-180}
+                  max={180}
+                  onChange={(e) => onLonChange(e.target.value === '' ? null : e.target.valueAsNumber)}
                   className="w-full px-3 py-1.5 rounded-xl border border-neutral-300 text-xs font-mono"
                 />
               </div>

@@ -46,25 +46,23 @@ export function MapHeader({
 
       <div className="flex items-center gap-2 overflow-x-auto no-scrollbar py-0.5">
         {activeFilterCount > 0 ? (
-          <button
-            type="button"
-            onClick={onOpenFilter}
-            className="inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-full bg-white shadow-xs border border-brand-500/40 text-brand-800 text-xs font-semibold shrink-0 hover:bg-brand-50 transition cursor-pointer focus-ring"
-          >
-            <span>Filter ({activeFilterCount})</span>
-            <span
-              role="button"
-              tabIndex={0}
-              onClick={(e) => {
-                e.stopPropagation()
-                onClearFilter?.()
-              }}
+          <div className="inline-flex items-center gap-1.5 px-3 min-h-[40px] rounded-full bg-white shadow-xs border border-brand-500/40 text-brand-800 text-xs font-semibold shrink-0">
+            <button
+              type="button"
+              onClick={onOpenFilter}
+              className="py-2 rounded-full hover:bg-brand-50 transition cursor-pointer focus-ring"
+            >
+              Filter ({activeFilterCount})
+            </button>
+            <button
+              type="button"
+              onClick={onClearFilter}
               aria-label="Hapus filter"
-              className="p-0.5 rounded-full hover:bg-brand-200/60 inline-flex items-center"
+              className="p-0.5 rounded-full hover:bg-brand-200/60 inline-flex items-center cursor-pointer focus-ring"
             >
               <X className="w-3.5 h-3.5 text-brand-700" />
-            </span>
-          </button>
+            </button>
+          </div>
         ) : (
           <button
             type="button"

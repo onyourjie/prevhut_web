@@ -77,7 +77,7 @@ export function VolunteerPrioritySection({ isLoadingAreas, topAreas }: Volunteer
               <div className="flex items-center justify-between text-xs text-neutral-600 pt-1 border-t border-neutral-100">
                 <div className="flex items-center gap-2">
                   <span className="font-bold text-neutral-900">
-                    {area.hotspotCount} titik panas
+                    {area.hotspotCount != null ? `${area.hotspotCount} titik panas` : 'Data tidak tersedia'}
                   </span>
                   <span className="text-neutral-300">•</span>
                   <span className="text-[11px] text-neutral-500">

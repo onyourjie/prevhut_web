@@ -207,10 +207,16 @@ function PostDetailPage() {
         />
 
         {/* SECTION: Lacak Progres Penanganan Transparan */}
-        <ResponseTrackingSection
-          post={post}
-          onMediaClick={(url) => setLightboxMediaUrl(url)}
-        />
+        {post.category === 'DARURAT' ? (
+          <ResponseTrackingSection
+            post={post}
+            onMediaClick={(url) => setLightboxMediaUrl(url)}
+          />
+        ) : (
+          <div className="p-5 bg-white rounded-2xl border border-neutral-200 text-sm text-neutral-600">
+            Informasi komunitas telah dipublikasikan.
+          </div>
+        )}
 
         {/* SECTION: Update Pengirim */}
         <PostUpdatesSection

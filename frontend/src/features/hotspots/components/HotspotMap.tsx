@@ -63,7 +63,13 @@ export function HotspotMap({
         <MapCamera areas={areas} selectedArea={selectedArea} />
         <MapClickHandler onMapClick={() => onSelectArea?.(null)} />
 
-        <TileLayer url={basemap.url} maxZoom={basemap.maxZoom ?? 19} />
+        <TileLayer
+          key={basemap.id}
+          url={basemap.url}
+          maxZoom={basemap.maxZoom}
+          attribution={basemap.attribution}
+          subdomains={basemap.subdomains ?? 'abc'}
+        />
         <AttributionControl position="bottomleft" prefix={false} />
 
         {selectedArea && (
@@ -174,7 +180,7 @@ export function HotspotMap({
             desktopPanelOpen ? 'lg:right-[calc(1rem+400px+1rem)]' : ''
           } ${hideControlsOnMobile ? 'max-lg:hidden' : ''}`}
         >
-          <MapControls basemap={basemapId} onBasemapChange={setBasemapId} />
+          <MapControls userLocation={userLocation} basemap={basemapId} onBasemapChange={setBasemapId} />
         </div>
       </MapContainer>
     </div>

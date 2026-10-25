@@ -32,9 +32,10 @@ export function PostCardMedia({
           )}
         </div>
       ) : (
-        <div
+        <button
+          type="button"
           onClick={onImageClick}
-          className="block group relative overflow-hidden rounded-xl border border-neutral-200 bg-neutral-950 aspect-video sm:aspect-[16/10] flex items-center justify-center cursor-pointer"
+          className="w-full group relative overflow-hidden rounded-xl border border-neutral-200 bg-neutral-950 aspect-video sm:aspect-[16/10] flex items-center justify-center cursor-pointer"
           title="Ketuk untuk melihat foto ukuran penuh tanpa terpotong"
         >
           <img
@@ -49,7 +50,7 @@ export function PostCardMedia({
               <span>Foto • {formatDateTimeIndo(createdAt)}</span>
             </div>
           )}
-        </div>
+        </button>
       )}
     </div>
   )

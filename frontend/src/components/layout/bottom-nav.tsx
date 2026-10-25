@@ -54,6 +54,12 @@ export function BottomNav({
         { to: "/profile", label: "Profil", icon: <User className="w-5 h-5" /> },
       ]);
 
+  const activeItem = effectiveItems.reduce<NavItem | undefined>((best, item) => {
+    const matches = currentPath === item.to ||
+      (item.to !== "/" && currentPath.startsWith(`${item.to}/`));
+    return matches && (!best || item.to.length > best.to.length) ? item : best;
+  }, undefined);
+
   if (variant === "floating") {
     return (
       <nav
@@ -65,16 +71,15 @@ export function BottomNav({
       >
         <div className="max-w-md mx-auto bg-white/95 backdrop-blur-md rounded-3xl border border-neutral-200/90 shadow-xl px-2 py-1.5 flex items-center justify-around pointer-events-auto">
           {effectiveItems.map((item) => {
-            const isActive =
-              item.to === "/"
-                ? currentPath === "/"
-                : currentPath.startsWith(item.to);
+            const isActive = item === activeItem;
 
             if (item.isSpecial) {
               return (
                 <Link
                   key={item.to}
                   to={item.to}
+                  activeOptions={{ exact: true }}
+                  aria-current={isActive ? "page" : undefined}
                   className="flex flex-col items-center justify-center -mt-5 group"
                 >
                   <div className={cn(
@@ -96,6 +101,7 @@ export function BottomNav({
               <Link
                 key={item.to}
                 to={item.to}
+                activeOptions={{ exact: true }}
                 aria-current={isActive ? "page" : undefined}
                 className={cn(
                   "flex flex-col items-center justify-center min-h-[44px] min-w-[56px] px-3 py-1 rounded-2xl transition-all focus-ring",
@@ -128,16 +134,15 @@ export function BottomNav({
     >
       <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
         {effectiveItems.map((item) => {
-          const isActive =
-            item.to === "/"
-              ? currentPath === "/"
-              : currentPath.startsWith(item.to);
+          const isActive = item === activeItem;
 
           if (item.isSpecial) {
             return (
               <Link
                 key={item.to}
                 to={item.to}
+                activeOptions={{ exact: true }}
+                aria-current={isActive ? "page" : undefined}
                 className="flex flex-col items-center justify-center -mt-5 group"
               >
                 <div className={cn(
@@ -159,6 +164,8 @@ export function BottomNav({
             <Link
               key={item.to}
               to={item.to}
+              activeOptions={{ exact: true }}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full min-h-[44px] min-w-[44px] gap-1 text-xs transition-colors",
                 isActive

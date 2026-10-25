@@ -10,7 +10,13 @@ import {
   Check,
   RefreshCw,
 } from 'lucide-react'
-import type { Assignment } from './assignment.types'
+import type { Assignment, PriorityLevel } from './assignment.types'
+
+const PRIORITY_BADGES: Record<PriorityLevel, { label: string; className: string }> = {
+  P1: { label: 'P1 • Prioritas Tinggi', className: 'bg-red-100 text-red-800 border border-red-200' },
+  P2: { label: 'P2 • Perhatian Meningkat', className: 'bg-amber-100 text-amber-800 border border-amber-200' },
+  P3: { label: 'P3 • Tetap Dipantau', className: 'bg-emerald-100 text-emerald-800 border border-emerald-200' },
+}
 
 interface AssignmentCardProps {
   task: Assignment
@@ -32,6 +38,7 @@ export function AssignmentCard({
   onOpenVerify,
 }: AssignmentCardProps) {
   const isUpdating = updatingTaskId === task.id
+  const priorityBadge = PRIORITY_BADGES[task.priorityLevel]
 
   return (
     <div
@@ -46,14 +53,10 @@ export function AssignmentCard({
         <div className="flex items-center gap-2">
           <span
             className={`px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider ${
-              task.priorityLevel === 'P1'
-                ? 'bg-red-100 text-red-800 border border-red-200'
-                : 'bg-amber-100 text-amber-800 border border-amber-200'
+              priorityBadge.className
             }`}
           >
-            {task.priorityLevel === 'P1'
-              ? 'P1 • Prioritas Tinggi'
-              : 'P2 • Perhatian Meningkat'}
+            {priorityBadge.label}
           </span>
 
           {task.clusterCode && (
@@ -156,7 +159,7 @@ export function AssignmentCard({
               className="w-full h-36 object-cover rounded-xl border border-emerald-200"
             />
           )}
-          {task.verificationGpsLat && (
+          {task.verificationGpsLat != null && task.verificationGpsLon != null && (
             <p className="text-[11px] text-emerald-800 font-mono">
               GPS Koordinat: {task.verificationGpsLat.toFixed(5)},{' '}
               {task.verificationGpsLon?.toFixed(5)}

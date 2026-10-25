@@ -41,7 +41,7 @@ export function createAreaMarkerIcon(area: PriorityArea, isSelected: boolean) {
         <div class="relative w-full h-full rounded-full flex items-center justify-center cursor-pointer transition-all duration-200" style="background:${color};border:3px solid #fff;${shadow}">
           ${FLAME_SVG}
         </div>
-        <span class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-neutral-950 text-white text-[10px] font-bold leading-[18px] text-center border border-white">${area.hotspotCount}</span>
+        <span class="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-neutral-950 text-white text-[10px] font-bold leading-[18px] text-center border border-white">${area.hotspotCount ?? '—'}</span>
       </div>
     `,
     iconSize: [size, size],

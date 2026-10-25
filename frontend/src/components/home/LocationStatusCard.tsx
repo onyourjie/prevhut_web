@@ -4,8 +4,10 @@ import { MapPin, ChevronRight, Flame, Sun } from 'lucide-react'
 interface LocationStatusCardProps {
   displayLocation: string
   displayProvince: string
-  isPerhatianKhusus: boolean
-  totalHotspots: number
+  hasPriorityAlert: boolean
+  currentLocationStatusText: string
+  sourceLabel: string
+  totalHotspots: number | null
   weatherText: string
   tempText: string
   humidityText: string
@@ -14,7 +16,9 @@ interface LocationStatusCardProps {
 export function LocationStatusCard({
   displayLocation,
   displayProvince,
-  isPerhatianKhusus,
+  hasPriorityAlert,
+  currentLocationStatusText,
+  sourceLabel,
   totalHotspots,
   weatherText,
   tempText,
@@ -47,17 +51,17 @@ export function LocationStatusCard({
       <div className="p-4 sm:p-5 rounded-2xl bg-white border border-neutral-200 shadow-xs space-y-3.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-pulse" />
+            <span className={`w-2.5 h-2.5 rounded-full ${hasPriorityAlert ? 'bg-orange-500 animate-pulse' : 'bg-neutral-400'}`} />
             <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
               Status Wilayah Anda
             </span>
             <span className="font-extrabold text-sm text-neutral-900">
-              {isPerhatianKhusus ? 'Perhatian Khusus' : 'Waspada Sedang'}
+              {currentLocationStatusText}
             </span>
           </div>
 
           <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-neutral-100 text-neutral-600 border border-neutral-200">
-            Live Satelit & Cuaca
+            {sourceLabel}
           </span>
         </div>
 
@@ -71,7 +75,7 @@ export function LocationStatusCard({
                 Titik Panas Satelit
               </span>
               <span className="text-sm font-extrabold text-neutral-900 block">
-                {totalHotspots} Hotspot
+                {totalHotspots != null ? `${totalHotspots} Hotspot` : 'Data tidak tersedia'}
               </span>
               <span className="text-[10px] text-neutral-400">Observasi Terakhir</span>
             </div>

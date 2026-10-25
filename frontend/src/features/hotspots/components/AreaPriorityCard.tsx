@@ -74,7 +74,7 @@ export function AreaPriorityCard({
         <div className="flex items-center justify-between gap-2 text-[11px] text-neutral-500 mt-0.5">
           <div className="flex items-center gap-1.5">
             <Radio className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-            <span>{area.hotspotCount} titik satelit</span>
+            <span>{area.hotspotCount != null ? `${area.hotspotCount} titik satelit` : 'Data tidak tersedia'}</span>
           </div>
           <div className="flex items-center gap-1 text-neutral-400">
             <Clock className="w-3 h-3 shrink-0" />

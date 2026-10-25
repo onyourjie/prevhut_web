@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiRequest } from "@/lib/api"
-import { getPrioritySummary, PRIORITY_AREAS_DATA } from "./hotspot-data"
+import { getPrioritySummary as getMockPrioritySummary, PRIORITY_AREAS_DATA } from "./hotspot-data"
 import type { AreaPrioritySummary, PriorityArea, PriorityLevel } from "./schemas"
 
 export interface HotspotFilterParams {
@@ -50,8 +50,8 @@ function mapClusterToPriorityArea(c: any, index: number, userCoords?: { lat: num
     province: c.province || "Kalimantan Barat",
     regency: c.kabupaten || "Kota Palangka Raya",
     district: c.kecamatan || "",
-    hotspotCount: c.hotspot_count_24h || 1,
-    lastUpdatedText: `Terakhir diperbarui ${c.last_updated || "01.00 WIB"}`,
+    hotspotCount: c.hotspot_count_24h ?? null,
+    lastUpdatedText: c.last_updated ? `Terakhir diperbarui ${c.last_updated}` : "Data tidak tersedia",
     coordinates: {
       lat: c.centroid?.latitude ?? -2.2161,
       lng: c.centroid?.longitude ?? 113.9139,
@@ -100,7 +100,7 @@ function mapClusterToPriorityArea(c: any, index: number, userCoords?: { lat: num
 /**
  * Hook TanStack Query untuk memuat daftar area prioritas.
  * Terintegrasi ke Backend Gateway (/hotspots/clusters) -> FastAPI Model Service (NASA FIRMS DBSCAN).
- * Dilengkapi fallback otomatis ke data terkalibrasi jika backend tidak dapat dihubungi.
+ * Data sampel hanya dipakai di development jika permintaan gagal.
  */
 export function usePriorityAreas(filter?: HotspotFilterParams) {
   return useQuery<AreaPrioritySummary>({
@@ -124,59 +124,59 @@ export function usePriorityAreas(filter?: HotspotFilterParams) {
         const path = `/hotspots/clusters${qs ? `?${qs}` : ""}`
         
         const clusters = await apiRequest<any[]>(path)
-        if (Array.isArray(clusters) && clusters.length > 0) {
-          let mappedAreas = clusters.map((c, i) => mapClusterToPriorityArea(c, i, filter?.userCoordinates))
+        if (!Array.isArray(clusters)) throw new Error("Respons klaster tidak valid")
+        let mappedAreas = clusters.map((c, i) => mapClusterToPriorityArea(c, i, filter?.userCoordinates))
 
-          // Filter by priorities jika ada
-          if (filter?.priorities && filter.priorities.length > 0) {
-            mappedAreas = mappedAreas.filter((a) =>
-              filter.priorities!.includes(a.priority)
-            )
-          }
+        // Filter by priorities jika ada
+        if (filter?.priorities && filter.priorities.length > 0) {
+          mappedAreas = mappedAreas.filter((a) =>
+            filter.priorities!.includes(a.priority)
+          )
+        }
 
-          // Filter by province jika ada
-          if (filter?.province) {
-            const pNorm = filter.province.toLowerCase().trim()
-            mappedAreas = mappedAreas.filter((a) =>
-              (a.province && a.province.toLowerCase().includes(pNorm)) ||
-              (a.regency && a.regency.toLowerCase().includes(pNorm))
-            )
-          }
+        // Filter by province jika ada
+        if (filter?.province) {
+          const pNorm = filter.province.toLowerCase().trim()
+          mappedAreas = mappedAreas.filter((a) =>
+            (a.province && a.province.toLowerCase().includes(pNorm)) ||
+            (a.regency && a.regency.toLowerCase().includes(pNorm))
+          )
+        }
 
-          // Filter by regency jika ada
-          if (filter?.regency) {
-            const rNorm = filter.regency.toLowerCase().trim()
-            mappedAreas = mappedAreas.filter((a) => a.regency.toLowerCase().includes(rNorm))
-          }
+        // Filter by regency jika ada
+        if (filter?.regency) {
+          const rNorm = filter.regency.toLowerCase().trim()
+          mappedAreas = mappedAreas.filter((a) => a.regency.toLowerCase().includes(rNorm))
+        }
 
-          // Filter by district jika ada
-          if (filter?.district) {
-            const dNorm = filter.district.toLowerCase().trim()
-            mappedAreas = mappedAreas.filter((a) => a.district.toLowerCase().includes(dNorm))
-          }
+        // Filter by district jika ada
+        if (filter?.district) {
+          const dNorm = filter.district.toLowerCase().trim()
+          mappedAreas = mappedAreas.filter((a) => a.district.toLowerCase().includes(dNorm))
+        }
 
-          // Pastikan hasil selalu tersortir berdasarkan skor risiko tertinggi (P1 > P2 > P3)
-          mappedAreas.sort((a, b) => b.score - a.score)
+        // Pastikan hasil selalu tersortir berdasarkan skor risiko tertinggi (P1 > P2 > P3)
+        mappedAreas.sort((a, b) => b.score - a.score)
 
-          const insideArea = mappedAreas.find((a) => a.isUserInside) || null
-          const activeLocationLabel = filter?.regency || filter?.province || filter?.userLocationName || "Seluruh Kalimantan"
+        const insideArea = mappedAreas.find((a) => a.isUserInside) || null
+        const activeLocationLabel = filter?.regency || filter?.province || filter?.userLocationName || "Seluruh Kalimantan"
 
-          return {
-            currentLocationName: activeLocationLabel,
-            currentLocationStatusText: insideArea
-              ? `Status prioritas ${insideArea.priority} di lokasimu`
-              : "Status Wilayah Normal • Tetap Waspada",
-            currentAreaInside: insideArea,
-            totalAreasFound: mappedAreas.length,
-            areas: mappedAreas,
-          }
+        return {
+          currentLocationName: activeLocationLabel,
+          currentLocationStatusText: insideArea
+            ? `Status prioritas ${insideArea.priority} di lokasimu`
+            : "Status Wilayah Normal • Tetap Waspada",
+          currentAreaInside: insideArea,
+          totalAreasFound: mappedAreas.length,
+          areas: mappedAreas,
         }
       } catch (err) {
-        console.warn("Gagal memuat live clusters dari backend, beralih ke cache data:", err)
+        if (import.meta.env.DEV) {
+          console.warn("Gagal memuat klaster, menggunakan data sampel:", err)
+          return { ...getMockPrioritySummary(filter), isSample: true }
+        }
+        throw err
       }
-
-      // Fallback ke data area terkalibrasi jika server tidak dapat dihubungi
-      return getPrioritySummary(filter)
     },
     staleTime: 1000 * 60 * 3, // 3 menit
   })

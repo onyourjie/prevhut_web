@@ -115,7 +115,9 @@ function VolunteerAssignmentsPage() {
                   ? 'Saat ini belum ada penugasan karhutla baru yang diarahkan ke Anda oleh Posko BPBD.'
                   : activeTab === 'completed'
                   ? 'Belum ada riwayat penugasan yang selesai diverifikasi.'
-                  : 'Belum ada riwayat penugasan yang ditolak.'}
+                  : activeTab === 'rejected'
+                  ? 'Belum ada riwayat penugasan yang ditolak.'
+                  : 'Belum ada penugasan.'}
               </p>
             </div>
           ) : (
@@ -135,10 +137,8 @@ function VolunteerAssignmentsPage() {
                   setVerifyingTask(t)
                   setVerificationPhoto('')
                   setCompletionNotes('')
-                  if (t.post?.latitude) {
-                    setVerificationLat(t.post.latitude)
-                    setVerificationLon(t.post.longitude)
-                  }
+                  setVerificationLat(null)
+                  setVerificationLon(null)
                 }}
               />
             ))

@@ -42,7 +42,7 @@ export const PriorityAreaSchema = z.object({
   province: z.string().optional(),
   regency: z.string(), // Kabupaten, misal: "Kabupaten Sintang"
   district: z.string(), // Kecamatan, misal: "Kecamatan Sintang"
-  hotspotCount: z.number(),
+  hotspotCount: z.number().nullable(),
   lastUpdatedText: z.string(), // Contoh: "01.00 WIB" atau "12 jam yang lalu"
   coordinates: z.object({
     lat: z.number(),
@@ -69,6 +69,7 @@ export const MapFilterSchema = z.object({
 export type MapFilter = z.infer<typeof MapFilterSchema>
 
 export const AreaPrioritySummarySchema = z.object({
+  isSample: z.boolean().optional(),
   currentLocationName: z.string(),
   currentLocationStatusText: z.string(),
   currentAreaInside: PriorityAreaSchema.nullable(),

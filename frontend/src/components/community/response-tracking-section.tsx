@@ -15,7 +15,6 @@ export function ResponseTrackingSection({
   post,
   onMediaClick,
 }: ResponseTrackingSectionProps) {
-  // If not emergency, only show simple verification status
   const assignments = post.assignments || [];
   const latestAssignment = assignments[0] || null;
 
@@ -40,14 +39,8 @@ export function ResponseTrackingSection({
     currentStage = post.clusterCode ? 2 : 1;
   }
 
-  // Calculate response time estimate
-  const responseMinutes =
-    post.trackingSummary?.responseTimeMinutes ??
-    (latestAssignment ? 8 : null);
-
-  const completionMinutes =
-    post.trackingSummary?.completionTimeMinutes ??
-    (post.status === "SELESAI" ? 37 : null);
+  const responseMinutes = post.trackingSummary?.responseTimeMinutes;
+  const completionMinutes = post.trackingSummary?.completionTimeMinutes;
 
   const steps = [
     {
@@ -147,7 +140,7 @@ export function ResponseTrackingSection({
             Waktu Respon Posko
           </span>
           <span className="text-sm font-black text-brand-700 block">
-            {responseMinutes ? `${responseMinutes} Menit` : "< 15 Menit"}
+            {responseMinutes != null ? `${responseMinutes} Menit` : "Data tidak tersedia"}
           </span>
           <span className="text-[10px] text-neutral-500">Dari laporan masuk</span>
         </div>
@@ -169,11 +162,9 @@ export function ResponseTrackingSection({
             Durasi Penanganan
           </span>
           <span className="text-sm font-black text-neutral-900 block">
-            {completionMinutes
+            {completionMinutes != null
               ? `${completionMinutes} Menit`
-              : currentStage >= 4
-              ? "Sedang Berjalan"
-              : "Menunggu Giliran"}
+              : "Data tidak tersedia"}
           </span>
           <span className="text-[10px] text-neutral-500">
             {post.status === "SELESAI" ? "Tuntas dipadamkan" : "Dalam pemantauan"}
@@ -244,18 +235,24 @@ export function ResponseTrackingSection({
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 items-start">
-            <img
-              src={latestAssignment.verificationPhoto}
-              alt="Verifikasi pemadaman"
+            <button
+              type="button"
+              aria-label="Lihat foto verifikasi pemadaman"
               onClick={() => onMediaClick?.(latestAssignment.verificationPhoto)}
-              className="w-24 h-24 rounded-lg object-cover border border-emerald-200 shadow-2xs cursor-pointer"
-            />
+              className="shrink-0 rounded-lg cursor-pointer"
+            >
+              <img
+                src={latestAssignment.verificationPhoto}
+                alt="Verifikasi pemadaman"
+                className="w-24 h-24 rounded-lg object-cover border border-emerald-200 shadow-2xs cursor-pointer"
+              />
+            </button>
             <div className="text-xs text-neutral-700 space-y-1">
               <p>
                 <strong>Pelapor Verifikasi:</strong>{" "}
                 {latestAssignment.volunteer?.name || "Relawan BPBD Sintang"}
               </p>
-              {latestAssignment.verificationGpsLat && (
+              {latestAssignment.verificationGpsLat != null && latestAssignment.verificationGpsLon != null && (
                 <p>
                   <strong>Koordinat GPS Lapangan:</strong>{" "}
                   {latestAssignment.verificationGpsLat},{" "}

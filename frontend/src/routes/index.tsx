@@ -3,6 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { Bell, Shield, Users } from 'lucide-react'
 import { AppLayout } from '@/components/layout/app-layout'
 import { useAuthStore } from '@/store/auth.store'
+import type { Assignment } from '@/components/assignments/assignment.types'
 import { apiRequest } from '@/lib/api'
 import { usePriorityAreas } from '@/features/hotspots'
 import { showSuccessToast, showErrorToast } from '@/lib/swal'
@@ -45,24 +46,33 @@ function HomePage() {
       .catch((err) => console.warn('Weather live fetch fallback:', err))
   }, [])
 
-  const totalHotspots = priorityData?.areas.reduce((acc, a) => acc + a.hotspotCount, 0) ?? 4
-  const tempText = weatherData?.temperature_c ? `${weatherData.temperature_c}°C` : '31°C'
-  const weatherText = weatherData?.weather_desc ?? 'Cerah Berawan'
-  const humidityText = weatherData?.humidity_percent ? `Kelembaban ${weatherData.humidity_percent}%` : 'Kelembaban 68%'
+  const totalHotspots = priorityData?.areas.reduce<number | null>((total, area) =>
+    total != null && area.hotspotCount != null ? total + area.hotspotCount : null, 0) ?? null
+  const tempText = weatherData?.temperature_c != null ? `${weatherData.temperature_c}°C` : 'Data tidak tersedia'
+  const weatherText = weatherData?.weather_desc ?? 'Data tidak tersedia'
+  const humidityText = weatherData?.humidity_percent != null ? `Kelembaban ${weatherData.humidity_percent}%` : 'Data tidak tersedia'
   const topAreas = (priorityData?.areas || []).slice(0, 3)
   const topCluster = topAreas[0]
-  const lastSyncTime = topCluster?.lastUpdatedText ?? 'Baru saja • Satelit NASA FIRMS'
+  const lastSyncTime = topCluster?.lastUpdatedText ?? 'Data tidak tersedia'
 
   // Fetch volunteer assignments if RELAWAN
   useEffect(() => {
     if (isAuthenticated && (isVolunteer || isAdmin)) {
       const fetchMyTasks = async () => {
         try {
-          const tasks = await apiRequest('/assignments/my-tasks')
-          const ongoing = (tasks || []).find((t: ActiveTask) =>
+          const tasks = await apiRequest<Assignment[]>('/assignments/my-tasks')
+          const ongoing = (tasks || []).find((t) =>
             ['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'].includes(t.status)
           )
-          setActiveTask(ongoing || null)
+          setActiveTask(ongoing ? {
+            id: ongoing.id,
+            reportId: ongoing.post?.id ?? ongoing.postId ?? '',
+            title: ongoing.post?.content || ongoing.notes || 'Penugasan Lapangan',
+            locationName: ongoing.post?.address || ongoing.clusterCode || 'Lokasi tidak tersedia',
+            urgency: ongoing.priorityLevel,
+            status: ongoing.status,
+            assignedAt: new Date(ongoing.createdAt).toLocaleString('id-ID'),
+          } : null)
         } catch (err) {
           console.error('Gagal memuat tugas aktif:', err)
         }
@@ -155,11 +165,17 @@ function HomePage() {
           </div>
         </div>
 
+        {priorityData?.isSample && (
+          <p role="status" className="text-xs font-bold text-amber-800">Data sampel • Bukan pengamatan terkini</p>
+        )}
+
         {/* LOKASI DAN STATUS WILAYAH */}
         <LocationStatusCard
           displayLocation={displayLocation}
           displayProvince={displayProvince}
-          isPerhatianKhusus={Boolean(priorityData?.currentAreaInside)}
+          hasPriorityAlert={Boolean(priorityData?.currentAreaInside)}
+          currentLocationStatusText={priorityData?.currentLocationStatusText ?? 'Data tidak tersedia'}
+          sourceLabel={priorityData?.isSample ? 'Data sampel' : priorityData || weatherData ? 'Satelit & Cuaca' : 'Data tidak tersedia'}
           totalHotspots={totalHotspots}
           weatherText={weatherText}
           tempText={tempText}
@@ -225,6 +241,7 @@ function HomePage() {
             displayLocation={displayLocation}
             topCluster={topCluster}
             observedAt={weatherData?.observed_at}
+            isSample={priorityData?.isSample}
             lastSyncTime={lastSyncTime}
             onOpenEvacuationModal={() => setIsEvacuationModalOpen(true)}
             onOpenEmergencyModal={() => setIsEmergencyModalOpen(true)}
@@ -233,7 +250,8 @@ function HomePage() {
 
         {/* PETA INTELIJEN SEBARAN TITIK PANAS BANNER */}
         <MapIntelBanner
-          totalAreas={priorityData?.totalAreasFound ?? 10}
+          totalAreas={priorityData?.totalAreasFound ?? null}
+          isSample={priorityData?.isSample}
           displayLocation={displayLocation}
         />
       </div>
