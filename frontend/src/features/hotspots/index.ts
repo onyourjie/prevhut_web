@@ -1,5 +1,5 @@
 export * from './schemas'
-export * from './mock-data'
+export * from './hotspot-data'
 export * from './queries'
 export * from './components/HotspotMap'
 export * from './components/MapControls'
@@ -16,3 +16,5 @@ export * from './components/AreaDetailPanel'
 export * from './components/PriorityListSheet'
 export * from './components/MapFilterSheet'
 export * from './components/MapSidebar'
+
+export * from "./components/DataLoadingModal"

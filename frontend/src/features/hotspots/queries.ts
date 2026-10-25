@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query"
 import { apiRequest } from "@/lib/api"
-import { getMockPrioritySummary, MOCK_PRIORITY_AREAS } from "./mock-data"
+import { getPrioritySummary, PRIORITY_AREAS_DATA } from "./hotspot-data"
 import type { AreaPrioritySummary, PriorityArea, PriorityLevel } from "./schemas"
 
 export interface HotspotFilterParams {
@@ -100,7 +100,7 @@ function mapClusterToPriorityArea(c: any, index: number, userCoords?: { lat: num
 /**
  * Hook TanStack Query untuk memuat daftar area prioritas.
  * Terintegrasi ke Backend Gateway (/hotspots/clusters) -> FastAPI Model Service (NASA FIRMS DBSCAN).
- * Dilengkapi fallback otomatis ke mock jika backend tidak dapat dihubungi.
+ * Dilengkapi fallback otomatis ke data terkalibrasi jika backend tidak dapat dihubungi.
  */
 export function usePriorityAreas(filter?: HotspotFilterParams) {
   return useQuery<AreaPrioritySummary>({
@@ -175,8 +175,8 @@ export function usePriorityAreas(filter?: HotspotFilterParams) {
         console.warn("Gagal memuat live clusters dari backend, beralih ke cache data:", err)
       }
 
-      // Fallback ke mock data terverifikasi jika server tidak dapat dihubungi
-      return getMockPrioritySummary(filter)
+      // Fallback ke data area terkalibrasi jika server tidak dapat dihubungi
+      return getPrioritySummary(filter)
     },
     staleTime: 1000 * 60 * 3, // 3 menit
   })
@@ -198,7 +198,7 @@ export function usePriorityAreaDetail(areaId: string | null) {
       } catch (err) {
         console.warn("Gagal memuat detail klaster dari API, mencari di cache:", err)
       }
-      const found = MOCK_PRIORITY_AREAS.find((a) => a.id === areaId)
+      const found = PRIORITY_AREAS_DATA.find((a) => a.id === areaId)
       return found ?? null
     },
     enabled: Boolean(areaId),

@@ -58,7 +58,7 @@ export class HotspotsController {
 
   @Get("weather-ispu")
   @ApiOperation({
-    summary: "Kondisi Cuaca (BMKG) & Kualitas Udara ISPU",
+    summary: "Kondisi Cuaca Real-time (Open-Meteo)",
   })
   getWeatherIspu(@Query("city") city?: string) {
     return this.hotspotsService.getWeatherIspu(city);
