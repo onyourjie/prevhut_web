@@ -1,64 +1,29 @@
-import { useState } from 'react';
-import { Link } from '@tanstack/react-router';
+import { useState } from 'react'
+import { Link } from '@tanstack/react-router'
 import {
   MapPin,
   MessageSquare,
   AlertTriangle,
   Info,
-  Camera,
-  Video,
-  MoreVertical,
-  Flag,
   ArrowRight,
   Sparkles,
-} from 'lucide-react';
-import { formatTimeAgo, formatDateTimeIndo, cn } from '@/lib/utils';
-import { FlagModal } from './flag-modal';
-import { CommunityVideoPlayer } from './community-video-player';
-import { MediaLightboxModal } from './media-lightbox-modal';
+} from 'lucide-react'
+import { formatDateTimeIndo, cn } from '@/lib/utils'
+import { FlagModal } from './flag-modal'
+import { MediaLightboxModal } from './media-lightbox-modal'
+import { PostCardHeader } from './post-card-header'
+import { PostCardMedia } from './post-card-media'
+import type { PostItem } from './post-card.types'
 
-import { isVideoMedia } from '@/lib/cloudinary';
-
-export interface PostAuthor {
-  id: string;
-  name: string;
-  role: 'WARGA' | 'RELAWAN' | 'ADMIN';
-  avatarUrl?: string | null;
-  kabupaten?: string | null;
-  kecamatan?: string | null;
-}
-
-export interface PostItem {
-  id: string;
-  category: 'DARURAT' | 'INFORMASI';
-  content: string;
-  imageUrl?: string | null;
-  isLiveCamera?: boolean;
-  address: string;
-  province?: string;
-  kabupaten?: string;
-  kecamatan?: string;
-  latitude: number;
-  longitude: number;
-  status: string;
-  clusterCode?: string | null;
-  createdAt: string;
-  author: PostAuthor;
-  updates?: any[];
-  _count?: {
-    comments: number;
-    updates: number;
-  };
-}
+export * from './post-card.types'
 
 export function PostCard({ post }: { post: PostItem }) {
-  const [showMenu, setShowMenu] = useState(false);
-  const [showFlagModal, setShowFlagModal] = useState(false);
-  const [showLightbox, setShowLightbox] = useState(false);
+  const [showFlagModal, setShowFlagModal] = useState(false)
+  const [showLightbox, setShowLightbox] = useState(false)
 
-  const isEmergency = post.category === 'DARURAT';
-  const commentCount = post._count?.comments ?? 0;
-  const updateCount = post._count?.updates ?? post.updates?.length ?? 0;
+  const isEmergency = post.category === 'DARURAT'
+  const commentCount = post._count?.comments ?? 0
+  const updateCount = post._count?.updates ?? post.updates?.length ?? 0
 
   return (
     <>
@@ -67,85 +32,17 @@ export function PostCard({ post }: { post: PostItem }) {
           'bg-white rounded-2xl border transition-all duration-200 overflow-hidden shadow-xs hover:shadow-md flex flex-col',
           isEmergency
             ? 'border-red-300 hover:border-red-400 ring-1 ring-red-400/20'
-            : 'border-neutral-300 hover:border-neutral-400'
+            : 'border-neutral-300 hover:border-neutral-400',
         )}
       >
         {/* Card Header: Author info & options */}
-        <div className="p-4 sm:p-5 pb-3 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <img
-              src={
-                post.author?.avatarUrl ||
-                'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80'
-              }
-              alt={post.author?.name || 'Warga'}
-              className="w-10 h-10 rounded-full object-cover border border-neutral-200 shrink-0"
-            />
-            <div>
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="font-bold text-sm text-neutral-900 leading-tight">
-                  {post.author?.name}
-                </span>
-                <span className="text-neutral-300">•</span>
-                <span
-                  className={cn(
-                    'text-[11px] font-bold px-1.5 py-0.2 rounded border',
-                    post.author?.role === 'ADMIN'
-                      ? 'bg-neutral-900 text-amber-400 border-neutral-800'
-                      : post.author?.role === 'RELAWAN'
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                      : 'bg-orange-100 text-orange-800 border-orange-300'
-                  )}
-                >
-                  {post.author?.role === 'ADMIN'
-                    ? 'Admin Posko'
-                    : post.author?.role === 'RELAWAN'
-                    ? 'Relawan'
-                    : 'Warga'}
-                </span>
-              </div>
-              <p className="text-[11px] text-neutral-500 mt-0.5">
-                {formatTimeAgo(post.createdAt)}
-              </p>
-            </div>
-          </div>
+        <PostCardHeader
+          author={post.author}
+          createdAt={post.createdAt}
+          onReportClick={() => setShowFlagModal(true)}
+        />
 
-          {/* Three dots dropdown */}
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setShowMenu(!showMenu)}
-              className="w-8 h-8 rounded-lg flex items-center justify-center text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 transition"
-              aria-label="Opsi Postingan"
-            >
-              <MoreVertical className="w-4 h-4" />
-            </button>
-
-            {showMenu && (
-              <>
-                <div
-                  className="fixed inset-0 z-20"
-                  onClick={() => setShowMenu(false)}
-                />
-                <div className="absolute right-0 top-full mt-1 w-44 bg-white rounded-xl shadow-lg border border-neutral-200 py-1.5 z-30 animate-in fade-in zoom-in-95">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowMenu(false);
-                      setShowFlagModal(true);
-                    }}
-                    className="flex items-center gap-2.5 w-full px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 text-left transition"
-                  >
-                    <Flag className="w-3.5 h-3.5" />
-                    <span>Laporkan postingan</span>
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
-
-        {/* Badges Bar: Category & Location (SOLID & HIGH CONTRAST) */}
+        {/* Badges Bar: Category & Location */}
         <div className="px-4 sm:px-5 pb-2.5 flex items-center gap-2 flex-wrap text-xs">
           <span
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-xs border"
@@ -163,11 +60,41 @@ export function PostCard({ post }: { post: PostItem }) {
             {isEmergency ? 'Darurat' : 'Informasi'}
           </span>
 
+          {isEmergency && (
+            <span
+              className={cn(
+                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border',
+                post.status === 'SELESAI'
+                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
+                  : post.status === 'DALAM_PENANGANAN'
+                  ? 'bg-blue-50 text-blue-800 border-blue-300'
+                  : 'bg-amber-50 text-amber-800 border-amber-300',
+              )}
+            >
+              <span
+                className={cn(
+                  'w-1.5 h-1.5 rounded-full',
+                  post.status === 'SELESAI'
+                    ? 'bg-emerald-600'
+                    : post.status === 'DALAM_PENANGANAN'
+                    ? 'bg-blue-600 animate-pulse'
+                    : 'bg-amber-500',
+                )}
+              />
+              <span>
+                {post.status === 'SELESAI'
+                  ? 'Padam (Selesai)'
+                  : post.status === 'DALAM_PENANGANAN'
+                  ? 'Dalam Penanganan'
+                  : 'Menunggu Verifikasi'}
+              </span>
+            </span>
+          )}
+
           <span className="inline-flex items-center gap-1 text-neutral-600 text-xs font-semibold truncate max-w-[280px]">
             <MapPin className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
             <span className="truncate">
-              {post.kecamatan ? `${post.kecamatan}, ` : ''}
-              {post.kabupaten || 'Kalimantan Barat'}
+              {[post.kecamatan, post.kabupaten, post.province].filter(Boolean).join(', ') || 'Kalimantan Barat'}
             </span>
           </span>
         </div>
@@ -181,47 +108,12 @@ export function PostCard({ post }: { post: PostItem }) {
 
         {/* Post Media (Image or Video) with Full View Lightbox */}
         {post.imageUrl && (
-          <div className="px-4 sm:px-5 pb-3">
-            {isVideoMedia(post.imageUrl) ? (
-              <div className="relative overflow-hidden rounded-xl border border-neutral-200 bg-black aspect-video sm:aspect-[16/10] flex items-center justify-center group">
-                <CommunityVideoPlayer
-                  src={post.imageUrl}
-                  className="w-full h-full object-contain"
-                />
-                {post.isLiveCamera && (
-                  <div className="absolute top-2.5 left-2.5 bg-black/75 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md pointer-events-none z-10">
-                    <Video className="w-3.5 h-3.5 text-amber-400" />
-                    <span>
-                      Video • {formatDateTimeIndo(post.createdAt)}
-                    </span>
-                  </div>
-                )}
-                
-              </div>
-            ) : (
-              <div
-                onClick={() => setShowLightbox(true)}
-                className="block group relative overflow-hidden rounded-xl border border-neutral-200 bg-neutral-950 aspect-video sm:aspect-[16/10] flex items-center justify-center cursor-pointer"
-                title="Ketuk untuk melihat foto ukuran penuh tanpa terpotong"
-              >
-                <img
-                  src={post.imageUrl}
-                  alt="Bukti kondisi lapangan"
-                  className="w-full h-full object-contain group-hover:scale-102 transition duration-300"
-                  loading="lazy"
-                />
-                {post.isLiveCamera && (
-                  <div className="absolute bottom-2.5 left-2.5 bg-black/75 backdrop-blur-md text-white text-[11px] font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-md pointer-events-none">
-                    <Camera className="w-3.5 h-3.5 text-amber-400" />
-                    <span>
-                      Foto • {formatDateTimeIndo(post.createdAt)}
-                    </span>
-                  </div>
-                )}
-                
-              </div>
-            )}
-          </div>
+          <PostCardMedia
+            imageUrl={post.imageUrl}
+            createdAt={post.createdAt}
+            isLiveCamera={post.isLiveCamera}
+            onImageClick={() => setShowLightbox(true)}
+          />
         )}
 
         {/* Has updates alert snippet if present */}
@@ -285,5 +177,5 @@ export function PostCard({ post }: { post: PostItem }) {
         />
       )}
     </>
-  );
+  )
 }
