@@ -22,6 +22,7 @@ export interface MapSidebarProps {
   onApplyFilter: (filter: MapFilter) => void
   onClearFilter: () => void
   currentLocationName?: string
+  subLocationText?: string
   temperatureText?: string
   currentAreaInside?: PriorityArea | null
   currentLocationStatusText?: string
@@ -37,7 +38,8 @@ export function MapSidebar({
   filter,
   onApplyFilter,
   onClearFilter,
-  currentLocationName = 'Kabupaten Sintang',
+  currentLocationName,
+  subLocationText,
   temperatureText = '31°C • Cerah',
   currentAreaInside,
   currentLocationStatusText,
@@ -48,7 +50,11 @@ export function MapSidebar({
   const [activeTab, setActiveTab] = useState<'list' | 'filter'>('list')
 
   const activeFilterCount =
-    (filter.district ? 1 : 0) + (filter.priorities.length < 3 ? 3 - filter.priorities.length : 0)
+    (filter.province ? 1 : 0) +
+    (filter.regency ? 1 : 0) +
+    (filter.district ? 1 : 0) +
+    (filter.priorities.length < 3 ? 3 - filter.priorities.length : 0) +
+    (filter.date !== new Date().toISOString().slice(0, 10) ? 1 : 0)
 
   return (
     <aside
@@ -81,7 +87,7 @@ export function MapSidebar({
                     {currentLocationName}
                   </h1>
                   <span className="text-[11px] text-neutral-500 truncate">
-                    Kalimantan Barat • {areas.length} Area Pantau
+                    {subLocationText || (filter.province ? filter.province : "Seluruh Kalimantan")} • {areas.length} Area Pantau
                   </span>
                 </div>
               </div>

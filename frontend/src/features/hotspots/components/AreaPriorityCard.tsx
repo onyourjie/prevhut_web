@@ -67,7 +67,7 @@ export function AreaPriorityCard({
         <div className="flex items-center gap-1.5">
           <MapPin className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
           <span className="truncate">
-            {area.district}, {area.regency}
+            {[area.district, area.regency, area.province].filter(Boolean).join(', ')}
           </span>
         </div>
 

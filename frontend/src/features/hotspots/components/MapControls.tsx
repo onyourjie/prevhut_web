@@ -9,6 +9,7 @@ import type { BasemapId } from '../basemaps'
 
 export interface MapControlsProps {
   onLocateUser?: () => void
+  userLocation?: { lat: number; lng: number }
   basemap?: BasemapId
   onBasemapChange?: (id: BasemapId) => void
 }
@@ -19,7 +20,7 @@ const BASEMAP_ICONS: Record<BasemapId, React.ReactNode> = {
   satellite: <Satellite className="w-4 h-4" />,
 }
 
-export function MapControls({ onLocateUser, basemap, onBasemapChange }: MapControlsProps) {
+export function MapControls({ onLocateUser, userLocation, basemap, onBasemapChange }: MapControlsProps) {
   const map = useMap()
   const containerRef = useRef<HTMLDivElement>(null)
   const [isLayerOpen, setIsLayerOpen] = useState(false)
@@ -32,7 +33,9 @@ export function MapControls({ onLocateUser, basemap, onBasemapChange }: MapContr
   }, [])
 
   const handleRecenter = () => {
-    map.flyTo([USER_CURRENT_LOCATION.lat, USER_CURRENT_LOCATION.lng], 14, {
+    const targetLat = userLocation?.lat ?? USER_CURRENT_LOCATION.lat
+    const targetLng = userLocation?.lng ?? USER_CURRENT_LOCATION.lng
+    map.flyTo([targetLat, targetLng], 13, {
       duration: 0.8,
     })
     onLocateUser?.()
