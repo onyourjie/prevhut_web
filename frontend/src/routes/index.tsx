@@ -1,169 +1,258 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-  Flame,
-  Users,
-  ArrowRight,
-  AlertTriangle,
-  Radio,
-} from "lucide-react";
-import { AppLayout } from "@/components/layout/app-layout";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/store/auth.store";
+import { useState, useEffect } from 'react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { Bell, Shield, Users } from 'lucide-react'
+import { AppLayout } from '@/components/layout/app-layout'
+import { useAuthStore } from '@/store/auth.store'
+import { apiRequest } from '@/lib/api'
+import { usePriorityAreas } from '@/features/hotspots'
+import { showSuccessToast, showErrorToast } from '@/lib/swal'
+import { EvacuationGuideModal } from '@/components/home/EvacuationGuideModal'
+import { EmergencyCallModal } from '@/components/home/EmergencyCallModal'
+import { VolunteerActiveTaskCard, type ActiveTask } from '@/components/home/VolunteerActiveTaskCard'
+import { VolunteerPrioritySection } from '@/components/home/VolunteerPrioritySection'
+import { VolunteerAvailabilityCard } from '@/components/home/VolunteerAvailabilityCard'
+import { LocationStatusCard } from '@/components/home/LocationStatusCard'
+import { CitizenActionsSection } from '@/components/home/CitizenActionsSection'
+import { MapIntelBanner } from '@/components/home/MapIntelBanner'
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute('/')({
   component: HomePage,
-});
+})
 
 function HomePage() {
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, updateUser } = useAuthStore()
+  const isVolunteer = user?.role === 'RELAWAN'
+  const isAdmin = user?.role === 'ADMIN'
+
+  // Active Task for volunteer
+  const [activeTask, setActiveTask] = useState<ActiveTask | null>(null)
+
+  // Volunteer availability
+  const [isAvailable, setIsAvailable] = useState<boolean>(user?.isAvailable ?? true)
+  const [isTogglingAvail, setIsTogglingAvail] = useState(false)
+
+  // Modals for Warga
+  const [isEvacuationModalOpen, setIsEvacuationModalOpen] = useState(false)
+  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false)
+
+  // Dynamic live priority areas & meteorological data
+  const { data: priorityData, isLoading: isLoadingAreas } = usePriorityAreas()
+  const [weatherData, setWeatherData] = useState<any>(null)
+
+  useEffect(() => {
+    apiRequest('/hotspots/weather-ispu')
+      .then((res) => setWeatherData(res))
+      .catch((err) => console.warn('Weather live fetch fallback:', err))
+  }, [])
+
+  const totalHotspots = priorityData?.areas.reduce((acc, a) => acc + a.hotspotCount, 0) ?? 4
+  const ispuValue = weatherData?.ispu_value ?? 58
+  const ispuCategory = weatherData?.ispu_category ?? 'Sedang'
+  const tempText = weatherData?.temperature_c ? `${weatherData.temperature_c}°C` : '31°C'
+  const weatherText = weatherData?.weather_desc ?? 'Cerah Berawan'
+  const humidityText = weatherData?.humidity_percent ? `Kelembaban ${weatherData.humidity_percent}%` : 'Kelembaban 68%'
+  const topAreas = (priorityData?.areas || []).slice(0, 3)
+  const topCluster = topAreas[0]
+  const lastSyncTime = topCluster?.lastUpdatedText ?? 'Baru saja • Satelit NASA FIRMS'
+
+  // Fetch volunteer assignments if RELAWAN
+  useEffect(() => {
+    if (isAuthenticated && (isVolunteer || isAdmin)) {
+      const fetchMyTasks = async () => {
+        try {
+          const tasks = await apiRequest('/assignments/my-tasks')
+          const ongoing = (tasks || []).find((t: ActiveTask) =>
+            ['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'].includes(t.status)
+          )
+          setActiveTask(ongoing || null)
+        } catch (err) {
+          console.error('Gagal memuat tugas aktif:', err)
+        }
+      }
+      fetchMyTasks()
+    }
+  }, [isAuthenticated, isVolunteer, isAdmin])
+
+  // Handle availability toggle
+  const handleToggleAvailability = async () => {
+    const nextVal = !isAvailable
+    setIsTogglingAvail(true)
+    try {
+      await apiRequest('/users/profile', {
+        method: 'PATCH',
+        body: JSON.stringify({ isAvailable: nextVal }),
+      })
+      setIsAvailable(nextVal)
+      updateUser({ isAvailable: nextVal })
+      showSuccessToast(
+        nextVal
+          ? 'Status: Siap Siaga Bertugas (Available)'
+          : 'Status: Sedang Istirahat / Off Duty'
+      )
+    } catch {
+      showErrorToast('Gagal memperbarui status kesiapan')
+    } finally {
+      setIsTogglingAvail(false)
+    }
+  }
+
+  const displayName = user?.name ? user.name.split(' ')[0] : 'Warga'
+  const displayLocation = user?.kabupaten || 'Kabupaten Sintang'
+  const displayProvince = user?.province || 'Kalimantan Barat'
 
   return (
     <AppLayout
-      title="Dasbor Karhutla"
-      subtitle="Sistem Intelijen Titik Panas & Tanggap Bencana Warga"
+      title={isVolunteer ? 'Dasbor Relawan Lapangan' : 'Dasbor Warga Karhutla'}
+      subtitle={
+        isVolunteer
+          ? 'Sistem Pemantauan Titik Panas & Disposisi Aksi Lapangan'
+          : 'Deteksi Dini Bahaya Kebakaran Lahan & Tanggap Bencana'
+      }
     >
-      <div className="max-w-3xl mx-auto space-y-6 text-left">
-        {/* Hero Card */}
-        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-neutral-900 via-neutral-950 to-brand-950 text-white p-6 sm:p-8 shadow-xl border border-neutral-800">
-          <div className="relative z-10 space-y-3">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/20 border border-brand-500/40 text-brand-300 text-xs font-bold uppercase tracking-wider">
-              <span className="w-2 h-2 rounded-full bg-brand-400 animate-ping" />
-              <span>Satelit NASA FIRMS Terpantau Aktif</span>
-            </div>
-
-            <h1 className="text-xl sm:text-2xl font-black tracking-tight text-white max-w-xl">
-              Deteksi Dini Bahaya Kebakaran Lahan & Transparansi Publik Kalimantan
-            </h1>
-
-            <p className="text-xs sm:text-sm text-neutral-300 leading-relaxed max-w-lg">
-              Integrasi klastering geospasial DBSCAN satelit FIRMS dengan verifikasi kamera langsung warga (*crowd intelligence*) dan sistem penugasan relawan lapangan.
-            </p>
-
-            <div className="pt-2 flex flex-wrap gap-2.5">
-              <Link
-                to="/community"
-                className="px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold transition flex items-center gap-2 shadow-sm"
-              >
-                <Users className="w-4 h-4" />
-                <span>Buka Feed Komunitas</span>
-              </Link>
-              <Link
-                to="/community/create"
-                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-bold transition flex items-center gap-2"
-              >
-                <Flame className="w-4 h-4 text-orange-400" />
-                <span>Lapor Titik Api Sekarang</span>
-              </Link>
+      <div className="max-w-2xl mx-auto space-y-5 text-left pb-24">
+        {/* HEADER TOP: Halo, Nama! + Badge Role + Notification Bell */}
+        <div className="flex items-center justify-between pt-1">
+          <div className="flex items-center gap-3">
+            <img
+              src={
+                user?.avatarUrl ||
+                'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80'
+              }
+              alt={user?.name || 'User'}
+              className="w-12 h-12 rounded-full object-cover border-2 border-white shadow-xs"
+            />
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">
+                  Halo, {displayName}!
+                </h1>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide border ${
+                    isVolunteer
+                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                      : isAdmin
+                      ? 'bg-neutral-900 text-amber-400 border-neutral-700'
+                      : 'bg-orange-100 text-orange-800 border-orange-200'
+                  }`}
+                >
+                  {isVolunteer ? 'Relawan' : isAdmin ? 'Admin Posko' : 'Warga'}
+                </span>
+              </div>
+              <p className="text-xs text-neutral-500 font-medium">
+                {isVolunteer
+                  ? 'Regu Tanggap Siaga Kebakaran Hutan & Lahan'
+                  : 'Pantauan lingkungan terkini sekitar tempat tinggal Anda'}
+              </p>
             </div>
           </div>
 
-          <div className="absolute right-0 bottom-0 translate-x-10 translate-y-10 w-64 h-64 bg-brand-600/20 rounded-full blur-3xl pointer-events-none" />
-        </div>
-
-        {/* Quick Access Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <Link to="/community" className="block group">
-            <div className="p-4 rounded-2xl bg-white border border-neutral-200 hover:border-brand-500 hover:shadow-md transition space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-105 transition">
-                <Users className="w-5 h-5" />
-              </div>
-              <h3 className="text-xs font-extrabold text-neutral-900 group-hover:text-brand-700 transition">
-                Kabar Komunitas
-              </h3>
-              <p className="text-[11px] text-neutral-500 leading-relaxed">
-                Pantau laporan warga sekitar, foto langsung kejadian, & perkembangan pemadaman.
-              </p>
-            </div>
-          </Link>
-
-          <Link to="/community/create" className="block group">
-            <div className="p-4 rounded-2xl bg-white border border-neutral-200 hover:border-red-500 hover:shadow-md transition space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center group-hover:scale-105 transition">
-                <AlertTriangle className="w-5 h-5" />
-              </div>
-              <h3 className="text-xs font-extrabold text-neutral-900 group-hover:text-red-700 transition">
-                Lapor Darurat
-              </h3>
-              <p className="text-[11px] text-neutral-500 leading-relaxed">
-                Laporkan titik asap dengan simulasi kamera langsung & deteksi GPS otomatis.
-              </p>
-            </div>
-          </Link>
-
-          <Link to="/emergency" className="block group">
-            <div className="p-4 rounded-2xl bg-white border border-neutral-200 hover:border-emerald-500 hover:shadow-md transition space-y-2">
-              <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition">
-                <Radio className="w-5 h-5" />
-              </div>
-              <h3 className="text-xs font-extrabold text-neutral-900 group-hover:text-emerald-700 transition">
-                Kontak Siaga 113
-              </h3>
-              <p className="text-[11px] text-neutral-500 leading-relaxed">
-                Panggilan cepat bebas pulsa Pemadam Kebakaran, Tim SAR, Polisi, dan Ambulans.
-              </p>
-            </div>
-          </Link>
-        </div>
-
-        {/* User Card if Logged in */}
-        {isAuthenticated && user && (
-          <div className="p-4 rounded-2xl bg-white border border-neutral-200 shadow-xs flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img
-                src={
-                  user.avatarUrl ||
-                  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&q=80"
-                }
-                alt={user.name}
-                className="w-11 h-11 rounded-full object-cover border border-neutral-200"
-              />
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="font-bold text-xs text-neutral-900">{user.name}</h4>
-                  <span className="px-1.5 py-0.2 rounded text-[10px] font-bold uppercase bg-brand-100 text-brand-800">
-                    {user.role}
-                  </span>
-                </div>
-                <p className="text-[11px] text-neutral-400">
-                  {user.kabupaten || "Kabupaten Sintang"}, {user.province || "Kalimantan Barat"}
-                </p>
-              </div>
-            </div>
-
+          <div className="flex items-center gap-2">
             <Link
-              to="/profile"
-              className="text-xs font-bold text-brand-700 hover:text-brand-800 flex items-center gap-1"
+              to="/emergency"
+              className="w-10 h-10 rounded-full bg-white border border-neutral-200 hover:border-neutral-300 shadow-2xs flex items-center justify-center text-neutral-600 hover:text-neutral-900 transition"
+              title="Notifikasi & Kontak Darurat"
             >
-              <span>Lihat Profil</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+              <Bell className="w-5 h-5" />
             </Link>
           </div>
+        </div>
+
+        {/* LOKASI DAN STATUS WILAYAH */}
+        <LocationStatusCard
+          displayLocation={displayLocation}
+          displayProvince={displayProvince}
+          isPerhatianKhusus={Boolean(priorityData?.currentAreaInside)}
+          ispuValue={ispuValue}
+          ispuCategory={ispuCategory}
+          totalHotspots={totalHotspots}
+          weatherText={weatherText}
+          tempText={tempText}
+          humidityText={humidityText}
+        />
+
+        {/* SECTION SESUAI ROLE PENGGUNA */}
+        {isVolunteer || isAdmin ? (
+          <>
+            {/* KESIAPSIAGAAN RELAWAN */}
+            <VolunteerAvailabilityCard
+              isAvailable={isAvailable}
+              isTogglingAvailability={isTogglingAvail}
+              onToggle={handleToggleAvailability}
+            />
+
+            {/* WIDGET TUGAS LAPANGAN AKTIF */}
+            <VolunteerActiveTaskCard activeTask={activeTask} />
+
+            {/* PRIORITAS TITIK PANAS (FIGMA RELAWAN) */}
+            <VolunteerPrioritySection
+              isLoadingAreas={isLoadingAreas}
+              topAreas={topAreas}
+            />
+
+            {/* QUICK ACTIONS UNTUK RELAWAN */}
+            <div className="grid grid-cols-2 gap-3 pt-2">
+              <Link to="/assignments" className="block group">
+                <div className="p-4 rounded-2xl bg-white border border-neutral-200 hover:border-emerald-500 hover:shadow-md transition space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-xs font-extrabold text-neutral-900 group-hover:text-emerald-700 transition">
+                    Lembar Penugasan
+                  </h4>
+                  <p className="text-[11px] text-neutral-500 leading-relaxed">
+                    Daftar aksi disposisi tugas verifikasi lapangan dari posko.
+                  </p>
+                </div>
+              </Link>
+
+              <Link to="/community" className="block group">
+                <div className="p-4 rounded-2xl bg-white border border-neutral-200 hover:border-orange-500 hover:shadow-md transition space-y-2">
+                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-105 transition">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-xs font-extrabold text-neutral-900 group-hover:text-orange-700 transition">
+                    Laporan Warga
+                  </h4>
+                  <p className="text-[11px] text-neutral-500 leading-relaxed">
+                    Pantau informasi langsung dari warga untuk tindakan cepat.
+                  </p>
+                </div>
+              </Link>
+            </div>
+          </>
+        ) : (
+          /* SECTION UNTUK WARGA */
+          <CitizenActionsSection
+            weatherText={weatherText}
+            totalHotspots={totalHotspots}
+            tempText={tempText}
+            displayLocation={displayLocation}
+            topCluster={topCluster}
+            observedAt={weatherData?.observed_at}
+            lastSyncTime={lastSyncTime}
+            onOpenEvacuationModal={() => setIsEvacuationModalOpen(true)}
+            onOpenEmergencyModal={() => setIsEmergencyModalOpen(true)}
+          />
         )}
 
-        {/* Peta Sebaran Titik Panas - Fitur Utama */}
-        <Card className="flex flex-col gap-3 border-2 border-brand-500/30 bg-gradient-to-b from-brand-50/40 to-white shadow-sm p-5">
-          <div className="flex items-center justify-between">
-            <div className="w-10 h-10 rounded-xl bg-brand-600 text-white flex items-center justify-center shadow-xs">
-              <Flame className="w-5 h-5" />
-            </div>
-            <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-brand-100 text-brand-800 border border-brand-200">
-              FITUR BARU
-            </span>
-          </div>
-          <div className="flex flex-col">
-            <h3 className="text-base font-bold text-neutral-900">Peta Sebaran Titik Panas</h3>
-            <p className="text-xs text-neutral-600 leading-relaxed mt-1">
-              Pantau 10 Area Pantau Prioritas di Kabupaten Sintang dengan status risiko P1, P2, P3, analisis FRP, dan filter wilayah interaktif.
-            </p>
-          </div>
-          <Link to="/map" className="w-full">
-            <Button variant="primary" size="long" className="w-full">
-              Buka Peta Interaktif
-            </Button>
-          </Link>
-        </Card>
+        {/* PETA INTELIJEN SEBARAN TITIK PANAS BANNER */}
+        <MapIntelBanner
+          totalAreas={priorityData?.totalAreasFound ?? 10}
+          displayLocation={displayLocation}
+        />
       </div>
+
+      {/* MODAL PANDUAN & PROTOKOL EVAKUASI CEPAT */}
+      <EvacuationGuideModal
+        isOpen={isEvacuationModalOpen}
+        onClose={() => setIsEvacuationModalOpen(false)}
+      />
+
+      {/* MODAL PANGGILAN DARURAT */}
+      <EmergencyCallModal
+        isOpen={isEmergencyModalOpen}
+        onClose={() => setIsEmergencyModalOpen(false)}
+      />
     </AppLayout>
-  );
+  )
 }

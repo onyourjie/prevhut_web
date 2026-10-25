@@ -27,6 +27,7 @@ export interface AuthStore {
   isAuthenticated: boolean;
   hasHydrated: boolean;
   setAuth: (user: User, token: string) => void;
+  updateUser: (partial: Partial<User>) => void;
   logout: () => void;
   setHasHydrated: (val: boolean) => void;
 }
@@ -43,6 +44,11 @@ export const useAuthStore = create<AuthStore>()(
           localStorage.setItem("firezone_token", token);
         }
         set({ user, token, isAuthenticated: true });
+      },
+      updateUser: (partial) => {
+        set((state) => ({
+          user: state.user ? { ...state.user, ...partial } : null,
+        }));
       },
       logout: () => {
         if (typeof window !== "undefined") {

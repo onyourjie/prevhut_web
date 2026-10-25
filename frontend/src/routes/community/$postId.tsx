@@ -4,6 +4,7 @@ import { ArrowLeft, MoreVertical, Flag, RefreshCw } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { FlagModal } from '@/components/community/flag-modal';
 import { PostDetailMainCard } from '@/components/community/post-detail-main-card';
+import { ResponseTrackingSection } from '@/components/community/response-tracking-section';
 import { PostUpdatesSection } from '@/components/community/post-updates-section';
 import { PostCommentsSection } from '@/components/community/post-comments-section';
 import { PostCommentInputBar } from '@/components/community/post-comment-input-bar';
@@ -201,6 +202,12 @@ function PostDetailPage() {
 
         {/* Main Post Card */}
         <PostDetailMainCard
+          post={post}
+          onMediaClick={(url) => setLightboxMediaUrl(url)}
+        />
+
+        {/* SECTION: Lacak Progres Penanganan Transparan */}
+        <ResponseTrackingSection
           post={post}
           onMediaClick={(url) => setLightboxMediaUrl(url)}
         />

@@ -1,5 +1,9 @@
 import { useState, useMemo } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
+import { apiRequest } from '@/lib/api'
+import { useAuthStore } from '@/store/auth.store'
+import { getRegencyCoordinates } from '@/lib/kalimantan-locations'
 import {
   HotspotMap,
   MapHeader,
@@ -12,21 +16,34 @@ import {
   MapFilterSheet,
   MapSidebar,
   usePriorityAreas,
-  USER_CURRENT_LOCATION,
 } from '@/features/hotspots'
 import type { PriorityArea, MapFilter } from '@/features/hotspots'
 import { BottomNav } from '@/components/layout/bottom-nav'
-import { MainNavbar } from '@/components/layout/main-navbar'
+import { AppSidebar } from '@/components/layout/app-sidebar'
 
 export const Route = createFileRoute('/map')({
   component: MapPage,
 })
 
 function MapPage() {
+  const { user } = useAuthStore()
+
+  // Lokasi riil pengguna dari profil login
+  const userLocationName = user?.kabupaten || 'Kota Palangka Raya'
+  const userProvinceName = user?.province || 'Kalimantan Tengah'
+  const userCoordinates = useMemo(() => {
+    if (typeof user?.latitude === 'number' && typeof user?.longitude === 'number' && user.latitude !== 0) {
+      return { lat: user.latitude, lng: user.longitude }
+    }
+    return getRegencyCoordinates(userProvinceName, userLocationName)
+  }, [user, userProvinceName, userLocationName])
+
+  // Filter geospasial fleksibel: default menampilkan seluruh Kalimantan
   const [filter, setFilter] = useState<MapFilter>({
-    regency: USER_CURRENT_LOCATION.name,
+    province: null,
+    regency: null,
     district: null,
-    date: '2026-09-24',
+    date: new Date().toISOString().slice(0, 10),
     priorities: ['P1', 'P2', 'P3'],
   })
 
@@ -35,25 +52,54 @@ function MapPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
 
+  // Query Area Pantauan dari Data Service / Backend
   const { data } = usePriorityAreas({
+    province: filter.province,
+    regency: filter.regency,
     district: filter.district,
     priorities: filter.priorities,
+    date: filter.date,
+    userLocationName,
+    userCoordinates,
   })
 
   const areas = data?.areas || []
 
+  // Ambil cuaca live sesuai kota yang sedang aktif/dipilih
+  const activeCity = filter.regency || userLocationName
+  const { data: weatherData } = useQuery({
+    queryKey: ['weather', activeCity],
+    queryFn: async () => {
+      try {
+        const clean = activeCity.replace(/^(kabupaten|kota)\s+/i, '').trim()
+        return await apiRequest<any>(`/hotspots/weather-ispu?city=${encodeURIComponent(clean)}`)
+      } catch {
+        return null
+      }
+    },
+    staleTime: 1000 * 60 * 10,
+  })
+
+  const temperatureText = weatherData?.temperature_c
+    ? `${weatherData.temperature_c}°C • ${weatherData.weather_desc || 'Cerah'}`
+    : '31°C • Cerah'
+
   const activeFilterCount = useMemo(() => {
     let count = 0
+    if (filter.province !== null) count += 1
+    if (filter.regency !== null) count += 1
     if (filter.district !== null) count += 1
     if (filter.priorities.length < 3) count += 3 - filter.priorities.length
+    if (filter.date && filter.date !== new Date().toISOString().slice(0, 10)) count += 1
     return count
   }, [filter])
 
   const handleClearFilter = () => {
     setFilter({
-      regency: USER_CURRENT_LOCATION.name,
+      province: null,
+      regency: null,
       district: null,
-      date: '2026-09-24',
+      date: new Date().toISOString().slice(0, 10),
       priorities: ['P1', 'P2', 'P3'],
     })
   }
@@ -75,10 +121,17 @@ function MapPage() {
     setSelectedArea(area)
   }
 
-  return (
-    <div className="relative w-full h-[100dvh] overflow-hidden bg-neutral-100 flex flex-col select-none">
-      <MainNavbar />
+  const activeLocationHeader = filter.regency || filter.province || userLocationName
+  const activeSubLocationHeader = filter.regency
+    ? (filter.province || userProvinceName)
+    : (filter.province || 'Seluruh Kalimantan')
 
+  return (
+    <div className="relative w-full h-[100dvh] overflow-hidden bg-neutral-100 flex flex-row select-none">
+      {/* Sidebar Navigasi Utama FIREZONE */}
+      <AppSidebar className="hidden lg:flex" />
+
+      {/* Konten Peta & Drawer Area Pantau */}
       <div className="flex-1 relative w-full overflow-hidden flex flex-col lg:flex-row h-full">
         <MapSidebar
           areas={areas}
@@ -87,8 +140,9 @@ function MapPage() {
           filter={filter}
           onApplyFilter={(newFilter) => setFilter(newFilter)}
           onClearFilter={handleClearFilter}
-          currentLocationName={data?.currentLocationName || 'Kabupaten Sintang'}
-          temperatureText="31°C • Cerah"
+          currentLocationName={activeLocationHeader}
+          subLocationText={activeSubLocationHeader}
+          temperatureText={temperatureText}
           currentAreaInside={data?.currentAreaInside}
           currentLocationStatusText={data?.currentLocationStatusText}
           isCollapsed={isSidebarCollapsed}
@@ -101,6 +155,7 @@ function MapPage() {
             areas={areas}
             selectedArea={selectedArea}
             onSelectArea={handleSelectArea}
+            userLocation={userCoordinates}
             hideControlsOnMobile={Boolean(selectedArea)}
             desktopPanelOpen={Boolean(selectedArea)}
             className="w-full h-full"
@@ -128,11 +183,11 @@ function MapPage() {
       {!selectedArea && (
         <div className="absolute top-0 inset-x-0 z-30 p-4 pt-[max(1rem,env(safe-area-inset-top))] max-w-md mx-auto pointer-events-none lg:hidden">
           <MapHeader
-            locationName={data?.currentLocationName || 'Kabupaten Sintang'}
-            locationSubtitle="Lokasi saat ini"
-            temperatureText="31°C • Cerah"
+            locationName={activeLocationHeader}
+            locationSubtitle={activeSubLocationHeader}
+            temperatureText={temperatureText}
             activeFilterCount={activeFilterCount}
-            activeDistrictName={filter.district}
+            activeDistrictName={filter.district || filter.regency}
             onOpenFilter={() => setIsFilterOpen(true)}
             onClearFilter={handleClearFilter}
             onLocationClick={() => setIsFilterOpen(true)}
@@ -158,8 +213,8 @@ function MapPage() {
 
           <PriorityDrawerBanner
             totalCount={data?.totalAreasFound ?? 0}
-            regencyName={filter.district || 'Kab. Sintang'}
-            isFiltered={Boolean(filter.district || filter.priorities.length < 3)}
+            regencyName={filter.regency || filter.district || activeLocationHeader}
+            isFiltered={Boolean(filter.province || filter.regency || filter.district || filter.priorities.length < 3)}
             onClick={() => setIsListOpen(true)}
           />
         </div>
@@ -176,12 +231,11 @@ function MapPage() {
       )}
 
       <PriorityListSheet
-        areas={areas}
-        regencyName={filter.district || 'Kab. Sintang'}
         isOpen={isListOpen}
+        areas={areas}
+        regencyName={activeLocationHeader}
+        onSelectArea={handleSelectArea}
         onClose={() => setIsListOpen(false)}
-        onSelectArea={(area) => setSelectedArea(area)}
-        className="lg:hidden"
       />
 
       <MapFilterSheet
@@ -189,7 +243,6 @@ function MapPage() {
         currentFilter={filter}
         onApply={(newFilter) => setFilter(newFilter)}
         onClose={() => setIsFilterOpen(false)}
-        className="lg:hidden"
       />
     </div>
   )

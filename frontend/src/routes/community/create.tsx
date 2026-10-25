@@ -31,6 +31,21 @@ function CreatePostPage() {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [quota, setQuota] = useState<{
+    role: string;
+    postsToday: number;
+    maxDaily: number;
+    remainingQuota: number;
+    canPost: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      apiRequest("/community/quota")
+        .then((data) => setQuota(data))
+        .catch(() => {});
+    }
+  }, [isAuthenticated]);
 
   // Lokasi otomatis mengikuti profil akun
   const [province, setProvince] = useState(user?.province || "Kalimantan Barat");
@@ -230,10 +245,17 @@ function CreatePostPage() {
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full py-3.5 rounded-xl text-xs font-extrabold text-white transition shadow-md active:scale-[0.99] cursor-pointer"
-              style={{ backgroundColor: "#eb5314" }}
+              disabled={quota?.canPost === false}
+              className={`w-full py-3.5 rounded-xl text-xs font-extrabold text-white transition shadow-md active:scale-[0.99] ${
+                quota?.canPost === false
+                  ? "bg-neutral-400 cursor-not-allowed"
+                  : "bg-brand-600 hover:bg-brand-700 cursor-pointer"
+              }`}
+              style={quota?.canPost === false ? { backgroundColor: "#9ca3af" } : { backgroundColor: "#eb5314" }}
             >
-              Tinjau Postingan
+              {quota?.canPost === false
+                ? "Batas Kuota Harian Tercapai (Maks 3x/Hari)"
+                : "Tinjau Postingan"}
             </button>
           </div>
         </form>
