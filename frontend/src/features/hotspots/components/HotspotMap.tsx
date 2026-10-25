@@ -11,7 +11,7 @@ import {
 } from 'react-leaflet'
 import L from 'leaflet'
 import type { PriorityArea } from '../schemas'
-import { USER_CURRENT_LOCATION } from '../mock-data'
+import { USER_CURRENT_LOCATION } from '../hotspot-data'
 import { BASEMAPS, DEFAULT_BASEMAP, type BasemapId } from '../basemaps'
 import { MapControls } from './MapControls'
 import {
