@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/api'
@@ -15,6 +15,7 @@ import {
   PriorityListSheet,
   MapFilterSheet,
   MapSidebar,
+  DataLoadingModal,
   usePriorityAreas,
 } from '@/features/hotspots'
 import type { PriorityArea, MapFilter } from '@/features/hotspots'
@@ -51,9 +52,10 @@ function MapPage() {
   const [isListOpen, setIsListOpen] = useState(false)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
+  const [isFilterLoadingModalOpen, setIsFilterLoadingModalOpen] = useState(false)
 
   // Query Area Pantauan dari Data Service / Backend
-  const { data } = usePriorityAreas({
+  const { data, isFetching } = usePriorityAreas({
     province: filter.province,
     regency: filter.regency,
     district: filter.district,
@@ -62,6 +64,19 @@ function MapPage() {
     userLocationName,
     userCoordinates,
   })
+
+  // Efek transisi halus untuk pop-up "Sedang Mengambil Data..." saat sinkronisasi satelit
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>
+    if (isFetching) {
+      setIsFilterLoadingModalOpen(true)
+    } else {
+      timer = setTimeout(() => {
+        setIsFilterLoadingModalOpen(false)
+      }, 700)
+    }
+    return () => clearTimeout(timer)
+  }, [isFetching])
 
   const areas = data?.areas || []
 
@@ -135,6 +150,7 @@ function MapPage() {
       <div className="flex-1 relative w-full overflow-hidden flex flex-col lg:flex-row h-full">
         <MapSidebar
           areas={areas}
+          isLoading={isFetching}
           selectedArea={selectedArea}
           onSelectArea={handleSelectArea}
           filter={filter}
@@ -241,8 +257,18 @@ function MapPage() {
       <MapFilterSheet
         isOpen={isFilterOpen}
         currentFilter={filter}
+        isLoading={isFetching}
         onApply={(newFilter) => setFilter(newFilter)}
         onClose={() => setIsFilterOpen(false)}
+      />
+
+      {/* Pop-up dialog interaktif saat sinkronisasi data satelit / filter berlangsung */}
+      <DataLoadingModal
+        isOpen={isFilterLoadingModalOpen}
+        filter={filter}
+        locationName={activeLocationHeader}
+        totalAreasFound={data?.totalAreasFound}
+        onDismiss={() => setIsFilterLoadingModalOpen(false)}
       />
     </div>
   )

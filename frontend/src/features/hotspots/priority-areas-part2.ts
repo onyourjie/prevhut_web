@@ -1,6 +1,6 @@
 import type { PriorityArea } from './schemas'
 
-export const MOCK_AREAS_PART2: PriorityArea[] = [
+export const PRIORITY_AREAS_PART2: PriorityArea[] = [
   {
     id: 'area-06',
     name: 'Area Pantau 06',

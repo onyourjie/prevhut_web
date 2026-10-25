@@ -7,7 +7,7 @@ import {
   SlidersHorizontal,
   X,
   Info,
-} from 'lucide-react'
+  } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { PriorityArea, MapFilter } from '../schemas'
 import { AreaPriorityCard } from './AreaPriorityCard'
@@ -26,6 +26,7 @@ export interface MapSidebarProps {
   temperatureText?: string
   currentAreaInside?: PriorityArea | null
   currentLocationStatusText?: string
+  isLoading?: boolean
   isCollapsed: boolean
   onToggleCollapse: () => void
   className?: string
@@ -43,6 +44,7 @@ export function MapSidebar({
   temperatureText = '31°C • Cerah',
   currentAreaInside,
   currentLocationStatusText,
+  isLoading = false,
   isCollapsed,
   onToggleCollapse,
   className,
@@ -159,9 +161,43 @@ export function MapSidebar({
                   <span>Titik panas belum berarti kebakaran terkonfirmasi</span>
                 </div>
 
-                {areas.length === 0 ? (
-                  <div className="py-16 text-center text-xs text-neutral-500">
-                    Tidak ada area pantauan yang sesuai dengan filter aktif.
+                {isLoading ? (
+                  <div className="flex flex-col gap-3 py-2 animate-pulse">
+                    {[1, 2, 3].map((n) => (
+                      <div key={n} className="p-4 bg-neutral-100/90 rounded-2xl border border-neutral-200/80 flex flex-col gap-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="h-4 bg-neutral-200 rounded-md w-28" />
+                          <div className="h-5 bg-neutral-200 rounded-full w-20" />
+                        </div>
+                        <div className="h-3 bg-neutral-200 rounded-md w-40" />
+                        <div className="h-2 bg-neutral-200 rounded-full w-full mt-1" />
+                      </div>
+                    ))}
+                  </div>
+                ) : areas.length === 0 ? (
+                  <div className="py-12 px-4 text-center flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-neutral-100 flex items-center justify-center text-neutral-400">
+                      <SlidersHorizontal className="w-5 h-5" />
+                    </div>
+                    <div className="flex flex-col gap-1 max-w-[280px]">
+                      <span className="text-xs font-bold text-neutral-900">
+                        Tidak Ada Titik Api Sesuai Kriteria
+                      </span>
+                      <span className="text-[11px] text-neutral-500 leading-relaxed">
+                        {filter.priorities.length < 3
+                          ? `Tidak ada titik api dengan prioritas ${filter.priorities.join(", ")} di wilayah ini. Wilayah relatif aman atau berada di prioritas lain.`
+                          : "Tidak ada area pantauan aktif di wilayah yang Anda pilih."}
+                      </span>
+                    </div>
+                    {activeFilterCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={onClearFilter}
+                        className="mt-1 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-brand-50 text-brand-700 hover:bg-brand-100 transition cursor-pointer"
+                      >
+                        Tampilkan Semua Prioritas
+                      </button>
+                    )}
                   </div>
                 ) : (
                   areas.map((area) => (
@@ -179,6 +215,7 @@ export function MapSidebar({
               <div className="p-5">
                 <AreaFilterForm
                   currentFilter={filter}
+                  isLoading={isLoading}
                   onApply={(newFilter) => {
                     onApplyFilter(newFilter)
                     setActiveTab('list')

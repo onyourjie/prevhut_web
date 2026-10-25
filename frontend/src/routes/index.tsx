@@ -46,8 +46,6 @@ function HomePage() {
   }, [])
 
   const totalHotspots = priorityData?.areas.reduce((acc, a) => acc + a.hotspotCount, 0) ?? 4
-  const ispuValue = weatherData?.ispu_value ?? 58
-  const ispuCategory = weatherData?.ispu_category ?? 'Sedang'
   const tempText = weatherData?.temperature_c ? `${weatherData.temperature_c}°C` : '31°C'
   const weatherText = weatherData?.weather_desc ?? 'Cerah Berawan'
   const humidityText = weatherData?.humidity_percent ? `Kelembaban ${weatherData.humidity_percent}%` : 'Kelembaban 68%'
@@ -162,8 +160,6 @@ function HomePage() {
           displayLocation={displayLocation}
           displayProvince={displayProvince}
           isPerhatianKhusus={Boolean(priorityData?.currentAreaInside)}
-          ispuValue={ispuValue}
-          ispuCategory={ispuCategory}
           totalHotspots={totalHotspots}
           weatherText={weatherText}
           tempText={tempText}
