@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/app-layout';
 import { FlagModal } from '@/components/community/flag-modal';
 import { PostDetailMainCard } from '@/components/community/post-detail-main-card';
 import { ResponseTrackingSection } from '@/components/community/response-tracking-section';
+import { CreateAssignmentModal } from '@/components/assignments/CreateAssignmentModal';
 import { PostUpdatesSection } from '@/components/community/post-updates-section';
 import { PostCommentsSection } from '@/components/community/post-comments-section';
 import { PostCommentInputBar } from '@/components/community/post-comment-input-bar';
@@ -32,6 +33,7 @@ function PostDetailPage() {
   const [showMenu, setShowMenu] = useState(false);
   const [showFlagModal, setShowFlagModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
+  const [showAssignModal, setShowAssignModal] = useState(false);
   const [lightboxMediaUrl, setLightboxMediaUrl] = useState<string | null>(null);
 
   // New Comment State
@@ -211,6 +213,7 @@ function PostDetailPage() {
           <ResponseTrackingSection
             post={post}
             onMediaClick={(url) => setLightboxMediaUrl(url)}
+            onOpenAssign={() => setShowAssignModal(true)}
           />
         ) : (
           <div className="p-5 bg-white rounded-2xl border border-neutral-200 text-sm text-neutral-600">
@@ -260,6 +263,17 @@ function PostDetailPage() {
           postId={post.id}
           onSuccess={fetchPostDetail}
           onClose={() => setShowUpdateModal(false)}
+        />
+      )}
+
+      {showAssignModal && (
+        <CreateAssignmentModal
+          isOpen={showAssignModal}
+          targetPost={post}
+          onClose={() => setShowAssignModal(false)}
+          onSuccess={() => {
+            fetchPostDetail();
+          }}
         />
       )}
 

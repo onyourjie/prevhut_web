@@ -38,6 +38,7 @@ function CommunityPage() {
       setIsLoading(true);
       const params = new URLSearchParams();
       if (filter.category) params.append('category', filter.category);
+      if (filter.provinsi) params.append('province', filter.provinsi);
       if (filter.kabupaten) params.append('kabupaten', filter.kabupaten);
       if (filter.kecamatan) params.append('kecamatan', filter.kecamatan);
       if (searchTerm.trim()) params.append('search', searchTerm.trim());
@@ -129,6 +130,15 @@ function CommunityPage() {
                 <X
                   className="w-3 h-3 cursor-pointer"
                   onClick={() => setFilter({ ...filter, category: '' })}
+                />
+              </span>
+            )}
+            {filter.provinsi && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 font-semibold text-[11px]">
+                {filter.provinsi}
+                <X
+                  className="w-3 h-3 cursor-pointer"
+                  onClick={() => setFilter({ ...filter, provinsi: '', kabupaten: '', kecamatan: '' })}
                 />
               </span>
             )}

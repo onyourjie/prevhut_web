@@ -131,6 +131,12 @@ export const KALIMANTAN_PROVINCES: ProvinceData[] = [
         lng: 114.2541,
         districts: ["Kecamatan Kahayan Hilir", "Kecamatan Maliku", "Kecamatan Pandih Batu"],
       },
+      {
+        name: "Kabupaten Seruyan",
+        lat: -2.3392,
+        lng: 112.5583,
+        districts: ["Kecamatan Hanau", "Kecamatan Seruyan Hilir", "Kecamatan Danau Sembuluh", "Kecamatan Seruyan Tengah"],
+      },
     ],
   },
   {

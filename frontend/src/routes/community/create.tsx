@@ -20,7 +20,14 @@ export const Route = createFileRoute("/community/create")({
 
 function CreatePostPage() {
   const navigate = useNavigate();
-  const { user, isAuthenticated } = useAuthStore();
+  const { user, isAuthenticated, hasHydrated } = useAuthStore();
+
+  useEffect(() => {
+    if (hasHydrated && !isAuthenticated) {
+      showErrorToast("Silakan masuk terlebih dahulu untuk membuat laporan titik api");
+      navigate({ to: "/login" });
+    }
+  }, [hasHydrated, isAuthenticated, navigate]);
 
   const [category, setCategory] = useState<"DARURAT" | "INFORMASI">("DARURAT");
   const [content, setContent] = useState("");
@@ -173,6 +180,48 @@ function CreatePostPage() {
         if (latestQuota) showErrorToast("Batas kuota harian tercapai");
         return;
       }
+      // Deteksi kluster satelit FIRMS terdekat secara spasial & wilayah jika laporan DARURAT
+      let detectedClusterCode: string | undefined = undefined;
+      if (category === "DARURAT") {
+        try {
+          const clusters = await apiRequest<any[]>("/hotspots/clusters");
+          if (Array.isArray(clusters) && clusters.length > 0 && typeof latitude === "number" && typeof longitude === "number") {
+            const haversineDist = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+              const R = 6371.0;
+              const dLat = ((lat2 - lat1) * Math.PI) / 180.0;
+              const dLon = ((lon2 - lon1) * Math.PI) / 180.0;
+              const a =
+                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos((lat1 * Math.PI) / 180.0) *
+                  Math.cos((lat2 * Math.PI) / 180.0) *
+                  Math.sin(dLon / 2) *
+                  Math.sin(dLon / 2);
+              return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            };
+
+            let closestCluster = null;
+            let minDistanceKm = Infinity;
+            for (const c of clusters) {
+              const cLat = c.centroid?.latitude;
+              const cLng = c.centroid?.longitude;
+              if (typeof cLat === "number" && typeof cLng === "number") {
+                const distKm = haversineDist(cLat, cLng, latitude, longitude);
+                if (distKm < minDistanceKm) {
+                  minDistanceKm = distKm;
+                  closestCluster = c;
+                }
+              }
+            }
+            // Radius maksimal 20 km dari centroid klaster satelit
+            if (closestCluster && minDistanceKm <= 20.0) {
+              detectedClusterCode = closestCluster.code || closestCluster.name;
+            }
+          }
+        } catch (e) {
+          console.warn("Could not match hotspot cluster:", e);
+        }
+      }
+
       await apiRequest("/community/posts", {
         method: "POST",
         body: JSON.stringify({
@@ -186,7 +235,7 @@ function CreatePostPage() {
           province,
           kabupaten,
           kecamatan,
-          clusterCode: category === "DARURAT" ? "Area Pantau 02" : undefined,
+          clusterCode: detectedClusterCode,
         }),
       });
 
@@ -204,6 +253,10 @@ function CreatePostPage() {
       setShowPublishConfirmation(false);
     }
   };
+
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
     <AppLayout title="Buat Laporan Titik Api">
