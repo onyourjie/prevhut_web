@@ -11,6 +11,7 @@ import {
   User,
   LogOut,
   ChevronRight,
+  ClipboardList,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
@@ -24,7 +25,7 @@ export interface NavItemDef {
   roles?: ('WARGA' | 'RELAWAN' | 'ADMIN')[];
 }
 
-const navItems: NavItemDef[] = [
+export const navItems: NavItemDef[] = [
   {
     to: '/',
     label: 'Beranda',
@@ -50,6 +51,14 @@ const navItems: NavItemDef[] = [
     description: 'Kamera langsung & verifikasi GPS',
     icon: <PlusCircle className="w-5 h-5 text-red-600" />,
     badge: 'Darurat',
+  },
+  {
+    to: '/reports',
+    label: 'Laporan',
+    description: 'Manajemen insiden & disposisi relawan',
+    icon: <ClipboardList className="w-5 h-5 text-blue-600" />,
+    badge: 'Posko',
+    roles: ['ADMIN'], // Khusus Admin Posko
   },
   {
     to: '/assignments',

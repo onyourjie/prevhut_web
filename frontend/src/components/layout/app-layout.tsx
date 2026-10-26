@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { Flame, Bell } from 'lucide-react';
 import { AppSidebar } from './app-sidebar';
 import { BottomNav } from './bottom-nav';
+import { MobileNavDrawer } from './MobileNavDrawer';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +23,7 @@ export function AppLayout({
   className,
 }: AppLayoutProps) {
   const { user, isAuthenticated } = useAuthStore();
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-neutral-50/70 text-neutral-900 flex">
@@ -29,18 +31,18 @@ export function AppLayout({
       <AppSidebar />
 
       {/* 2. Main Content Container */}
-      <div className="flex-1 flex flex-col min-w-0 pb-20 lg:pb-8">
+      <div className="flex-1 flex flex-col min-w-0 pb-28 lg:pb-8">
         {/* Mobile & Desktop Top Bar */}
         <header
           className={cn(
-            'sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 px-4 sm:px-6 py-3 flex items-center justify-between',
+            'sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 px-4 sm:px-6 py-2.5 sm:py-3 flex items-center justify-between',
             hideHeaderOnMobile && 'hidden lg:flex'
           )}
         >
-          {/* Left: Mobile Brand & Page Title */}
-          <div className="flex items-center gap-3">
+          {/* Left: Mobile Hamburger & Brand & Page Title */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
             <Link to="/" className="lg:hidden flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-500 to-brand-700 flex items-center justify-center text-white shadow-xs">
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-500 to-brand-700 flex items-center justify-center text-white shadow-xs">
                 <Flame className="w-4 h-4 animate-pulse" />
               </div>
               <span className="font-extrabold text-sm tracking-tight text-neutral-900">
@@ -62,29 +64,33 @@ export function AppLayout({
 
           {/* Right: Quick actions & user menu */}
           <div className="flex items-center gap-2.5">
-
             {/* Notifications Trigger */}
             <button
               type="button"
-              className="w-8 h-8 rounded-lg border border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 flex items-center justify-center transition relative"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 flex items-center justify-center transition relative shadow-2xs"
               aria-label="Pusat Notifikasi"
             >
               <Bell className="w-4 h-4" />
-              <span className="w-2 h-2 rounded-full bg-brand-600 absolute top-1.5 right-1.5" />
+              <span className="w-2 h-2 rounded-full bg-brand-600 absolute top-2 right-2" />
             </button>
 
-            {/* Mobile User Avatar */}
+            {/* Mobile User Avatar / Menu Shortcut */}
             {isAuthenticated && user && (
-              <Link to="/profile" className="lg:hidden">
+              <button
+                type="button"
+                onClick={() => setIsMobileDrawerOpen(true)}
+                className="lg:hidden focus-ring rounded-full"
+                aria-label="Buka Profil dan Menu"
+              >
                 <img
                   src={
                     user.avatarUrl ||
                     'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=256&q=80'
                   }
                   alt={user.name}
-                  className="w-8 h-8 rounded-full object-cover border border-neutral-300"
+                  className="w-9 h-9 rounded-full object-cover border border-neutral-300 ring-1 ring-brand-500/20"
                 />
-              </Link>
+              </button>
             )}
           </div>
         </header>
@@ -95,8 +101,14 @@ export function AppLayout({
         </main>
       </div>
 
-      {/* 3. Mobile Bottom Navigation */}
-      <BottomNav />
+      {/* 3. Mobile Navigation Drawer (All 8 Items & Profile) */}
+      <MobileNavDrawer
+        isOpen={isMobileDrawerOpen}
+        onClose={() => setIsMobileDrawerOpen(false)}
+      />
+
+      {/* 4. Mobile Bottom Navigation (Floating Pill Consistent across all views) */}
+      <BottomNav variant="floating" onOpenMenu={() => setIsMobileDrawerOpen(true)} />
     </div>
   );
 }
