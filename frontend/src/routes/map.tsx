@@ -20,6 +20,7 @@ import {
 } from '@/features/hotspots'
 import type { PriorityArea, MapFilter } from '@/features/hotspots'
 import { BottomNav } from '@/components/layout/bottom-nav'
+import { MobileNavDrawer } from '@/components/layout/MobileNavDrawer'
 import { AppSidebar } from '@/components/layout/app-sidebar'
 
 export const Route = createFileRoute('/map')({
@@ -27,17 +28,22 @@ export const Route = createFileRoute('/map')({
 })
 
 function MapPage() {
-  const { user } = useAuthStore()
+  const { user, isAuthenticated } = useAuthStore()
 
-  // Lokasi riil pengguna dari profil login
-  const userLocationName = user?.kabupaten || 'Kota Palangka Raya'
-  const userProvinceName = user?.province || 'Kalimantan Tengah'
+  // Lokasi riil pengguna dari profil login jika sudah terautentikasi
+  const userLocationName = isAuthenticated && user?.kabupaten ? user.kabupaten : null
+  const userProvinceName = isAuthenticated && user?.province ? user.province : null
+
   const userCoordinates = useMemo(() => {
-    if (typeof user?.latitude === 'number' && typeof user?.longitude === 'number' && user.latitude !== 0) {
+    if (!isAuthenticated || !user) return undefined
+    if (typeof user.latitude === 'number' && typeof user.longitude === 'number' && user.latitude !== 0) {
       return { lat: user.latitude, lng: user.longitude }
     }
-    return getRegencyCoordinates(userProvinceName, userLocationName)
-  }, [user, userProvinceName, userLocationName])
+    if (userProvinceName && userLocationName) {
+      return getRegencyCoordinates(userProvinceName, userLocationName)
+    }
+    return undefined
+  }, [isAuthenticated, user, userProvinceName, userLocationName])
 
   // Filter geospasial fleksibel: default menampilkan seluruh Kalimantan
   const [filter, setFilter] = useState<MapFilter>({
@@ -53,6 +59,7 @@ function MapPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
   const [isFilterLoadingModalOpen, setIsFilterLoadingModalOpen] = useState(false)
+  const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false)
 
   // Query Area Pantauan dari Data Service / Backend
   const { data, isFetching } = usePriorityAreas({
@@ -61,7 +68,7 @@ function MapPage() {
     district: filter.district,
     priorities: filter.priorities,
     date: filter.date,
-    userLocationName,
+    userLocationName: userLocationName || undefined,
     userCoordinates,
   })
 
@@ -80,8 +87,26 @@ function MapPage() {
 
   const areas = data?.areas || []
 
+  // Otomatis fokus dan buka detail kluster area bila URL memiliki '?area=...'
+  useEffect(() => {
+    if (areas.length === 0) return
+    const urlParams = new URLSearchParams(window.location.search)
+    const areaQuery = urlParams.get('area')
+    if (areaQuery && (!selectedArea || selectedArea.name.toLowerCase() !== areaQuery.toLowerCase())) {
+      const match = areas.find(
+        (a) =>
+          a.name.toLowerCase() === areaQuery.toLowerCase() ||
+          a.name.toLowerCase().includes(areaQuery.toLowerCase()) ||
+          a.id === areaQuery
+      )
+      if (match) {
+        setSelectedArea(match)
+      }
+    }
+  }, [areas, selectedArea])
+
   // Ambil cuaca live sesuai kota yang sedang aktif/dipilih
-  const activeCity = filter.regency || userLocationName
+  const activeCity = filter.regency || userLocationName || 'Palangka Raya'
   const { data: weatherData } = useQuery({
     queryKey: ['weather', activeCity],
     queryFn: async () => {
@@ -136,10 +161,10 @@ function MapPage() {
     setSelectedArea(area)
   }
 
-  const activeLocationHeader = filter.regency || filter.province || userLocationName
+  const activeLocationHeader = filter.regency || filter.province || userLocationName || 'Seluruh Kalimantan'
   const activeSubLocationHeader = filter.regency
-    ? (filter.province || userProvinceName)
-    : (filter.province || 'Seluruh Kalimantan')
+    ? (filter.province || userProvinceName || 'Kalimantan')
+    : (filter.province || (userLocationName ? (userProvinceName || 'Kalimantan') : 'Seluruh Kalimantan'))
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-neutral-100 flex flex-row select-none">
@@ -197,7 +222,7 @@ function MapPage() {
       </div>
 
       {!selectedArea && (
-        <div className="absolute top-0 inset-x-0 z-30 p-4 pt-[max(1rem,env(safe-area-inset-top))] max-w-md mx-auto pointer-events-none lg:hidden">
+        <div className="absolute top-0 inset-x-0 z-30 p-3.5 sm:p-4 pt-[max(0.75rem,env(safe-area-inset-top))] max-w-lg mx-auto pointer-events-none lg:hidden">
           <MapHeader
             locationName={activeLocationHeader}
             locationSubtitle={activeSubLocationHeader}
@@ -236,7 +261,7 @@ function MapPage() {
         </div>
       )}
 
-      {!selectedArea && <BottomNav variant="floating" className="lg:hidden" />}
+      {!selectedArea && <BottomNav variant="floating" onOpenMenu={() => setIsMobileDrawerOpen(true)} className="lg:hidden" />}
 
       {selectedArea && (
         <AreaDetailSheet
@@ -245,6 +270,8 @@ function MapPage() {
           className="lg:hidden"
         />
       )}
+
+      <MobileNavDrawer isOpen={isMobileDrawerOpen} onClose={() => setIsMobileDrawerOpen(false)} />
 
       <PriorityListSheet
         isOpen={isListOpen}

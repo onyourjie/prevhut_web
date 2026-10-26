@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { Bell, Shield, Users } from 'lucide-react'
 import { AppLayout } from '@/components/layout/app-layout'
 import { useAuthStore } from '@/store/auth.store'
@@ -20,7 +20,14 @@ export const Route = createFileRoute('/')({
 })
 
 function HomePage() {
-  const { user, isAuthenticated, updateUser } = useAuthStore()
+  const { user, isAuthenticated, hasHydrated, updateUser } = useAuthStore()
+  const navigate = useNavigate()
+
+  useEffect(() => {
+    if (hasHydrated && !isAuthenticated) {
+      navigate({ to: '/login' })
+    }
+  }, [hasHydrated, isAuthenticated, navigate])
   const isVolunteer = user?.role === 'RELAWAN'
   const isAdmin = user?.role === 'ADMIN'
 
@@ -35,15 +42,35 @@ function HomePage() {
   const [isEvacuationModalOpen, setIsEvacuationModalOpen] = useState(false)
   const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false)
 
-  // Dynamic live priority areas & meteorological data
-  const { data: priorityData, isLoading: isLoadingAreas } = usePriorityAreas()
+  const userProvince = user?.province || undefined
+  const userRegency = user?.kabupaten || undefined
+  const userDistrict = user?.kecamatan || undefined
+  const userCoords =
+    user?.latitude && user?.longitude
+      ? { lat: user.latitude, lng: user.longitude }
+      : undefined
+
+  // Dynamic live priority areas & meteorological data sesuai lokasi profil pengguna
+  const { data: priorityData, isLoading: isLoadingAreas } = usePriorityAreas({
+    province: userProvince,
+    regency: userRegency,
+    district: userDistrict,
+    userCoordinates: userCoords,
+  })
   const [weatherData, setWeatherData] = useState<any>(null)
 
   useEffect(() => {
-    apiRequest('/hotspots/weather-ispu')
+    if (!isAuthenticated) return
+    const city = user?.kabupaten
+      ? user.kabupaten.replace(/^(kabupaten|kota)\s+/i, '').trim()
+      : ''
+    const endpoint = city
+      ? `/hotspots/weather-ispu?city=${encodeURIComponent(city)}`
+      : '/hotspots/weather-ispu'
+    apiRequest(endpoint)
       .then((res) => setWeatherData(res))
       .catch((err) => console.warn('Weather live fetch fallback:', err))
-  }, [])
+  }, [isAuthenticated, user?.kabupaten])
 
   const totalHotspots = priorityData?.areas.reduce<number | null>((total, area) =>
     total != null && area.hotspotCount != null ? total + area.hotspotCount : null, 0) ?? null
@@ -106,6 +133,10 @@ function HomePage() {
   const displayName = user?.name ? user.name.split(' ')[0] : 'Warga'
   const displayLocation = user?.kabupaten || 'Kabupaten Sintang'
   const displayProvince = user?.province || 'Kalimantan Barat'
+
+  if (!isAuthenticated) {
+    return null
+  }
 
   return (
     <AppLayout
