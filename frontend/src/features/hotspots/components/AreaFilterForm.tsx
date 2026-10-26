@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import { Clock, Calendar } from 'lucide-react'
+import { Clock, Calendar, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { KALIMANTAN_PROVINCES } from '@/lib/kalimantan-locations'
@@ -23,9 +23,10 @@ export function AreaFilterForm({
   isLoading = false,
   className,
 }: AreaFilterFormProps) {
-  const { user } = useAuthStore()
-  const userProvince = user?.province || 'Kalimantan Tengah'
-  const userRegency = user?.kabupaten || 'Kota Palangka Raya'
+  const { user, isAuthenticated } = useAuthStore()
+  const userProvince = isAuthenticated && user?.province ? user.province : undefined
+  const userRegency = isAuthenticated && user?.kabupaten ? user.kabupaten : undefined
+  const userDistrict = isAuthenticated && user?.kecamatan ? user.kecamatan : undefined
 
   const [selectedProvince, setSelectedProvince] = useState<string | null>(
     currentFilter.province || null
@@ -110,9 +111,17 @@ export function AreaFilterForm({
   }
 
   const handleSetToUserLocation = () => {
-    setSelectedProvince(userProvince)
-    setSelectedRegency(userRegency)
-    setSelectedDistrict(null)
+    if (!isAuthenticated || !userRegency) return
+    setSelectedProvince(userProvince || null)
+    setSelectedRegency(userRegency || null)
+    setSelectedDistrict(userDistrict || null)
+    onApply({
+      province: userProvince || null,
+      regency: userRegency || null,
+      district: userDistrict || null,
+      date: selectedDate,
+      priorities: selectedPriorities,
+    })
   }
 
   const togglePriority = (priority: PriorityLevel) => {
@@ -216,6 +225,19 @@ export function AreaFilterForm({
             <span>Terapkan Filter</span>
           )}
         </Button>
+      </div>
+
+      {/* Unduh Data Terbuka / Open Government Data CSV (Fitur #5) */}
+      <div className="pt-2 border-t border-neutral-200/70">
+        <a
+          href="http://localhost:3000/hotspots/transparency/download-csv"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-neutral-50/80 hover:bg-neutral-100 text-xs font-semibold text-neutral-700 hover:text-neutral-900 flex items-center justify-center gap-2 transition focus-ring"
+        >
+          <Download className="w-4 h-4 text-brand-600" />
+          <span>Unduh Data Terbuka Kalimantan (CSV)</span>
+        </a>
       </div>
     </form>
   )

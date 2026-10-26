@@ -1,4 +1,4 @@
-import { Radio, Calendar, Flame, Info } from 'lucide-react'
+import { Radio, Calendar, Flame, Info, Users, ShieldAlert } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import type { PriorityArea } from '../schemas'
 import { PopoverInfo } from './PopoverInfo'
@@ -15,6 +15,9 @@ export function AreaReasonsPanel({
   translucent = false,
 }: AreaReasonsPanelProps) {
   const divider = withDividers ? <div className="w-full h-px bg-neutral-200/60" /> : null
+  const hasCitizenBoost = Boolean(
+    area.reasons.citizenReportsCount && area.reasons.citizenReportsCount > 0
+  )
 
   return (
     <div
@@ -67,8 +70,38 @@ export function AreaReasonsPanel({
         </span>
       </div>
 
-      <div className="bg-error-50/80 border border-error-200/70 rounded-xl p-3 flex items-center gap-2 text-xs text-error-900 font-medium">
-        <Info className="w-4 h-4 text-error-600 shrink-0" />
+      {hasCitizenBoost && (
+        <>
+          {divider}
+          <div className="flex items-center justify-between text-xs gap-2">
+            <div className="flex items-center gap-1.5 text-neutral-800">
+              <Users className="w-4 h-4 text-brand-600 shrink-0" />
+              <span className="font-semibold">Validasi warga lapangan</span>
+              <PopoverInfo
+                title="Ground Truth Laporan Warga"
+                content="Laporan lapangan warga sekitar yang terverifikasi. Memberikan lonjakan urgensi prioritas (Fairness Crowd Urgency Multiplier) sesuai model PREVHUT/FIRELINE."
+              />
+            </div>
+            <span className="font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded-lg border border-brand-200 shadow-2xs">
+              {area.reasons.citizenReportsCount} laporan (+{area.reasons.citizenUrgencyBoost} poin)
+            </span>
+          </div>
+        </>
+      )}
+
+      <div
+        className={cn(
+          'rounded-xl p-3 flex items-center gap-2 text-xs font-medium border transition',
+          hasCitizenBoost
+            ? 'bg-amber-50/90 border-amber-300 text-amber-950 font-semibold'
+            : 'bg-error-50/80 border-error-200/70 text-error-900'
+        )}
+      >
+        {hasCitizenBoost ? (
+          <ShieldAlert className="w-4 h-4 text-amber-700 shrink-0" />
+        ) : (
+          <Info className="w-4 h-4 text-error-600 shrink-0" />
+        )}
         <span>{area.reasons.primaryFactor}</span>
       </div>
     </div>

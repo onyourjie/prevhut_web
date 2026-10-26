@@ -30,6 +30,10 @@ export const PriorityAreaReasonsSchema = z.object({
   }),
   frpMedian: z.number(),
   primaryFactor: z.string(),
+  citizenReportsCount: z.number().optional(),
+  citizenUrgencyBoost: z.number().optional(),
+  citizenValidationStatus: z.string().optional(),
+  baseScore: z.number().optional(),
 })
 export type PriorityAreaReasons = z.infer<typeof PriorityAreaReasonsSchema>
 
@@ -55,6 +59,10 @@ export const PriorityAreaSchema = z.object({
   ]),
   isUserInside: z.boolean().default(false),
   reasons: PriorityAreaReasonsSchema,
+  baseScore: z.number().optional(),
+  citizenReportsCount: z.number().optional(),
+  citizenUrgencyBoost: z.number().optional(),
+  citizenValidationStatus: z.string().optional(),
   hotspots: z.array(HotspotPointSchema).default([]),
 })
 export type PriorityArea = z.infer<typeof PriorityAreaSchema>
