@@ -5,6 +5,7 @@ import { apiRequest } from '@/lib/api'
 import { showSuccessToast, showErrorToast, showSuccessAlert } from '@/lib/swal'
 import { uploadImageToCloudinary } from '@/lib/cloudinary'
 import type { Assignment, AssignmentStatus } from './assignment.types'
+import type { VolunteerItem } from './VolunteerDirectoryPanel'
 import type { AssignmentTabId } from './AssignmentTabs'
 
 export function useVolunteerAssignments() {
@@ -33,12 +34,28 @@ export function useVolunteerAssignments() {
   const [completionNotes, setCompletionNotes] = useState('')
   const [isSubmittingVerify, setIsSubmittingVerify] = useState(false)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
+  const [volunteers, setVolunteers] = useState<VolunteerItem[]>([])
+  const [isLoadingVolunteers, setIsLoadingVolunteers] = useState(false)
+
+  const fetchVolunteers = async () => {
+    if (!isAuthenticated || user?.role !== 'ADMIN') return
+    try {
+      setIsLoadingVolunteers(true)
+      const res = await apiRequest<VolunteerItem[]>('/users/volunteers')
+      setVolunteers(res || [])
+    } catch (err: any) {
+      console.error('Gagal memuat relawan:', err)
+    } finally {
+      setIsLoadingVolunteers(false)
+    }
+  }
 
   const fetchAssignments = async () => {
     if (!isAuthenticated) return
     try {
       setIsLoading(true)
-      const res = await apiRequest('/assignments/my-tasks')
+      const endpoint = user?.role === 'ADMIN' ? '/assignments' : '/assignments/my-tasks'
+      const res = await apiRequest(endpoint)
       setAssignments(res || [])
     } catch (err: any) {
       console.error('Gagal memuat tugas relawan:', err)
@@ -54,7 +71,10 @@ export function useVolunteerAssignments() {
       return
     }
     fetchAssignments()
-  }, [isAuthenticated])
+    if (user?.role === 'ADMIN') {
+      fetchVolunteers()
+    }
+  }, [isAuthenticated, user?.role])
 
   // Toggle Availability
   const handleToggleAvailability = async () => {
@@ -269,5 +289,8 @@ export function useVolunteerAssignments() {
     completedAssignments,
     rejectedAssignments,
     displayedAssignments,
+    volunteers,
+    isLoadingVolunteers,
+    fetchVolunteers,
   }
 }

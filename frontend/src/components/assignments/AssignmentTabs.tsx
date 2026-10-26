@@ -1,30 +1,36 @@
-export type AssignmentTabId = 'active' | 'all' | 'completed' | 'rejected'
+export type AssignmentTabId = 'active' | 'volunteers' | 'all' | 'completed' | 'rejected'
 
 interface AssignmentTabsProps {
   activeTab: AssignmentTabId
   counts: {
     active: number
+    volunteers?: number
     all: number
     completed: number
     rejected: number
   }
+  showVolunteersTab?: boolean
   onSelectTab: (tab: AssignmentTabId) => void
 }
 
 export function AssignmentTabs({
   activeTab,
   counts,
+  showVolunteersTab = false,
   onSelectTab,
 }: AssignmentTabsProps) {
   const tabs: { id: AssignmentTabId; label: string; count: number }[] = [
     { id: 'active', label: 'Tugas Aktif', count: counts.active },
+    ...(showVolunteersTab
+      ? [{ id: 'volunteers' as AssignmentTabId, label: 'Daftar Relawan', count: counts.volunteers ?? 0 }]
+      : []),
     { id: 'all', label: 'Semua', count: counts.all },
     { id: 'completed', label: 'Selesai', count: counts.completed },
     { id: 'rejected', label: 'Ditolak', count: counts.rejected },
   ]
 
   return (
-    <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-neutral-200/60 max-w-fit overflow-x-auto">
+    <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-neutral-200/60 max-w-fit overflow-x-auto scrollbar-none">
       {tabs.map((tab) => (
         <button
           key={tab.id}
