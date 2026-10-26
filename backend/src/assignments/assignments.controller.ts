@@ -42,14 +42,17 @@ export class AssignmentsController {
   }
 
   @Get('my-tasks')
-  @Roles(Role.RELAWAN)
+  @Roles(Role.RELAWAN, Role.ADMIN)
   @ApiOperation({
-    summary: 'Daftar Penugasan Masuk Saya (Khusus Relawan)',
-    description: 'Menampilkan tugas-tugas lapangan yang ditujukan ke akun relawan yang sedang login.',
+    summary: 'Daftar Penugasan Masuk Saya (Khusus Relawan / Admin)',
+    description: 'Menampilkan tugas-tugas lapangan relawan, atau seluruh penugasan jika akun Admin Posko.',
   })
   @ApiResponse({ status: 200, description: 'Daftar tugas relawan aktif' })
-  getMyTasks(@CurrentUser('id') volunteerId: string) {
-    return this.assignmentsService.getMyTasks(volunteerId);
+  getMyTasks(@CurrentUser() user: any) {
+    if (user.role === Role.ADMIN) {
+      return this.assignmentsService.getAllAssignments();
+    }
+    return this.assignmentsService.getMyTasks(user.id);
   }
 
   @Get(':id')

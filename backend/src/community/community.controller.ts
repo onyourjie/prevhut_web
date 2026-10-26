@@ -6,8 +6,10 @@ import { CreateUpdateDto } from './dto/create-update.dto.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { FlagPostDto } from './dto/flag-post.dto.js';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../auth/guards/roles.guard.js';
+import { Roles } from '../auth/decorators/roles.decorator.js';
 import { CurrentUser } from '../auth/decorators/current-user.decorator.js';
-import { PostCategory, PostStatus } from '@prisma/client';
+import { PostCategory, PostStatus, Role } from '@prisma/client';
 
 @ApiTags('3. Komunitas & Laporan Warga (Community)')
 @Controller('community')
@@ -32,19 +34,34 @@ export class CommunityController {
     description: 'Menampilkan feed kabar warga & relawan. Postingan Darurat otomatis disematkan di posisi teratas.',
   })
   @ApiQuery({ name: 'category', enum: PostCategory, required: false, description: 'Filter kategori: DARURAT atau INFORMASI' })
+  @ApiQuery({ name: 'province', required: false, description: 'Filter provinsi (contoh: Kalimantan Barat)' })
+  @ApiQuery({ name: 'provinsi', required: false, description: 'Alias filter provinsi' })
   @ApiQuery({ name: 'kabupaten', required: false, description: 'Filter kabupaten (contoh: Kabupaten Sintang)' })
   @ApiQuery({ name: 'kecamatan', required: false, description: 'Filter kecamatan (contoh: Kecamatan Sungai Tebelian)' })
   @ApiQuery({ name: 'status', enum: PostStatus, required: false, description: 'Filter status laporan' })
+  @ApiQuery({ name: 'clusterCode', required: false, description: 'Filter kode area pantauan / cluster satelit' })
   @ApiQuery({ name: 'search', required: false, description: 'Pencarian kata kunci deskripsi/alamat/nama pelapor' })
   @ApiResponse({ status: 200, description: 'Daftar postingan feed komunitas' })
   getPosts(
     @Query('category') category?: PostCategory,
+    @Query('province') province?: string,
+    @Query('provinsi') provinsi?: string,
     @Query('kabupaten') kabupaten?: string,
     @Query('kecamatan') kecamatan?: string,
+    @Query('clusterCode') clusterCode?: string,
     @Query('status') status?: PostStatus,
     @Query('search') search?: string,
   ) {
-    return this.communityService.getPosts({ category, kabupaten, kecamatan, status, search });
+    const selectedProvince = province || provinsi;
+    return this.communityService.getPosts({
+      category,
+      province: selectedProvince,
+      kabupaten,
+      kecamatan,
+      clusterCode,
+      status,
+      search,
+    });
   }
 
   @Get('posts/:id')
@@ -128,4 +145,21 @@ export class CommunityController {
   uploadMedia(@Body() body: { data?: string; filename?: string }) {
     return this.communityService.uploadMedia(body);
   }
+
+  @Get('incidents')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.ADMIN)
+  @ApiBearerAuth('JWT-auth')
+  @ApiOperation({
+    summary: 'Melihat daftar insiden/laporan warga terkelompok per titik lokasi (Khusus Admin Posko BPBD)',
+  })
+  getIncidents(
+    @CurrentUser() user: any,
+    @Query('kabupaten') kabupaten?: string,
+    @Query('status') status?: string,
+    @Query('search') search?: string,
+  ) {
+    return this.communityService.getIncidents(user, { kabupaten, status, search });
+  }
+
 }

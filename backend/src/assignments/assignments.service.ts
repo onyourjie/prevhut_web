@@ -4,7 +4,7 @@ import { CreateAssignmentDto } from './dto/create-assignment.dto.js';
 import { UpdateStatusDto } from './dto/update-status.dto.js';
 import { RejectTaskDto } from './dto/reject-task.dto.js';
 import { VerifyTaskDto } from './dto/verify-task.dto.js';
-import { AssignmentStatus, PostStatus, NotificationType, Role } from '@prisma/client';
+import { AssignmentStatus, PostStatus, NotificationType, Role, PostCategory } from '@prisma/client';
 
 @Injectable()
 export class AssignmentsService {
@@ -42,6 +42,18 @@ export class AssignmentsService {
       });
     }
 
+    // Sinkronisasi: otomatis ubah semua laporan warga di cluster/area yang sama menjadi DALAM_PENANGANAN
+    if (dto.clusterCode) {
+      await this.prisma.post.updateMany({
+        where: {
+          category: PostCategory.DARURAT,
+          clusterCode: dto.clusterCode,
+          status: PostStatus.MENUNGGU_VERIFIKASI,
+        },
+        data: { status: PostStatus.DALAM_PENANGANAN },
+      });
+    }
+
     // Send notification to volunteer
     await this.prisma.notification.create({
       data: {
@@ -70,7 +82,7 @@ export class AssignmentsService {
           select: { id: true, name: true },
         },
         post: {
-          select: { id: true, content: true, address: true, imageUrl: true },
+          select: { id: true, content: true, address: true, imageUrl: true, latitude: true, longitude: true },
         },
       },
     });
@@ -134,11 +146,22 @@ export class AssignmentsService {
     });
 
     // If completed, update post status as well
-    if (dto.status === AssignmentStatus.COMPLETED && updated.postId) {
-      await this.prisma.post.update({
-        where: { id: updated.postId },
-        data: { status: PostStatus.SELESAI },
-      });
+    if (dto.status === AssignmentStatus.COMPLETED) {
+      if (updated.postId) {
+        await this.prisma.post.update({
+          where: { id: updated.postId },
+          data: { status: PostStatus.SELESAI },
+        });
+      }
+      if (updated.clusterCode) {
+        await this.prisma.post.updateMany({
+          where: {
+            category: PostCategory.DARURAT,
+            clusterCode: updated.clusterCode,
+          },
+          data: { status: PostStatus.SELESAI },
+        });
+      }
     }
 
     return {
@@ -205,6 +228,17 @@ export class AssignmentsService {
     if (task.postId) {
       await this.prisma.post.update({
         where: { id: task.postId },
+        data: { status: PostStatus.SELESAI },
+      });
+    }
+
+    // Sinkronisasi: otomatis ubah semua laporan warga di cluster yang sama menjadi SELESAI
+    if (task.clusterCode) {
+      await this.prisma.post.updateMany({
+        where: {
+          category: PostCategory.DARURAT,
+          clusterCode: task.clusterCode,
+        },
         data: { status: PostStatus.SELESAI },
       });
     }

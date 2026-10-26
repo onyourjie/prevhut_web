@@ -1,4 +1,5 @@
-import { Controller, Get, Param, Query } from "@nestjs/common";
+import { Controller, Get, Param, Query, Res } from "@nestjs/common";
+import type { Response } from "express";
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from "@nestjs/swagger";
 import { HotspotsService } from "./hotspots.service.js";
 
@@ -62,5 +63,29 @@ export class HotspotsController {
   })
   getWeatherIspu(@Query("city") city?: string) {
     return this.hotspotsService.getWeatherIspu(city);
+  }
+  @Get("transparency/summary")
+  @ApiOperation({
+    summary: "Ringkasan Akuntabilitas Publik (Fitur #5 Open Data)",
+  })
+  getTransparencySummary() {
+    return this.hotspotsService.getTransparencySummary();
+  }
+
+  @Get("transparency/download-csv")
+  @ApiOperation({
+    summary: "Unduh Berkas Data Terbuka CSV Seluruh Area Pantau Kalimantan",
+  })
+  async downloadCsv(@Res() res: Response) {
+    const csvContent = await this.hotspotsService.getDownloadCsvText();
+    if (!csvContent) {
+      return res.status(404).json({ message: "Berkas CSV data terbuka belum tersedia" });
+    }
+    res.setHeader("Content-Type", "text/csv; charset=utf-8");
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="fireline_priority_areas_kalimantan.csv"'
+    );
+    return res.send(csvContent);
   }
 }
