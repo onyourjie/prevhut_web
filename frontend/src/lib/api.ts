@@ -41,10 +41,9 @@ export async function apiRequest<T = any>(
   let url: string;
   if (path.startsWith('http')) {
     url = path;
-  } else if (path.startsWith('/hotspots/')) {
-    // Rute mikroservis satelit FIRMS & Cuaca ke FastAPI (port 8000)
-    url = `${DATA_SERVICE_URL}${path.replace(/^\/hotspots/, '')}`;
   } else {
+    // Seluruh rute (termasuk /hotspots/*) melalui Core Backend Gateway (port 3000)
+    // agar data satelit terintegrasi langsung dengan database laporan warga PostgreSQL
     url = `${API_URL}${path}`;
   }
 

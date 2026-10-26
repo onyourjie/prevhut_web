@@ -47,6 +47,10 @@ function mapClusterToPriorityArea(c: any, index: number, userCoords?: { lat: num
         ? "Perhatian Meningkat"
         : "Tetap Dipantau"),
     score: typeof c.risk_score === "number" ? c.risk_score : 50.0,
+    baseScore: typeof c.base_risk_score === "number" ? c.base_risk_score : undefined,
+    citizenReportsCount: typeof c.citizen_reports_count === "number" ? c.citizen_reports_count : 0,
+    citizenUrgencyBoost: typeof c.citizen_urgency_boost === "number" ? c.citizen_urgency_boost : 0,
+    citizenValidationStatus: c.citizen_validation_status,
     province: c.province || "Kalimantan Barat",
     regency: c.kabupaten || "Kota Palangka Raya",
     district: c.kecamatan || "",
@@ -70,6 +74,10 @@ function mapClusterToPriorityArea(c: any, index: number, userCoords?: { lat: num
       frpMedian: c.median_frp_mw || 20.0,
       primaryFactor:
         c.primary_factor || "Faktor utama: kerapatan deteksi satelit NASA FIRMS",
+      citizenReportsCount: typeof c.citizen_reports_count === "number" ? c.citizen_reports_count : 0,
+      citizenUrgencyBoost: typeof c.citizen_urgency_boost === "number" ? c.citizen_urgency_boost : 0,
+      citizenValidationStatus: c.citizen_validation_status,
+      baseScore: typeof c.base_risk_score === "number" ? c.base_risk_score : undefined,
     },
     hotspots: Array.isArray(c.hotspots) && c.hotspots.length > 0
       ? c.hotspots.map((hs: any, hsIdx: number) => ({
@@ -178,7 +186,7 @@ export function usePriorityAreas(filter?: HotspotFilterParams) {
         throw err
       }
     },
-    staleTime: 1000 * 60 * 3, // 3 menit
+    staleTime: 1000 * 15, // 15 detik agar skor dinamis segera tampil
   })
 }
 

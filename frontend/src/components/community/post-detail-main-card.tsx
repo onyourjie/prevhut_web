@@ -1,4 +1,5 @@
-import { AlertTriangle, Info, MapPin, Camera, Video } from "lucide-react";
+import { Link } from "@tanstack/react-router";
+import { AlertTriangle, Info, MapPin, Camera, Video, Compass } from "lucide-react";
 import { CommunityVideoPlayer } from "@/components/community/community-video-player";
 import { isVideoMedia } from "@/lib/cloudinary";
 import { formatTimeAgo, formatDateTimeIndo } from "@/lib/utils";
@@ -63,10 +64,26 @@ export function PostDetailMainCard({
         </span>
       </div>
 
-      {/* Address Line */}
-      <div className="flex items-start gap-1.5 text-neutral-600 text-xs">
-        <MapPin className="w-3.5 h-3.5 text-neutral-400 shrink-0 mt-0.5" />
-        <span className="leading-snug">{post.address}</span>
+      {/* Address & Connected Satellite Cluster */}
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-start gap-1.5 text-neutral-600 text-xs min-w-0">
+          <MapPin className="w-3.5 h-3.5 text-neutral-400 shrink-0 mt-0.5" />
+          <span className="leading-snug truncate">{post.address}</span>
+        </div>
+
+        {post.clusterCode && (
+          <Link
+            to="/map"
+            search={{ area: post.clusterCode }}
+            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-orange-100 hover:bg-orange-200 text-orange-950 border border-orange-300 transition shadow-2xs shrink-0"
+          >
+            <Compass className="w-3.5 h-3.5 text-orange-700" />
+            <span>Terkait {post.clusterCode}</span>
+            <span className="text-[10px] text-orange-700 font-extrabold underline">
+              Buka di Peta &rarr;
+            </span>
+          </Link>
+        )}
       </div>
 
       {/* Content Text */}

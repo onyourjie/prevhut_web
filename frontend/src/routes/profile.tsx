@@ -119,7 +119,11 @@ function ProfilePage() {
                 kecamatan: region.kecamatan,
               }),
             });
-            setProfileData(updated.user || updated);
+            const updatedUser = updated.user || updated;
+            setProfileData(updatedUser);
+            if (user) {
+              setAuth({ ...user, ...updatedUser }, localStorage.getItem("firezone_token") || "");
+            }
             showSuccessToast(`GPS Aktif: Koordinat tersinkron (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
           } catch {
             showErrorToast('Gagal menyinkronkan koordinat GPS');

@@ -99,30 +99,51 @@ async function main() {
   console.log(`   - Rangga (RELAWAN): @ranggawicaksono (rangga.relawan@gmail.com) / Rangga123!`);
   console.log(`   - Admin (ADMIN): @adminposko (admin.posko@fireline.id) / Admin123!`);
 
-  // 3. Create Posts 
+  // 3. Create Posts (Geographically coherent with NASA FIRMS clusters)
+  // Area Pantau 02: Kabupaten Kapuas, Kalimantan Tengah
   const emergencyPost = await prisma.post.create({
     data: {
       authorId: rina.id,
       category: PostCategory.DARURAT,
-      content: 'Terlihat api di lahan kosong dekat jalan desa bancoh. Saya sudah melapor pada petugas.',
+      content: 'Terlihat asap tebal dan kobaran api di lahan gambut pinggir jalan Basarang, mengarah ke kebun karet warga. Jarak pandang menurun drastis.',
       imageUrl: 'https://images.unsplash.com/photo-1542385151-efd9000785a0?auto=format&fit=crop&w=800&q=80',
       isLiveCamera: true,
-      address: 'Jl. Tunas Rimba No. 18, RT 003/RW 002, Kec. Sungai Tebelian, Kab. Sintang, Kalimantan Barat',
-      province: 'Kalimantan Barat',
-      kabupaten: 'Kabupaten Sintang',
-      kecamatan: 'Kecamatan Sungai Tebelian',
-      latitude: -0.1255,
-      longitude: 111.4822,
+      address: 'Jl. Trans Kalimantan Km 14, Kec. Basarang, Kab. Kapuas, Kalimantan Tengah',
+      province: 'Kalimantan Tengah',
+      kabupaten: 'Kabupaten Kapuas',
+      kecamatan: 'Kecamatan Basarang',
+      latitude: -2.4920,
+      longitude: 114.3610,
       status: PostStatus.DALAM_PENANGANAN,
       clusterCode: 'Area Pantau 02',
     },
   });
 
+  // Area Pantau 01: Kabupaten Seruyan, Kalimantan Tengah
+  const seruyanPost = await prisma.post.create({
+    data: {
+      authorId: sarah.id,
+      category: PostCategory.DARURAT,
+      content: 'Kepulan asap pekat terdeteksi di semak belukar dekat batas perkebunan kelapa sawit warga. Bau sangit mulai masuk ke permukiman.',
+      imageUrl: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80',
+      isLiveCamera: true,
+      address: 'Desa Pembuang Hulu, Kec. Hanau, Kab. Seruyan, Kalimantan Tengah',
+      province: 'Kalimantan Tengah',
+      kabupaten: 'Kabupaten Seruyan',
+      kecamatan: 'Kecamatan Hanau',
+      latitude: -3.2750,
+      longitude: 112.0550,
+      status: PostStatus.MENUNGGU_VERIFIKASI,
+      clusterCode: 'Area Pantau 01',
+    },
+  });
+
+  // Laporan lokal mandiri warga: Kabupaten Sintang, Kalimantan Barat (Tanpa clusterCode satelit)
   const infoPost = await prisma.post.create({
     data: {
       authorId: sarah.id,
       category: PostCategory.INFORMASI,
-      content: 'Pagi ini masih terlihat kabut asap tipis di sekitar permukiman. Jarak pandang aman sekitar 1 km, gunakan masker jika keluar rumah.',
+      content: 'Pagi ini masih terlihat kabut asap tipis di sekitar permukiman kota Sintang. Jarak pandang aman sekitar 1 km, gunakan masker jika keluar rumah.',
       imageUrl: 'https://images.unsplash.com/photo-1518241353330-0f7941c2d9b5?auto=format&fit=crop&w=800&q=80',
       isLiveCamera: true,
       address: 'Jl. Ahmad Yani, Kec. Sintang, Kab. Sintang, Kalimantan Barat',
@@ -132,7 +153,7 @@ async function main() {
       latitude: -0.0712,
       longitude: 111.4981,
       status: PostStatus.MENUNGGU_VERIFIKASI,
-      clusterCode: 'Area Pantau 01',
+      clusterCode: null,
     },
   });
 
@@ -141,7 +162,7 @@ async function main() {
     data: {
       postId: emergencyPost.id,
       authorId: rina.id,
-      content: 'Petugas dan relawan sudah tiba dan mulai melakukan pemadaman. Asap masih terlihat pekat di tepi lahan.',
+      content: 'Petugas Manggala Agni dan relawan sudah tiba dan mulai melakukan pembasahan lahan gambut. Asap masih terlihat di bagian tengah.',
       imageUrl: 'https://images.unsplash.com/photo-1589656966895-2f33e7653819?auto=format&fit=crop&w=800&q=80',
     },
   });
@@ -151,7 +172,7 @@ async function main() {
     data: {
       postId: emergencyPost.id,
       authorId: rangga.id,
-      content: 'Regu relawan kami sedang meluncur ke Desa Bancoh membawa pompa jinjing. Harap warga tetap waspada.',
+      content: 'Regu relawan kami sedang meluncur ke Basarang membawa pompa jinjing & selang pemadam. Harap warga menjauh dari arah angin asap.',
     },
   });
 
@@ -159,11 +180,11 @@ async function main() {
     data: {
       postId: emergencyPost.id,
       authorId: sarah.id,
-      content: 'Bener mba tadi saya juga liat pas pulang dari pasar, asapnya mengarah ke timur.',
+      content: 'Semoga cepat padam ya mas, tadi terlihat asapnya makin tebal dari arah jalan lintas.',
     },
   });
 
-  // 6. Create Volunteer Assignment (Admin dispatches Rangga to Area 02)
+  // 6. Create Volunteer Assignment (Admin dispatches Rangga to Area 02 / Kapuas)
   await prisma.volunteerAssignment.create({
     data: {
       adminId: admin.id,
@@ -172,7 +193,7 @@ async function main() {
       clusterCode: 'Area Pantau 02',
       priorityLevel: PriorityLevel.P1,
       status: AssignmentStatus.ON_THE_WAY,
-      notes: 'Laporan darurat warga di Desa Bancoh. Dekat permukiman warga (jarak 4.8 km). Segera verifikasi titik api & koordinasi tim pemadam.',
+      notes: 'Laporan darurat warga di Basarang, Kapuas. Verifikasi titik api klaster Area Pantau 02 dan lakukan penanganan bersama regu pemadam.',
     },
   });
 

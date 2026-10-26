@@ -14,8 +14,10 @@ import { Route as AssignmentsRouteImport } from './routes/assignments'
 import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MapRouteImport } from './routes/map'
+import { Route as ModerationRouteImport } from './routes/moderation'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as CommunityIndexRouteImport } from './routes/community/index'
 import { Route as CommunityPostIdRouteImport } from './routes/community/$postId'
 import { Route as CommunityCreateRouteImport } from './routes/community/create'
@@ -45,6 +47,11 @@ const MapRoute = MapRouteImport.update({
   path: '/map',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ModerationRoute = ModerationRouteImport.update({
+  id: '/moderation',
+  path: '/moderation',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ProfileRoute = ProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
@@ -53,6 +60,11 @@ const ProfileRoute = ProfileRouteImport.update({
 const RegisterRoute = RegisterRouteImport.update({
   id: '/register',
   path: '/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CommunityIndexRoute = CommunityIndexRouteImport.update({
@@ -77,8 +89,10 @@ export interface FileRoutesByFullPath {
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/moderation': typeof ModerationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/reports': typeof ReportsRoute
   '/community/$postId': typeof CommunityPostIdRoute
   '/community/create': typeof CommunityCreateRoute
   '/community/': typeof CommunityIndexRoute
@@ -89,8 +103,10 @@ export interface FileRoutesByTo {
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/moderation': typeof ModerationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/reports': typeof ReportsRoute
   '/community/$postId': typeof CommunityPostIdRoute
   '/community/create': typeof CommunityCreateRoute
   '/community': typeof CommunityIndexRoute
@@ -102,8 +118,10 @@ export interface FileRoutesById {
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/moderation': typeof ModerationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/reports': typeof ReportsRoute
   '/community/$postId': typeof CommunityPostIdRoute
   '/community/create': typeof CommunityCreateRoute
   '/community/': typeof CommunityIndexRoute
@@ -116,8 +134,10 @@ export interface FileRouteTypes {
     | '/emergency'
     | '/login'
     | '/map'
+    | '/moderation'
     | '/profile'
     | '/register'
+    | '/reports'
     | '/community/$postId'
     | '/community/create'
     | '/community/'
@@ -128,8 +148,10 @@ export interface FileRouteTypes {
     | '/emergency'
     | '/login'
     | '/map'
+    | '/moderation'
     | '/profile'
     | '/register'
+    | '/reports'
     | '/community/$postId'
     | '/community/create'
     | '/community'
@@ -140,8 +162,10 @@ export interface FileRouteTypes {
     | '/emergency'
     | '/login'
     | '/map'
+    | '/moderation'
     | '/profile'
     | '/register'
+    | '/reports'
     | '/community/$postId'
     | '/community/create'
     | '/community/'
@@ -153,8 +177,10 @@ export interface RootRouteChildren {
   EmergencyRoute: typeof EmergencyRoute
   LoginRoute: typeof LoginRoute
   MapRoute: typeof MapRoute
+  ModerationRoute: typeof ModerationRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
+  ReportsRoute: typeof ReportsRoute
   CommunityPostIdRoute: typeof CommunityPostIdRoute
   CommunityCreateRoute: typeof CommunityCreateRoute
   CommunityIndexRoute: typeof CommunityIndexRoute
@@ -197,6 +223,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MapRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/moderation': {
+      id: '/moderation'
+      path: '/moderation'
+      fullPath: '/moderation'
+      preLoaderRoute: typeof ModerationRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/profile': {
       id: '/profile'
       path: '/profile'
@@ -209,6 +242,13 @@ declare module '@tanstack/react-router' {
       path: '/register'
       fullPath: '/register'
       preLoaderRoute: typeof RegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/community/': {
@@ -241,8 +281,10 @@ const rootRouteChildren: RootRouteChildren = {
   EmergencyRoute: EmergencyRoute,
   LoginRoute: LoginRoute,
   MapRoute: MapRoute,
+  ModerationRoute: ModerationRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
+  ReportsRoute: ReportsRoute,
   CommunityPostIdRoute: CommunityPostIdRoute,
   CommunityCreateRoute: CommunityCreateRoute,
   CommunityIndexRoute: CommunityIndexRoute,

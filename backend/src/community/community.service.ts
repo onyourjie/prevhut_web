@@ -6,7 +6,7 @@ import { CreatePostDto } from './dto/create-post.dto.js';
 import { CreateUpdateDto } from './dto/create-update.dto.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { FlagPostDto } from './dto/flag-post.dto.js';
-import { PostCategory, PostStatus } from '@prisma/client';
+import { PostCategory, PostStatus, Role } from '@prisma/client';
 
 @Injectable()
 export class CommunityService {
@@ -41,34 +41,72 @@ export class CommunityService {
 
   async getPosts(query: {
     category?: PostCategory;
+    province?: string;
+    provinsi?: string;
     kabupaten?: string;
     kecamatan?: string;
+    clusterCode?: string;
     status?: PostStatus;
     search?: string;
   }) {
-    const where: any = {};
+    const andConditions: any[] = [];
 
     if (query.category) {
-      where.category = query.category;
-    }
-    if (query.kabupaten) {
-      where.kabupaten = { contains: query.kabupaten, mode: 'insensitive' };
-    }
-    if (query.kecamatan) {
-      where.kecamatan = { contains: query.kecamatan, mode: 'insensitive' };
+      andConditions.push({ category: query.category });
     }
     if (query.status) {
-      where.status = query.status;
+      andConditions.push({ status: query.status });
     }
-    if (query.search) {
-      where.OR = [
-        { content: { contains: query.search, mode: 'insensitive' } },
-        { address: { contains: query.search, mode: 'insensitive' } },
-        { author: { name: { contains: query.search, mode: 'insensitive' } } },
-      ];
+    if (query.clusterCode) {
+      andConditions.push({ clusterCode: { contains: query.clusterCode.trim(), mode: 'insensitive' } });
+    }
+    const provQuery = (query.province || query.provinsi || '').trim();
+    if (provQuery) {
+      andConditions.push({
+        OR: [
+          { province: { contains: provQuery, mode: 'insensitive' } },
+          { address: { contains: provQuery, mode: 'insensitive' } },
+        ],
+      });
+    }
+    if (query.kabupaten && query.kabupaten.trim()) {
+      const rawKab = query.kabupaten.trim();
+      const cleanKab = rawKab.replace(/^(kabupaten|kota)\s+/i, '').trim();
+      andConditions.push({
+        OR: [
+          { kabupaten: { contains: rawKab, mode: 'insensitive' } },
+          { kabupaten: { contains: cleanKab, mode: 'insensitive' } },
+          { address: { contains: rawKab, mode: 'insensitive' } },
+          { address: { contains: cleanKab, mode: 'insensitive' } },
+        ],
+      });
+    }
+    if (query.kecamatan && query.kecamatan.trim()) {
+      const rawKec = query.kecamatan.trim();
+      const cleanKec = rawKec.replace(/^(kecamatan|kec\.)\s+/i, '').trim();
+      andConditions.push({
+        OR: [
+          { kecamatan: { contains: rawKec, mode: 'insensitive' } },
+          { kecamatan: { contains: cleanKec, mode: 'insensitive' } },
+          { address: { contains: rawKec, mode: 'insensitive' } },
+          { address: { contains: cleanKec, mode: 'insensitive' } },
+        ],
+      });
+    }
+    if (query.search && query.search.trim()) {
+      const s = query.search.trim();
+      andConditions.push({
+        OR: [
+          { content: { contains: s, mode: 'insensitive' } },
+          { address: { contains: s, mode: 'insensitive' } },
+          { author: { name: { contains: s, mode: 'insensitive' } } },
+        ],
+      });
     }
 
-    return this.prisma.post.findMany({
+    const where: any = andConditions.length > 0 ? { AND: andConditions } : {};
+
+    const posts = await this.prisma.post.findMany({
       where,
       orderBy: [
         { category: 'asc' }, // DARURAT comes first
@@ -99,11 +137,42 @@ export class CommunityService {
           orderBy: { createdAt: "desc" },
           take: 1,
           include: {
-            volunteer: { select: { id: true, name: true, phone: true } },
+            volunteer: { select: { id: true, name: true, phone: true, avatarUrl: true, kabupaten: true } },
           },
         },
       },
     });
+
+    // Sinkronisasi klaster: pasangkan assignment HANYA jika sedang aktif berjalan
+    // ATAU jika selesai setelah postingan tersebut dibuat (bukan tugas masa lalu)
+    const enrichedPosts = await Promise.all(
+      posts.map(async (p) => {
+        if ((!p.assignments || p.assignments.length === 0) && p.clusterCode) {
+          const clusterAssignment = await this.prisma.volunteerAssignment.findFirst({
+            where: {
+              clusterCode: p.clusterCode,
+              OR: [
+                { status: { in: ['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'] } },
+                {
+                  status: 'COMPLETED',
+                  completedAt: { gte: p.createdAt },
+                },
+              ],
+            },
+            orderBy: { createdAt: 'desc' },
+            include: {
+              volunteer: { select: { id: true, name: true, phone: true, avatarUrl: true, kabupaten: true } },
+            },
+          });
+          if (clusterAssignment) {
+            return { ...p, assignments: [clusterAssignment] };
+          }
+        }
+        return p;
+      })
+    );
+
+    return enrichedPosts;
   }
 
   async getPostDetail(id: string) {
@@ -134,8 +203,9 @@ export class CommunityService {
           },
         },
         assignments: {
+          orderBy: { createdAt: "desc" },
           include: {
-            volunteer: { select: { id: true, name: true, phone: true } },
+            volunteer: { select: { id: true, name: true, phone: true, avatarUrl: true, kabupaten: true } },
           },
         },
         _count: {
@@ -146,6 +216,30 @@ export class CommunityService {
 
     if (!post) {
       throw new NotFoundException('Postingan tidak ditemukan');
+    }
+
+    // Jika belum ada assignment langsung tapi ada clusterCode, ambil penugasan klaster
+    // HANYA jika tugas sedang aktif atau diselesaikan setelah laporan warga dibuat
+    if ((!post.assignments || post.assignments.length === 0) && post.clusterCode) {
+      const clusterAssignment = await this.prisma.volunteerAssignment.findFirst({
+        where: {
+          clusterCode: post.clusterCode,
+          OR: [
+            { status: { in: ['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'] } },
+            {
+              status: 'COMPLETED',
+              completedAt: { gte: post.createdAt },
+            },
+          ],
+        },
+        orderBy: { createdAt: 'desc' },
+        include: {
+          volunteer: { select: { id: true, name: true, phone: true, avatarUrl: true, kabupaten: true } },
+        },
+      });
+      if (clusterAssignment) {
+        post.assignments = [clusterAssignment];
+      }
     }
 
     return post;
@@ -338,5 +432,133 @@ export class CommunityService {
       mimeType: mime,
       size: buffer.length,
     };
+  }
+
+  async getIncidents(user: any, query: { kabupaten?: string; status?: string; search?: string }) {
+    const where: any = { category: PostCategory.DARURAT };
+    if (query.kabupaten) {
+      where.kabupaten = { contains: query.kabupaten, mode: 'insensitive' };
+    }
+    if (query.status) {
+      where.status = query.status;
+    }
+    if (query.search) {
+      where.OR = [
+        { clusterCode: { contains: query.search, mode: 'insensitive' } },
+        { address: { contains: query.search, mode: 'insensitive' } },
+        { content: { contains: query.search, mode: 'insensitive' } },
+        { kabupaten: { contains: query.search, mode: 'insensitive' } },
+        { kecamatan: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+
+    const posts = await this.prisma.post.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        author: {
+          select: { id: true, name: true, phone: true, role: true, avatarUrl: true },
+        },
+      },
+    });
+
+    const assignments = await this.prisma.volunteerAssignment.findMany({
+      orderBy: { createdAt: 'desc' },
+      include: {
+        volunteer: {
+          select: { id: true, name: true, phone: true, avatarUrl: true, kabupaten: true, province: true },
+        },
+      },
+    });
+
+    const groupsMap = new Map<string, any>();
+
+    for (const post of posts) {
+      const groupKey = post.clusterCode
+        ? `cluster:${post.clusterCode}`
+        : `loc:${post.kecamatan || ''}_${post.kabupaten || ''}`;
+
+      if (!groupsMap.has(groupKey)) {
+        // Cari assignment yang masih aktif, atau jika completed, completed setelah postingan terbaru dibuat
+        const matchAssignment =
+          assignments.find((a) => {
+            const isMatch = (post.clusterCode && a.clusterCode === post.clusterCode) || a.postId === post.id;
+            if (!isMatch) return false;
+            // Jika assignment masih aktif berjalan: valid
+            if (['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'].includes(a.status)) return true;
+            // Jika assignment sudah selesai di masa lalu: hanya valid jika selesai setelah laporan ini dibuat
+            if (a.status === 'COMPLETED' && a.completedAt && new Date(a.completedAt) >= new Date(post.createdAt)) {
+              return true;
+            }
+            return false;
+          }) || null;
+
+        groupsMap.set(groupKey, {
+          key: groupKey,
+          clusterCode: post.clusterCode || null,
+          title: post.clusterCode || `Titik Api ${post.kecamatan ? post.kecamatan + ', ' : ''}${post.kabupaten || 'Kalimantan'}`,
+          address: post.address,
+          province: post.province,
+          kabupaten: post.kabupaten,
+          kecamatan: post.kecamatan,
+          latitude: post.latitude,
+          longitude: post.longitude,
+          status: post.status,
+          posts: [],
+          assignment: matchAssignment,
+          isAssignedToMe: user?.role === Role.RELAWAN && matchAssignment?.volunteerId === user?.id,
+          isInMyKabupaten: Boolean(
+            user?.kabupaten && post.kabupaten && post.kabupaten.toLowerCase().includes(user.kabupaten.toLowerCase())
+          ),
+          latestCreatedAt: post.createdAt,
+        });
+      }
+
+      const group = groupsMap.get(groupKey);
+      group.posts.push(post);
+      if (new Date(post.createdAt) > new Date(group.latestCreatedAt)) {
+        group.latestCreatedAt = post.createdAt;
+      }
+    }
+
+    const result = Array.from(groupsMap.values()).map((g) => {
+      const hasUnverifiedPosts = g.posts.some((p: any) => p.status === PostStatus.MENUNGGU_VERIFIKASI);
+      const hasActiveAssignment = Boolean(
+        g.assignment &&
+        ['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'].includes(g.assignment.status)
+      );
+      const anyPostDalamPenanganan = g.posts.some((p: any) => p.status === PostStatus.DALAM_PENANGANAN);
+      const allPostsSelesai = g.posts.length > 0 && g.posts.every((p: any) => p.status === PostStatus.SELESAI);
+
+      let overallStatus: PostStatus = PostStatus.MENUNGGU_VERIFIKASI;
+      if (hasUnverifiedPosts && !hasActiveAssignment) {
+        // Ada laporan baru yang masuk setelah tugas sebelumnya selesai -> Wajib Menunggu Disposisi Baru!
+        overallStatus = PostStatus.MENUNGGU_VERIFIKASI;
+      } else if (hasActiveAssignment || anyPostDalamPenanganan) {
+        overallStatus = PostStatus.DALAM_PENANGANAN;
+      } else if (allPostsSelesai || g.assignment?.status === 'COMPLETED') {
+        overallStatus = PostStatus.SELESAI;
+      }
+
+      return {
+        ...g,
+        status: overallStatus,
+        totalReports: g.posts.length,
+      };
+    });
+
+    result.sort((a, b) => {
+      const rank: Record<string, number> = {
+        MENUNGGU_VERIFIKASI: 1,
+        DALAM_PENANGANAN: 2,
+        SELESAI: 3,
+        DITOLAK: 4,
+      };
+      const diff = (rank[a.status] || 5) - (rank[b.status] || 5);
+      if (diff !== 0) return diff;
+      return new Date(b.latestCreatedAt).getTime() - new Date(a.latestCreatedAt).getTime();
+    });
+
+    return result;
   }
 }
