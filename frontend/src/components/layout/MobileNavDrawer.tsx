@@ -136,6 +136,8 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
                             ? 'bg-red-100 text-red-700 border border-red-200'
                             : item.badge === 'Posko'
                             ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                            : item.badge === 'Admin'
+                            ? 'bg-rose-100 text-rose-700 border border-rose-200'
                             : 'bg-neutral-200/70 text-neutral-700'
                         )}
                       >

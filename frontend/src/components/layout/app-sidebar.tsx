@@ -12,6 +12,7 @@ import {
   LogOut,
   ChevronRight,
   ClipboardList,
+  ShieldAlert,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
@@ -58,6 +59,14 @@ export const navItems: NavItemDef[] = [
     description: 'Manajemen insiden & disposisi relawan',
     icon: <ClipboardList className="w-5 h-5 text-blue-600" />,
     badge: 'Posko',
+    roles: ['ADMIN'], // Khusus Admin Posko
+  },
+  {
+    to: '/moderation',
+    label: 'Moderasi Konten',
+    description: 'Tinjau aduan & verifikasi postingan palsu',
+    icon: <ShieldAlert className="w-5 h-5 text-rose-600" />,
+    badge: 'Admin',
     roles: ['ADMIN'], // Khusus Admin Posko
   },
   {
@@ -160,6 +169,10 @@ export function AppSidebar({ className }: { className?: string }) {
                         'text-[10px] px-1.5 py-0.2 rounded-full font-bold uppercase tracking-wider',
                         item.badge === 'Darurat'
                           ? 'bg-red-100 text-red-700 border border-red-200'
+                          : item.badge === 'Posko'
+                          ? 'bg-blue-100 text-blue-700 border border-blue-200'
+                          : item.badge === 'Admin'
+                          ? 'bg-rose-100 text-rose-700 border border-rose-200'
                           : 'bg-neutral-200/70 text-neutral-700'
                       )}
                     >

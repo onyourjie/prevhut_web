@@ -14,6 +14,7 @@ import { Route as AssignmentsRouteImport } from './routes/assignments'
 import { Route as EmergencyRouteImport } from './routes/emergency'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MapRouteImport } from './routes/map'
+import { Route as ModerationRouteImport } from './routes/moderation'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegisterRouteImport } from './routes/register'
 import { Route as ReportsRouteImport } from './routes/reports'
@@ -44,6 +45,11 @@ const LoginRoute = LoginRouteImport.update({
 const MapRoute = MapRouteImport.update({
   id: '/map',
   path: '/map',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ModerationRoute = ModerationRouteImport.update({
+  id: '/moderation',
+  path: '/moderation',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProfileRoute = ProfileRouteImport.update({
@@ -83,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/moderation': typeof ModerationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
@@ -96,6 +103,7 @@ export interface FileRoutesByTo {
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/moderation': typeof ModerationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
@@ -110,6 +118,7 @@ export interface FileRoutesById {
   '/emergency': typeof EmergencyRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
+  '/moderation': typeof ModerationRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
   '/reports': typeof ReportsRoute
@@ -125,6 +134,7 @@ export interface FileRouteTypes {
     | '/emergency'
     | '/login'
     | '/map'
+    | '/moderation'
     | '/profile'
     | '/register'
     | '/reports'
@@ -138,6 +148,7 @@ export interface FileRouteTypes {
     | '/emergency'
     | '/login'
     | '/map'
+    | '/moderation'
     | '/profile'
     | '/register'
     | '/reports'
@@ -151,6 +162,7 @@ export interface FileRouteTypes {
     | '/emergency'
     | '/login'
     | '/map'
+    | '/moderation'
     | '/profile'
     | '/register'
     | '/reports'
@@ -165,6 +177,7 @@ export interface RootRouteChildren {
   EmergencyRoute: typeof EmergencyRoute
   LoginRoute: typeof LoginRoute
   MapRoute: typeof MapRoute
+  ModerationRoute: typeof ModerationRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
   ReportsRoute: typeof ReportsRoute
@@ -208,6 +221,13 @@ declare module '@tanstack/react-router' {
       path: '/map'
       fullPath: '/map'
       preLoaderRoute: typeof MapRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/moderation': {
+      id: '/moderation'
+      path: '/moderation'
+      fullPath: '/moderation'
+      preLoaderRoute: typeof ModerationRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/profile': {
@@ -261,6 +281,7 @@ const rootRouteChildren: RootRouteChildren = {
   EmergencyRoute: EmergencyRoute,
   LoginRoute: LoginRoute,
   MapRoute: MapRoute,
+  ModerationRoute: ModerationRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
   ReportsRoute: ReportsRoute,
