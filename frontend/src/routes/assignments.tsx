@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
-import { RefreshCw, Flame, UserPlus } from 'lucide-react'
+import { Flame, UserPlus } from 'lucide-react'
 import { AppLayout } from '@/components/layout/app-layout'
 import { AssignmentStatsGrid } from '@/components/assignments/AssignmentStatsGrid'
 import { AssignmentCard } from '@/components/assignments/AssignmentCard'
@@ -82,13 +82,6 @@ function VolunteerAssignmentsPage() {
     setIsCreateModalOpen(true)
   }
 
-  const handleRefreshAll = () => {
-    fetchAssignments()
-    if (isAdmin) {
-      fetchVolunteers()
-    }
-  }
-
   const handleAssignmentCreated = () => {
     fetchAssignments()
     if (isAdmin) {
@@ -114,8 +107,8 @@ function VolunteerAssignmentsPage() {
           totalCount={assignments.length}
         />
 
-        {/* Status Tabs Navigation & Refresh */}
-        <div className="flex items-center justify-between pt-2">
+        {/* Status Tabs Navigation */}
+        <div className="pt-2">
           <AssignmentTabs
             activeTab={activeTab}
             counts={{
@@ -128,19 +121,6 @@ function VolunteerAssignmentsPage() {
             showVolunteersTab={isAdmin}
             onSelectTab={setActiveTab}
           />
-
-          <button
-            onClick={handleRefreshAll}
-            disabled={isLoading || isLoadingVolunteers}
-            className="p-2 text-neutral-500 hover:text-neutral-800 hover:bg-neutral-100 rounded-xl transition cursor-pointer"
-            title="Muat Ulang Data"
-          >
-            <RefreshCw
-              className={`w-4 h-4 ${
-                isLoading || isLoadingVolunteers ? 'animate-spin text-amber-600' : ''
-              }`}
-            />
-          </button>
         </div>
 
         {/* Content View: Tab Daftar Relawan vs Tab Daftar Tugas */}
