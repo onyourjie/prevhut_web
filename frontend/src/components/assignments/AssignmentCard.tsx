@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router'
+import { useAuthStore } from '@/store/auth.store'
 import {
   MapPin,
   ExternalLink,
@@ -11,6 +12,8 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import type { Assignment, PriorityLevel } from './assignment.types'
+import { isVideoMedia } from '@/lib/cloudinary'
+import { CommunityVideoPlayer } from '@/components/community/community-video-player'
 
 const PRIORITY_BADGES: Record<PriorityLevel, { label: string; className: string }> = {
   P1: { label: 'P1 • Prioritas Tinggi', className: 'bg-red-100 text-red-800 border border-red-200' },
@@ -37,6 +40,8 @@ export function AssignmentCard({
   onOpenReject,
   onOpenVerify,
 }: AssignmentCardProps) {
+  const user = useAuthStore((s) => s.user)
+  const isAdmin = user?.role === "ADMIN"
   const isUpdating = updatingTaskId === task.id
   const priorityBadge = PRIORITY_BADGES[task.priorityLevel]
 
@@ -112,6 +117,16 @@ export function AssignmentCard({
             <span>Ditugaskan: {new Date(task.createdAt).toLocaleString('id-ID')}</span>
           </div>
 
+          {task.volunteer && (
+            <div className="flex items-center gap-1.5">
+              <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>
+                Relawan: <strong className="text-neutral-800">{task.volunteer.name}</strong>
+                {task.volunteer.phone && ` (${task.volunteer.phone})`}
+              </span>
+            </div>
+          )}
+
           {task.admin && (
             <div className="flex items-center gap-1.5">
               <UserCheck className="w-3.5 h-3.5 text-neutral-400" />
@@ -153,11 +168,20 @@ export function AssignmentCard({
             <span>Bukti Penanganan Terverifikasi Lapangan</span>
           </div>
           {task.verificationPhoto && (
-            <img
-              src={task.verificationPhoto}
-              alt="Verifikasi foto"
-              className="w-full h-36 object-cover rounded-xl border border-emerald-200"
-            />
+            isVideoMedia(task.verificationPhoto) ? (
+              <div className="w-full h-44 rounded-xl overflow-hidden border border-emerald-200 bg-black">
+                <CommunityVideoPlayer
+                  src={task.verificationPhoto}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            ) : (
+              <img
+                src={task.verificationPhoto}
+                alt="Verifikasi foto"
+                className="w-full h-36 object-cover rounded-xl border border-emerald-200"
+              />
+            )
           )}
           {task.verificationGpsLat != null && task.verificationGpsLon != null && (
             <p className="text-[11px] text-emerald-800 font-mono">
@@ -208,6 +232,18 @@ export function AssignmentCard({
         )}
 
         {/* Main Action Buttons */}
+        {isAdmin ? (
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] font-bold text-neutral-600 bg-neutral-100 px-3 py-1.5 rounded-xl border border-neutral-200">
+              {task.status === 'ASSIGNED' && 'Menunggu konfirmasi relawan'}
+              {task.status === 'ACCEPTED' && 'Relawan telah menerima tugas'}
+              {task.status === 'ON_THE_WAY' && 'Relawan sedang meluncur'}
+              {task.status === 'ON_SITE' && 'Relawan berada di lokasi'}
+              {task.status === 'COMPLETED' && 'Penanganan selesai & terverifikasi'}
+              {task.status === 'REJECTED' && 'Perlu dialihkan ke relawan lain'}
+            </span>
+          </div>
+        ) : (
         <div className="flex items-center gap-2">
           {task.status === 'ASSIGNED' && (
             <>
@@ -277,6 +313,7 @@ export function AssignmentCard({
             </button>
           )}
         </div>
+        )}
       </div>
     </div>
   )
