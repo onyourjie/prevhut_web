@@ -154,13 +154,7 @@ export class AssignmentsService {
         });
       }
       if (updated.clusterCode) {
-        await this.prisma.post.updateMany({
-          where: {
-            category: PostCategory.DARURAT,
-            clusterCode: updated.clusterCode,
-          },
-          data: { status: PostStatus.SELESAI },
-        });
+        await this.resolveClusterPosts(updated.clusterCode, updated.id);
       }
     }
 
@@ -232,20 +226,42 @@ export class AssignmentsService {
       });
     }
 
-    // Sinkronisasi: otomatis ubah semua laporan warga di cluster yang sama menjadi SELESAI
+    // Sinkronisasi: ubah laporan warga di cluster yang sama menjadi SELESAI jika tidak ada penugasan lain yang aktif
     if (task.clusterCode) {
-      await this.prisma.post.updateMany({
-        where: {
-          category: PostCategory.DARURAT,
-          clusterCode: task.clusterCode,
-        },
-        data: { status: PostStatus.SELESAI },
-      });
+      await this.resolveClusterPosts(task.clusterCode, task.id);
     }
 
     return {
       message: 'Bukti verifikasi lapangan berhasil diunggah. Penugasan selesai!',
       assignment: updated,
     };
+  }
+
+  private async resolveClusterPosts(clusterCode: string, currentAssignmentId: string) {
+    const stillActive = await this.prisma.volunteerAssignment.count({
+      where: {
+        clusterCode,
+        id: { not: currentAssignmentId },
+        status: {
+          in: [
+            AssignmentStatus.ASSIGNED,
+            AssignmentStatus.ACCEPTED,
+            AssignmentStatus.ON_THE_WAY,
+            AssignmentStatus.ON_SITE,
+          ],
+        },
+      },
+    });
+
+    if (stillActive === 0) {
+      await this.prisma.post.updateMany({
+        where: {
+          category: PostCategory.DARURAT,
+          clusterCode,
+          status: PostStatus.DALAM_PENANGANAN,
+        },
+        data: { status: PostStatus.SELESAI },
+      });
+    }
   }
 }

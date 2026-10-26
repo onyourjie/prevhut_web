@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/api'
@@ -87,12 +87,17 @@ function MapPage() {
 
   const areas = data?.areas || []
 
-  // Otomatis fokus dan buka detail kluster area bila URL memiliki '?area=...'
+  // Track URL area parameter that has already been focused to prevent re-opening on close/change
+  const appliedAreaRef = useRef<string | null>(null)
+
+  // Otomatis fokus dan buka detail kluster area bila URL memiliki '?area=...' (hanya sekali per nilai URL)
   useEffect(() => {
     if (areas.length === 0) return
     const urlParams = new URLSearchParams(window.location.search)
     const areaQuery = urlParams.get('area')
-    if (areaQuery && (!selectedArea || selectedArea.name.toLowerCase() !== areaQuery.toLowerCase())) {
+    if (!areaQuery) return
+
+    if (appliedAreaRef.current !== areaQuery) {
       const match = areas.find(
         (a) =>
           a.name.toLowerCase() === areaQuery.toLowerCase() ||
@@ -100,10 +105,11 @@ function MapPage() {
           a.id === areaQuery
       )
       if (match) {
+        appliedAreaRef.current = areaQuery
         setSelectedArea(match)
       }
     }
-  }, [areas, selectedArea])
+  }, [areas])
 
   // Ambil cuaca live sesuai kota yang sedang aktif/dipilih
   const activeCity = filter.regency || userLocationName || 'Palangka Raya'

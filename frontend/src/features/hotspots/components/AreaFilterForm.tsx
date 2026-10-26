@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react'
 import { Clock, Calendar, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { API_URL } from '@/lib/api'
 import { KALIMANTAN_PROVINCES } from '@/lib/kalimantan-locations'
 import { useAuthStore } from '@/store/auth.store'
 import type { MapFilter, PriorityLevel } from '../schemas'
@@ -230,7 +231,7 @@ export function AreaFilterForm({
       {/* Unduh Data Terbuka / Open Government Data CSV (Fitur #5) */}
       <div className="pt-2 border-t border-neutral-200/70">
         <a
-          href="http://localhost:3000/hotspots/transparency/download-csv"
+          href={`${API_URL}/hotspots/transparency/download-csv`}
           target="_blank"
           rel="noopener noreferrer"
           className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-neutral-50/80 hover:bg-neutral-100 text-xs font-semibold text-neutral-700 hover:text-neutral-900 flex items-center justify-center gap-2 transition focus-ring"
