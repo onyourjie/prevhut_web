@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { Bell, Shield, Users } from 'lucide-react'
 import { AppLayout } from '@/components/layout/app-layout'
 import { useAuthStore } from '@/store/auth.store'
@@ -14,20 +14,35 @@ import { VolunteerPrioritySection } from '@/components/home/VolunteerPrioritySec
 import { VolunteerAvailabilityCard } from '@/components/home/VolunteerAvailabilityCard'
 import { LocationStatusCard } from '@/components/home/LocationStatusCard'
 import { CitizenActionsSection } from '@/components/home/CitizenActionsSection'
+import { LandingPage } from '@/components/landing/LandingPage'
 
 export const Route = createFileRoute('/')({
-  component: HomePage,
+  component: RootPage,
 })
 
-function HomePage() {
-  const { user, isAuthenticated, hasHydrated, updateUser } = useAuthStore()
-  const navigate = useNavigate()
+function RootPage() {
+  const { user, isAuthenticated, hasHydrated } = useAuthStore()
 
-  useEffect(() => {
-    if (hasHydrated && !isAuthenticated) {
-      navigate({ to: '/login' })
-    }
-  }, [hasHydrated, isAuthenticated, navigate])
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-neutral-400">
+        <div className="flex items-center gap-2.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping" />
+          <span className="text-xs font-semibold tracking-wide">Memuat FIREZONE...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated || !user) {
+    return <LandingPage />
+  }
+
+  return <HomePage />
+}
+
+function HomePage() {
+  const { user, isAuthenticated, updateUser } = useAuthStore()
   const isVolunteer = user?.role === 'RELAWAN'
   const isAdmin = user?.role === 'ADMIN'
 
