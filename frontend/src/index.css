@@ -153,7 +153,7 @@ select {
 
   /* Typography */
   --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  --font-heading: 'Bricolage Grotesque', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 
   /* Radius */
   --radius-sm: 8px;
@@ -162,7 +162,7 @@ select {
 }
 
 .font-heading {
-  font-family: 'Bricolage Grotesque', 'Plus Jakarta Sans', system-ui, sans-serif !important;
+  font-family: var(--font-heading);
 }
 
 :root {
