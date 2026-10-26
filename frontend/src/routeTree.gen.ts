@@ -16,6 +16,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as ProfileRouteImport } from './routes/profile'
 import { Route as RegisterRouteImport } from './routes/register'
+import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as CommunityIndexRouteImport } from './routes/community/index'
 import { Route as CommunityPostIdRouteImport } from './routes/community/$postId'
 import { Route as CommunityCreateRouteImport } from './routes/community/create'
@@ -55,6 +56,11 @@ const RegisterRoute = RegisterRouteImport.update({
   path: '/register',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ReportsRoute = ReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CommunityIndexRoute = CommunityIndexRouteImport.update({
   id: '/community/',
   path: '/community/',
@@ -79,6 +85,7 @@ export interface FileRoutesByFullPath {
   '/map': typeof MapRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/reports': typeof ReportsRoute
   '/community/$postId': typeof CommunityPostIdRoute
   '/community/create': typeof CommunityCreateRoute
   '/community/': typeof CommunityIndexRoute
@@ -91,6 +98,7 @@ export interface FileRoutesByTo {
   '/map': typeof MapRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/reports': typeof ReportsRoute
   '/community/$postId': typeof CommunityPostIdRoute
   '/community/create': typeof CommunityCreateRoute
   '/community': typeof CommunityIndexRoute
@@ -104,6 +112,7 @@ export interface FileRoutesById {
   '/map': typeof MapRoute
   '/profile': typeof ProfileRoute
   '/register': typeof RegisterRoute
+  '/reports': typeof ReportsRoute
   '/community/$postId': typeof CommunityPostIdRoute
   '/community/create': typeof CommunityCreateRoute
   '/community/': typeof CommunityIndexRoute
@@ -118,6 +127,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/profile'
     | '/register'
+    | '/reports'
     | '/community/$postId'
     | '/community/create'
     | '/community/'
@@ -130,6 +140,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/profile'
     | '/register'
+    | '/reports'
     | '/community/$postId'
     | '/community/create'
     | '/community'
@@ -142,6 +153,7 @@ export interface FileRouteTypes {
     | '/map'
     | '/profile'
     | '/register'
+    | '/reports'
     | '/community/$postId'
     | '/community/create'
     | '/community/'
@@ -155,6 +167,7 @@ export interface RootRouteChildren {
   MapRoute: typeof MapRoute
   ProfileRoute: typeof ProfileRoute
   RegisterRoute: typeof RegisterRoute
+  ReportsRoute: typeof ReportsRoute
   CommunityPostIdRoute: typeof CommunityPostIdRoute
   CommunityCreateRoute: typeof CommunityCreateRoute
   CommunityIndexRoute: typeof CommunityIndexRoute
@@ -211,6 +224,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RegisterRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/reports': {
+      id: '/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof ReportsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/community/': {
       id: '/community/'
       path: '/community'
@@ -243,6 +263,7 @@ const rootRouteChildren: RootRouteChildren = {
   MapRoute: MapRoute,
   ProfileRoute: ProfileRoute,
   RegisterRoute: RegisterRoute,
+  ReportsRoute: ReportsRoute,
   CommunityPostIdRoute: CommunityPostIdRoute,
   CommunityCreateRoute: CommunityCreateRoute,
   CommunityIndexRoute: CommunityIndexRoute,

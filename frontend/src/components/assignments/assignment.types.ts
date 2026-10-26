@@ -23,6 +23,12 @@ export interface Assignment {
   verificationGpsLon?: number | null
   createdAt: string
   completedAt?: string | null
+  volunteer?: {
+    id: string
+    name: string
+    phone?: string
+    avatarUrl?: string
+  }
   admin?: {
     id: string
     name: string
