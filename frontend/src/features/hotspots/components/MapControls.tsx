@@ -3,7 +3,6 @@ import { Plus, Minus, LocateFixed, Layers, Map as MapIcon, Mountain, Satellite, 
 import { useMap } from 'react-leaflet'
 import L from 'leaflet'
 import { cn } from '@/lib/utils'
-import { USER_CURRENT_LOCATION } from '../hotspot-data'
 import { BASEMAPS } from '../basemaps'
 import type { BasemapId } from '../basemaps'
 
@@ -33,9 +32,8 @@ export function MapControls({ onLocateUser, userLocation, basemap, onBasemapChan
   }, [])
 
   const handleRecenter = () => {
-    const targetLat = userLocation?.lat ?? USER_CURRENT_LOCATION.lat
-    const targetLng = userLocation?.lng ?? USER_CURRENT_LOCATION.lng
-    map.flyTo([targetLat, targetLng], 13, {
+    if (!userLocation) return
+    map.flyTo([userLocation.lat, userLocation.lng], 13, {
       duration: 0.8,
     })
     onLocateUser?.()
@@ -104,14 +102,16 @@ export function MapControls({ onLocateUser, userLocation, basemap, onBasemapChan
         </div>
       )}
 
-      <button
-        type="button"
-        onClick={handleRecenter}
-        aria-label="Arahkan ke lokasi saya"
-        className={cn(buttonBase, 'rounded-full text-brand-700')}
-      >
-        <LocateFixed className="w-5 h-5" />
-      </button>
+      {userLocation && (
+        <button
+          type="button"
+          onClick={handleRecenter}
+          aria-label="Arahkan ke lokasi saya"
+          className={cn(buttonBase, 'rounded-full text-brand-700')}
+        >
+          <LocateFixed className="w-5 h-5" />
+        </button>
+      )}
 
       <div className="w-11 min-w-[44px] rounded-2xl bg-white shadow-md border border-neutral-200/80 flex flex-col items-center overflow-hidden">
         <button

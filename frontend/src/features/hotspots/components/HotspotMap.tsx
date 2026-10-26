@@ -11,7 +11,6 @@ import {
 } from 'react-leaflet'
 import L from 'leaflet'
 import type { PriorityArea } from '../schemas'
-import { USER_CURRENT_LOCATION } from '../hotspot-data'
 import { BASEMAPS, DEFAULT_BASEMAP, type BasemapId } from '../basemaps'
 import { MapControls } from './MapControls'
 import {
@@ -47,13 +46,16 @@ export function HotspotMap({
   const [basemapId, setBasemapId] = useState<BasemapId>(DEFAULT_BASEMAP)
   const basemap = BASEMAPS.find((item) => item.id === basemapId) ?? BASEMAPS[0]
 
-  const userCoords = userLocation ?? { lat: USER_CURRENT_LOCATION.lat, lng: USER_CURRENT_LOCATION.lng }
+  const initialCenter: [number, number] = userLocation
+    ? [userLocation.lat, userLocation.lng]
+    : [-0.7893, 113.9213]
+  const initialZoom = userLocation ? 11 : 6
 
   return (
     <div className={`relative basemap-${basemapId} ${className}`}>
       <MapContainer
-        center={[userCoords.lat, userCoords.lng]}
-        zoom={11}
+        center={initialCenter}
+        zoom={initialZoom}
         scrollWheelZoom
         zoomControl={false}
         attributionControl={false}
@@ -109,12 +111,14 @@ export function HotspotMap({
           )
         })}
 
-        <Marker
-          position={[userCoords.lat, userCoords.lng]}
-          icon={createUserMarkerIcon()}
-          interactive={false}
-          zIndexOffset={100}
-        />
+        {userLocation && (
+          <Marker
+            position={[userLocation.lat, userLocation.lng]}
+            icon={createUserMarkerIcon()}
+            interactive={false}
+            zIndexOffset={100}
+          />
+        )}
 
         {selectedArea && (
           <Rectangle
