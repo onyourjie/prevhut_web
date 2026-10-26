@@ -42,7 +42,7 @@ async function bootstrap() {
   const swaggerDescription = `
 ### Platform FIRELINE: Early Hazard Intelligence & Civic Transparency (WIA MIA 2026)
 
-REST API microservice inti untuk manajemen pengguna multi-peran, pelaporan titik api komunitas (*civic reporting*), penugasan relawan lapangan (*field dispatch*), panggilan darurat, dan sinkronisasi satelit NASA FIRMS.
+REST API microservice inti untuk manajemen pengguna multi-peran, pelaporan titik api komunitas (*civic reporting*), penugasan relawan lapangan (*field dispatch*), moderasi konten & anti-hoax (*civic transparency*), pusat manajemen insiden karhutla, panggilan darurat, dan sinkronisasi satelit NASA FIRMS.
 
 ---
 
@@ -50,10 +50,25 @@ REST API microservice inti untuk manajemen pengguna multi-peran, pelaporan titik
 
 | Peran | Email | Kata Sandi | Kegunaan Uji Coba di Swagger |
 | :--- | :--- | :--- | :--- |
-| **ADMIN** | \`admin.posko@fireline.id\` | \`Admin123!\` | Menguji fitur dispatch relawan, moderasi laporan, trigger sync live |
-| **RELAWAN** | \`rangga.relawan@gmail.com\` | \`Rangga123!\` | Menguji terima/tolak tugas, update status penanganan, upload bukti |
-| **WARGA** | \`sarahwijiyatno@gmail.com\` | \`Sarah123!\` | Menguji buat laporan darurat kamera live, edit profil, aktivitas saya |
+| **ADMIN** | \`admin.posko@fireline.id\` | \`Admin123!\` | Menguji fitur dispatch relawan, moderasi laporan hoax, manajemen insiden terpadu, trigger sync live satelit |
+| **RELAWAN** | \`rangga.relawan@gmail.com\` | \`Rangga123!\` | Menguji terima/tolak tugas, update status penanganan lapangan, upload bukti verifikasi tuntas |
+| **WARGA** | \`sarahwijiyatno@gmail.com\` | \`Sarah123!\` | Menguji buat laporan darurat kamera live, edit profil, laporkan postingan hoax |
 | **WARGA 2** | \`rina.warga@gmail.com\` | \`Rina123!\` | Pelapor insiden kebakaran darurat Desa Bancoh |
+
+---
+
+### Alur Moderasi Konten & Verifikasi Hoax (Khusus Admin Posko):
+1. **Lapor Hoax oleh Warga:** Endpoint \`POST /community/posts/:id/flag\` menerima aduan dari warga dengan alasan: \`FOTO_LOKASI_TIDAK_SESUAI\`, \`BERITA_BOHONG_HOAX\`, \`UJARAN_KEBENCIAN_ATAU_SARA\`, atau \`SPAM_IKLAN\`.
+2. **Review oleh Admin Posko:** Endpoint \`GET /community/reports\` dan \`GET /community/reports/stats\` menampilkan riwayat akun-akun pelapor, alasan aduan, serta status review.
+3. **Tindakan Admin Posko:** Endpoint \`POST /community/posts/:id/moderate\` mengeksekusi aksi:
+   * \`REJECT_HOAX\`: Mengonfirmasi postingan adalah hoax/palsu dan **mereset skor risiko konfirmasi warga menjadi 0** agar kalkulasi risiko bahaya kembali akurat.
+   * \`APPROVE_VALID\`: Menyatakan postingan sah/valid dan menutup seluruh aduan terkait.
+   * \`DELETE_POST\`: Menghapus postingan palsu dan aduannya secara permanen dari basis data.
+
+---
+
+### Manajemen Insiden Terpadu (*Incident Grouping*):
+* Endpoint \`GET /community/incidents\`: Mengelompokkan seluruh laporan darurat warga di area atau desa yang sama ke dalam satu kelompok insiden. Menugaskan relawan ke satu insiden otomatis memperbarui seluruh laporan warga terkait.
 
 ---
 
@@ -90,7 +105,7 @@ Setiap pendaftaran kata sandi baru **wajib** memenuhi:
     )
     .addTag('1. Autentikasi (Auth)', 'Registrasi multi-step, Login dengan validasi password kuat, Cek sesi JWT aktif')
     .addTag('2. Profil & Pengguna (Users)', 'Layar profil, edit data diri, toggle GPS selalu aktif, Aktivitas Saya, dan daftar relawan')
-    .addTag('3. Komunitas & Laporan Warga (Community)', 'Feed postingan darurat/informasi, simulasi kamera live & GPS, update pengirim, komentar, dan lapor hoax')
+    .addTag('3. Komunitas & Laporan Warga (Community)', 'Feed postingan darurat/informasi, simulasi kamera live & GPS, update pengirim, komentar, aduan hoax warga, cluster insiden, dan moderasi posko')
     .addTag('4. Penugasan Relawan Lapangan (Assignments)', 'Sistem dispatch penugasan dari Admin Posko, pembaruan status lapangan, tolak tugas, dan upload verifikasi')
     .addTag('5. Panggilan Darurat & Evakuasi (Emergency)', 'Nomor darurat Damkar 113, SAR 115, Polisi 110, Ambulans 119, dan 5 langkah evakuasi cepat')
     .addTag('6. Pusat Notifikasi (Notifications)', 'Riwayat notifikasi bahaya P1 & pembaruan tugas dikelompokkan Hari Ini dan Sebelumnya')
