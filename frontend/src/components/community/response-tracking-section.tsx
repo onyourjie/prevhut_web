@@ -5,99 +5,191 @@ import {
   Activity,
 } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth.store";
 
 interface ResponseTrackingSectionProps {
   post: any;
   onMediaClick?: (url: string) => void;
+  onOpenAssign?: (post: any) => void;
 }
 
 export function ResponseTrackingSection({
   post,
   onMediaClick,
+  onOpenAssign,
 }: ResponseTrackingSectionProps) {
+  const { user } = useAuthStore();
   const assignments = post.assignments || [];
   const latestAssignment = assignments[0] || null;
 
-  // Determine stage (1 to 5)
-  // 1: Laporan Diterima
-  // 2: Diverifikasi Posko
-  // 3: Disposisi Relawan
-  // 4: Dalam Penanganan (ON_THE_WAY / ON_SITE)
-  // 5: Selesai Ditangani (COMPLETED)
-  let currentStage = 1;
-  if (post.status === "SELESAI") {
-    currentStage = 5;
-  } else if (post.status === "DALAM_PENANGANAN" && latestAssignment) {
-    if (latestAssignment.status === "ON_SITE") {
-      currentStage = 4;
-    } else if (latestAssignment.status === "ON_THE_WAY" || latestAssignment.status === "ACCEPTED") {
-      currentStage = 4;
+  // Real-time calculation of response and duration times
+  let responseTimeText = "Menunggu Disposisi";
+  let hasResponseTime = false;
+  if (latestAssignment?.createdAt) {
+    hasResponseTime = true;
+    const diffMs =
+      new Date(latestAssignment.createdAt).getTime() -
+      new Date(post.createdAt).getTime();
+    const diffMinutes = Math.max(1, Math.round(diffMs / 60000));
+    if (diffMinutes < 60) {
+      responseTimeText = `${diffMinutes} Menit`;
     } else {
-      currentStage = 3;
+      const hours = Math.floor(diffMinutes / 60);
+      const remainingMinutes = diffMinutes % 60;
+      responseTimeText = remainingMinutes > 0 ? `${hours}j ${remainingMinutes}m` : `${hours} Jam`;
     }
-  } else if (post.status === "MENUNGGU_VERIFIKASI") {
-    currentStage = post.clusterCode ? 2 : 1;
   }
 
-  const responseMinutes = post.trackingSummary?.responseTimeMinutes;
-  const completionMinutes = post.trackingSummary?.completionTimeMinutes;
+  let durationText = "Belum Dimulai";
+  if (post.status === "SELESAI") {
+    if (latestAssignment?.completedAt) {
+      const durationMs =
+        new Date(latestAssignment.completedAt).getTime() -
+        new Date(latestAssignment.createdAt).getTime();
+      const durMinutes = Math.max(1, Math.round(durationMs / 60000));
+      if (durMinutes < 60) {
+        durationText = `${durMinutes} Menit`;
+      } else {
+        const hours = Math.floor(durMinutes / 60);
+        const rem = durMinutes % 60;
+        durationText = rem > 0 ? `${hours}j ${rem}m` : `${hours} Jam`;
+      }
+    } else {
+      durationText = "Tuntas";
+    }
+  } else if (post.status === "DALAM_PENANGANAN") {
+    durationText = "Sedang Berjalan";
+  }
 
-  const steps = [
-    {
-      num: 1,
-      title: "Laporan Diterima",
-      desc: `Dilaporkan warga via kamera langsung`,
-      time: formatTimeAgo(post.createdAt),
-      done: currentStage >= 1,
-      active: currentStage === 1,
-    },
-    {
-      num: 2,
-      title: "Verifikasi Posko & AI",
-      desc: post.clusterCode
-        ? `Tervalidasi di ${post.clusterCode} (Satelit FIRMS)`
-        : "Validasi koordinat GPS & radius pemukiman",
-      time: "Tervalidasi",
-      done: currentStage >= 2,
-      active: currentStage === 2,
-    },
-    {
-      num: 3,
-      title: "Disposisi Relawan",
-      desc: latestAssignment?.volunteer?.name
-        ? `Ditugaskan ke ${latestAssignment.volunteer.name}`
-        : "Menugaskan regu tanggap terdekat",
-      time: latestAssignment ? "Disetujui Posko" : "Antrean",
-      done: currentStage >= 3,
-      active: currentStage === 3,
-    },
-    {
-      num: 4,
-      title: "Dalam Penanganan",
-      desc:
-        latestAssignment?.status === "ON_SITE"
-          ? "Petugas & warga berada di lokasi pemadaman"
-          : "Regu relawan meluncur membawa alat pompa",
-      time: latestAssignment?.status === "ON_SITE" ? "Di Lokasi" : "Menuju Lokasi",
-      done: currentStage >= 4,
-      active: currentStage === 4,
-    },
-    {
-      num: 5,
-      title: "Pemadaman Selesai",
-      desc: "Api padam, pendinginan gambut & bukti foto terverifikasi",
-      time: latestAssignment?.completedAt ? "Selesai Tuntas" : "Target Padam",
-      done: currentStage >= 5,
-      active: currentStage === 5,
-    },
-  ];
+  // Determine stage and step details
+  const isSelesai = post.status === "SELESAI";
+  const isDalamPenanganan = post.status === "DALAM_PENANGANAN";
+  const isMenungguVerifikasi = post.status === "MENUNGGU_VERIFIKASI";
+
+  // Helper status relawan
+  let volunteerStatusLabel = "Siaga Wilayah";
+  if (latestAssignment) {
+    switch (latestAssignment.status) {
+      case "ASSIGNED":
+        volunteerStatusLabel = "Menunggu Respon";
+        break;
+      case "ACCEPTED":
+        volunteerStatusLabel = "Siap Meluncur";
+        break;
+      case "ON_THE_WAY":
+        volunteerStatusLabel = "Menuju Lokasi";
+        break;
+      case "ON_SITE":
+        volunteerStatusLabel = "Di Lokasi Api";
+        break;
+      case "COMPLETED":
+        volunteerStatusLabel = "Tuntas Bertugas";
+        break;
+      case "REJECTED":
+        volunteerStatusLabel = "Ditolak Relawan";
+        break;
+      default:
+        volunteerStatusLabel = "Terdisposisi";
+    }
+  }
+
+  // Dynamic 5-step progression timeline
+  const step1 = {
+    num: 1,
+    title: "Laporan Diterima",
+    desc: "Laporan darurat warga tercatat di sistem Fireline",
+    time: formatTimeAgo(post.createdAt),
+    done: true,
+    active: false,
+  };
+
+  const step2 = {
+    num: 2,
+    title: "Verifikasi Posko & AI",
+    desc:
+      isMenungguVerifikasi
+        ? post.clusterCode
+          ? `Terdeteksi di ${post.clusterCode} (Satelit FIRMS). Menunggu validasi admin posko.`
+          : "Menunggu validasi visual kamera & koordinat GPS oleh petugas Posko BPBD."
+        : post.clusterCode
+        ? `Tervalidasi di ${post.clusterCode} (Satelit FIRMS & Posko)`
+        : "Tervalidasi oleh petugas Posko BPBD",
+    time: isMenungguVerifikasi ? "Dalam Antrean" : "Terverifikasi",
+    done: isDalamPenanganan || isSelesai,
+    active: isMenungguVerifikasi,
+  };
+
+  const step3 = {
+    num: 3,
+    title: "Disposisi Relawan",
+    desc: latestAssignment?.volunteer?.name
+      ? `Ditugaskan ke ${latestAssignment.volunteer.name} (${latestAssignment.volunteer.kabupaten || 'Relawan'})`
+      : isMenungguVerifikasi
+      ? "Menyiapkan penugasan ke regu tanggap terdekat"
+      : "Menugaskan regu tanggap lapangan",
+    time: latestAssignment
+      ? latestAssignment.status === "ASSIGNED"
+        ? "Menunggu Konfirmasi"
+        : "Disetujui Posko"
+      : isMenungguVerifikasi
+      ? "Antrean"
+      : "Belum Ditugaskan",
+    done:
+      isSelesai ||
+      (isDalamPenanganan &&
+        latestAssignment &&
+        ["ACCEPTED", "ON_THE_WAY", "ON_SITE", "COMPLETED"].includes(
+          latestAssignment.status
+        )),
+    active:
+      isDalamPenanganan &&
+      (!latestAssignment || latestAssignment.status === "ASSIGNED"),
+  };
+
+  const step4 = {
+    num: 4,
+    title: "Operasi Pemadaman Lapangan",
+    desc:
+      latestAssignment?.status === "ON_SITE"
+        ? "Petugas & warga sedang melakukan pemadaman & pendinginan lahan"
+        : latestAssignment?.status === "ON_THE_WAY"
+        ? "Regu relawan meluncur membawa alat pompa & perlengkapan"
+        : isSelesai
+        ? "Pemadaman dan pendinginan lahan selesai dilakukan"
+        : "Regu relawan bergerak ke titik koordinat kebakaran",
+    time: isSelesai
+      ? "Selesai"
+      : latestAssignment?.status === "ON_SITE"
+      ? "Di Lokasi"
+      : latestAssignment?.status === "ON_THE_WAY"
+      ? "Menuju Lokasi"
+      : "Menunggu Regu",
+    done: isSelesai,
+    active:
+      isDalamPenanganan &&
+      latestAssignment &&
+      ["ACCEPTED", "ON_THE_WAY", "ON_SITE"].includes(latestAssignment.status),
+  };
+
+  const step5 = {
+    num: 5,
+    title: "Pemadaman Selesai & Tuntas",
+    desc: isSelesai
+      ? "Api padam total, pendinginan gambut & bukti foto terverifikasi oleh Posko"
+      : "Target api padam tuntas, pendinginan gambut & upload foto verifikasi",
+    time: isSelesai ? "Tuntas" : "Target Padam",
+    done: isSelesai,
+    active: isSelesai,
+  };
+
+  const steps = [step1, step2, step3, step4, step5];
 
   return (
     <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-xs p-5 space-y-4">
       {/* Header Transparansi Publik */}
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-100 pb-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center shrink-0">
             <Activity className="w-4 h-4" />
           </div>
           <div>
@@ -105,7 +197,7 @@ export function ResponseTrackingSection({
               Lacak Penanganan Transparan
             </h3>
             <p className="text-[11px] text-neutral-500">
-              Transparansi akuntabilitas publik tim Posko BPBD Sintang
+              Transparansi akuntabilitas publik tim Posko BPBD & Relawan
             </p>
           </div>
         </div>
@@ -117,7 +209,7 @@ export function ResponseTrackingSection({
               ? "bg-emerald-100 text-emerald-800 border-emerald-200"
               : post.status === "DALAM_PENANGANAN"
               ? "bg-blue-100 text-blue-800 border-blue-200"
-              : "bg-amber-100 text-amber-800 border-amber-200"
+              : "bg-amber-100 text-amber-800 border-amber-200 animate-pulse"
           }`}
         >
           {post.status === "SELESAI" && <CheckCircle2 className="w-3.5 h-3.5" />}
@@ -139,10 +231,16 @@ export function ResponseTrackingSection({
           <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
             Waktu Respon Posko
           </span>
-          <span className="text-sm font-black text-brand-700 block">
-            {responseMinutes != null ? `${responseMinutes} Menit` : "Data tidak tersedia"}
+          <span
+            className={`text-sm font-black block truncate ${
+              hasResponseTime ? "text-brand-700" : "text-amber-700"
+            }`}
+          >
+            {responseTimeText}
           </span>
-          <span className="text-[10px] text-neutral-500">Dari laporan masuk</span>
+          <span className="text-[10px] text-neutral-500 block truncate">
+            {hasResponseTime ? "Dari laporan warga masuk" : "Menunggu disposisi relawan"}
+          </span>
         </div>
 
         <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/80 space-y-0.5">
@@ -150,10 +248,16 @@ export function ResponseTrackingSection({
             Regu Lapangan
           </span>
           <span className="text-xs font-bold text-neutral-900 block truncate">
-            {latestAssignment?.volunteer?.name || "Regu Relawan BPBD"}
+            {latestAssignment?.volunteer?.name || "Belum Ditugaskan"}
           </span>
-          <span className="text-[10px] text-emerald-700 font-semibold">
-            {latestAssignment ? "Terdisposisi" : "Siaga Wilayah"}
+          <span
+            className={`text-[10px] font-semibold block truncate ${
+              latestAssignment ? "text-emerald-700" : "text-neutral-500"
+            }`}
+          >
+            {latestAssignment
+              ? `${latestAssignment.volunteer?.kabupaten || 'Relawan'} • ${volunteerStatusLabel}`
+              : "Siaga Wilayah BPBD"}
           </span>
         </div>
 
@@ -161,13 +265,23 @@ export function ResponseTrackingSection({
           <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
             Durasi Penanganan
           </span>
-          <span className="text-sm font-black text-neutral-900 block">
-            {completionMinutes != null
-              ? `${completionMinutes} Menit`
-              : "Data tidak tersedia"}
+          <span
+            className={`text-sm font-black block truncate ${
+              isSelesai
+                ? "text-emerald-700"
+                : isDalamPenanganan
+                ? "text-blue-700"
+                : "text-neutral-700"
+            }`}
+          >
+            {durationText}
           </span>
-          <span className="text-[10px] text-neutral-500">
-            {post.status === "SELESAI" ? "Tuntas dipadamkan" : "Dalam pemantauan"}
+          <span className="text-[10px] text-neutral-500 block truncate">
+            {isSelesai
+              ? "Tuntas dipadamkan"
+              : isDalamPenanganan
+              ? "Operasi lapangan aktif"
+              : "Dalam pemantauan"}
           </span>
         </div>
       </div>
@@ -192,7 +306,7 @@ export function ResponseTrackingSection({
                   step.done
                     ? "bg-emerald-600 text-white"
                     : step.active
-                    ? "bg-brand-600 text-white ring-4 ring-brand-100"
+                    ? "bg-brand-600 text-white ring-4 ring-brand-100 animate-pulse"
                     : "bg-neutral-100 text-neutral-400 border border-neutral-200"
                 }`}
               >
@@ -213,7 +327,15 @@ export function ResponseTrackingSection({
                   >
                     {step.title}
                   </h4>
-                  <span className="text-[10px] text-neutral-400 font-medium shrink-0">
+                  <span
+                    className={`text-[10px] font-semibold shrink-0 px-2 py-0.5 rounded-md ${
+                      step.done
+                        ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
+                        : step.active
+                        ? "bg-brand-50 text-brand-800 border border-brand-200"
+                        : "text-neutral-400"
+                    }`}
+                  >
                     {step.time}
                   </span>
                 </div>
@@ -225,6 +347,34 @@ export function ResponseTrackingSection({
           ))}
         </div>
       </div>
+
+      {/* Admin Quick Action Bar */}
+      {user?.role === "ADMIN" && post.status === "MENUNGGU_VERIFIKASI" && (
+        <div className="mt-3 p-3.5 rounded-2xl bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md bg-orange-200 text-orange-900 border border-orange-300">
+                Aksi Posko BPBD
+              </span>
+              <h4 className="text-xs font-black text-neutral-900">
+                Laporan Menunggu Tindak Lanjut
+              </h4>
+            </div>
+            <p className="text-[11px] text-neutral-600">
+              Disposisikan regu relawan terdekat ke titik kejadian ini untuk verifikasi & pemadaman.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => onOpenAssign?.(post)}
+            className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-black transition shadow-sm shadow-brand-500/20 flex items-center justify-center gap-2 cursor-pointer shrink-0"
+          >
+            <Truck className="w-3.5 h-3.5" />
+            <span>Disposisi ke Relawan</span>
+          </button>
+        </div>
+      )}
 
       {/* Bukti Foto Verifikasi Lapangan jika ada */}
       {latestAssignment?.verificationPhoto && (
@@ -252,13 +402,14 @@ export function ResponseTrackingSection({
                 <strong>Pelapor Verifikasi:</strong>{" "}
                 {latestAssignment.volunteer?.name || "Relawan BPBD Sintang"}
               </p>
-              {latestAssignment.verificationGpsLat != null && latestAssignment.verificationGpsLon != null && (
-                <p>
-                  <strong>Koordinat GPS Lapangan:</strong>{" "}
-                  {latestAssignment.verificationGpsLat},{" "}
-                  {latestAssignment.verificationGpsLon}
-                </p>
-              )}
+              {latestAssignment.verificationGpsLat != null &&
+                latestAssignment.verificationGpsLon != null && (
+                  <p>
+                    <strong>Koordinat GPS Lapangan:</strong>{" "}
+                    {latestAssignment.verificationGpsLat},{" "}
+                    {latestAssignment.verificationGpsLon}
+                  </p>
+                )}
               {latestAssignment.notes && (
                 <p className="text-neutral-600 italic">
                   "{latestAssignment.notes}"

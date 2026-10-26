@@ -91,6 +91,18 @@ export function PostCard({ post }: { post: PostItem }) {
             </span>
           )}
 
+          {post.clusterCode && (
+            <Link
+              to="/map"
+              search={{ area: post.clusterCode }}
+              onClick={(e) => e.stopPropagation()}
+              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 hover:bg-orange-200 text-orange-950 border border-orange-300 transition shrink-0"
+            >
+              <span>🔥 {post.clusterCode}</span>
+              <span className="text-[10px] text-orange-700 font-extrabold underline">Peta &rarr;</span>
+            </Link>
+          )}
+
           <span className="inline-flex items-center gap-1 text-neutral-600 text-xs font-semibold truncate max-w-[280px]">
             <MapPin className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
             <span className="truncate">
