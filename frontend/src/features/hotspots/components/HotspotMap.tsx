@@ -18,6 +18,7 @@ import {
   WORLD_RING,
   createAreaMarkerIcon,
   createUserMarkerIcon,
+  createCitizenReportMarkerIcon,
   MapResizer,
   MapCamera,
   MapClickHandler,
@@ -28,6 +29,7 @@ export interface HotspotMapProps {
   selectedArea?: PriorityArea | null
   onSelectArea?: (area: PriorityArea | null) => void
   userLocation?: { lat: number; lng: number }
+  citizenFocusPoint?: { lat: number; lng: number; title: string; subtitle?: string } | null
   hideControlsOnMobile?: boolean
   /** Panel rincian desktop terbuka di kanan; geser kontrol peta agar tidak tertimpa. */
   desktopPanelOpen?: boolean
@@ -39,6 +41,7 @@ export function HotspotMap({
   selectedArea,
   onSelectArea,
   userLocation,
+  citizenFocusPoint,
   hideControlsOnMobile = false,
   desktopPanelOpen = false,
   className,
@@ -62,7 +65,11 @@ export function HotspotMap({
         className="w-full h-full z-0"
       >
         <MapResizer />
-        <MapCamera areas={areas} selectedArea={selectedArea} />
+        <MapCamera
+          areas={areas}
+          selectedArea={selectedArea}
+          focusPoint={citizenFocusPoint ? { lat: citizenFocusPoint.lat, lng: citizenFocusPoint.lng } : null}
+        />
         <MapClickHandler onMapClick={() => onSelectArea?.(null)} />
 
         <TileLayer
@@ -118,6 +125,22 @@ export function HotspotMap({
             interactive={false}
             zIndexOffset={100}
           />
+        )}
+
+        {citizenFocusPoint && (
+          <Marker
+            position={[citizenFocusPoint.lat, citizenFocusPoint.lng]}
+            icon={createCitizenReportMarkerIcon()}
+            zIndexOffset={500}
+          >
+            <Tooltip permanent direction="top" offset={[0, -32]} className="font-sans font-bold text-xs shadow-md rounded-xl">
+              <div className="p-1 space-y-0.5 text-center">
+                <span className="text-[10px] uppercase font-black text-amber-600 block">Laporan Warga</span>
+                <span className="text-neutral-900 block font-black">{citizenFocusPoint.title}</span>
+                <span className="text-[9px] text-neutral-500 font-normal block">Belum ada kluster satelit NASA</span>
+              </div>
+            </Tooltip>
+          </Marker>
         )}
 
         {selectedArea && (

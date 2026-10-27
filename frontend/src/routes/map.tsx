@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
+import { Flame, X } from 'lucide-react'
 import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/api'
@@ -55,6 +56,12 @@ function MapPage() {
   })
 
   const [selectedArea, setSelectedArea] = useState<PriorityArea | null>(null)
+  const [citizenFocusPoint, setCitizenFocusPoint] = useState<{
+    lat: number
+    lng: number
+    title: string
+    subtitle?: string
+  } | null>(null)
   const [isListOpen, setIsListOpen] = useState(false)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false)
@@ -87,27 +94,62 @@ function MapPage() {
 
   const areas = data?.areas || []
 
-  // Track URL area parameter that has already been focused to prevent re-opening on close/change
+  // Track URL parameter that has already been focused to prevent re-opening on close/change
   const appliedAreaRef = useRef<string | null>(null)
 
-  // Otomatis fokus dan buka detail kluster area bila URL memiliki '?area=...' (hanya sekali per nilai URL)
+  // Otomatis fokus dan buka detail kluster area bila URL memiliki '?area=...' atau '?lat=...&lon=...'
   useEffect(() => {
-    if (areas.length === 0) return
     const urlParams = new URLSearchParams(window.location.search)
     const areaQuery = urlParams.get('area')
-    if (!areaQuery) return
+    const latQuery = urlParams.get('lat')
+    const lonQuery = urlParams.get('lon')
+    const labelQuery = urlParams.get('label')
 
-    if (appliedAreaRef.current !== areaQuery) {
-      const match = areas.find(
+    if (!areaQuery && !latQuery && !lonQuery) return
+
+    const paramKey = `${areaQuery || ''}_${latQuery || ''}_${lonQuery || ''}`
+    if (appliedAreaRef.current === paramKey) return
+
+    // 1. Coba cocokkan dengan kluster satelit NASA jika ada
+    let match: PriorityArea | undefined
+    if (areaQuery && areas.length > 0) {
+      match = areas.find(
         (a) =>
           a.name.toLowerCase() === areaQuery.toLowerCase() ||
           a.name.toLowerCase().includes(areaQuery.toLowerCase()) ||
           a.id === areaQuery
       )
-      if (match) {
-        appliedAreaRef.current = areaQuery
-        setSelectedArea(match)
+    }
+
+    if (match) {
+      appliedAreaRef.current = paramKey
+      setSelectedArea(match)
+      setCitizenFocusPoint(null)
+    } else if (latQuery && lonQuery) {
+      // 2. Jika tidak ada kluster satelit NASA, tapi ada koordinat laporan warga
+      const parsedLat = parseFloat(latQuery)
+      const parsedLon = parseFloat(lonQuery)
+      if (!isNaN(parsedLat) && !isNaN(parsedLon)) {
+        appliedAreaRef.current = paramKey
+        setSelectedArea(null)
+        setCitizenFocusPoint({
+          lat: parsedLat,
+          lng: parsedLon,
+          title: labelQuery || areaQuery || 'Laporan Titik Api Warga',
+          subtitle: 'Laporan warga belum terdeteksi satelit NASA FIRMS (Perlu Ground Checking)',
+        })
       }
+    } else if (areaQuery) {
+      // 3. Fallback jika nama wilayah ada (misal "Kota Tarakan")
+      const coords = getRegencyCoordinates(undefined, areaQuery)
+      appliedAreaRef.current = paramKey
+      setSelectedArea(null)
+      setCitizenFocusPoint({
+        lat: coords.lat,
+        lng: coords.lng,
+        title: labelQuery || areaQuery,
+        subtitle: 'Perkiraan wilayah laporan warga (Perlu Ground Checking)',
+      })
     }
   }, [areas])
 
@@ -203,6 +245,7 @@ function MapPage() {
             selectedArea={selectedArea}
             onSelectArea={handleSelectArea}
             userLocation={userCoordinates}
+            citizenFocusPoint={citizenFocusPoint}
             hideControlsOnMobile={Boolean(selectedArea)}
             desktopPanelOpen={Boolean(selectedArea)}
             className="w-full h-full"
@@ -226,6 +269,41 @@ function MapPage() {
           </div>
         </div>
       </div>
+
+      {/* Floating Info Banner untuk Laporan Warga Belum Ada Kluster Satelit */}
+      {citizenFocusPoint && !selectedArea && (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] max-w-lg w-[92%] bg-white/95 backdrop-blur-md rounded-2xl border border-amber-300 shadow-xl p-3.5 flex items-start justify-between gap-3 animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
+              <Flame className="w-4 h-4 text-amber-600" />
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
+                  Laporan Warga
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">
+                  Satelit Belum Mendeteksi
+                </span>
+              </div>
+              <h4 className="text-xs font-black text-neutral-900 leading-tight">
+                {citizenFocusPoint.title}
+              </h4>
+              <p className="text-[11px] text-neutral-600 leading-tight">
+                Koordinat: {citizenFocusPoint.lat.toFixed(5)}, {citizenFocusPoint.lng.toFixed(5)} • Perlu penugasan relawan untuk *ground checking* ke lokasi.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setCitizenFocusPoint(null)}
+            className="w-7 h-7 rounded-lg flex items-center justify-center text-neutral-400 hover:text-neutral-700 hover:bg-neutral-100 transition cursor-pointer shrink-0"
+            title="Tutup Info"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {!selectedArea && (
         <div className="absolute top-0 inset-x-0 z-30 p-3.5 sm:p-4 pt-[max(0.75rem,env(safe-area-inset-top))] max-w-lg mx-auto pointer-events-none lg:hidden">
