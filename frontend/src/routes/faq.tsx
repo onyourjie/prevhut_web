@@ -13,7 +13,7 @@ import {
   Sparkles,
   MessageSquare,
 } from 'lucide-react';
-import { LandingNavbar } from '@/components/landing/LandingNavbar';
+import { TopNavbar } from '@/components/layout/TopNavbar';
 import { LandingFooter } from '@/components/landing/LandingFooter';
 
 export const Route = createFileRoute('/faq')({
@@ -137,7 +137,7 @@ function FaqPage() {
 
   return (
     <div className="min-h-screen bg-white text-neutral-900 selection:bg-orange-100 selection:text-orange-900">
-      <LandingNavbar />
+      <TopNavbar />
 
       <main className="pt-28 pb-20 sm:pt-36 sm:pb-28">
         {/* ============================================================ */}

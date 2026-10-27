@@ -1,5 +1,5 @@
 import { usePriorityAreas } from '@/features/hotspots';
-import { LandingNavbar } from './LandingNavbar';
+import { TopNavbar } from '@/components/layout/TopNavbar';
 import { LandingHero } from './LandingHero';
 import { LandingInsightSection } from './LandingInsightSection';
 import { LandingScrollStatement } from './LandingScrollStatement';
@@ -33,7 +33,7 @@ export function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white text-neutral-900 selection:bg-orange-500 selection:text-white">
-      <LandingNavbar />
+      <TopNavbar />
       <main>
         {/* 1. Command Center Live Hero with Motion Counter & Leaflet Map Window */}
         <LandingHero
