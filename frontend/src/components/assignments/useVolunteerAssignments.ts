@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from '@tanstack/react-router'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/auth.store'
 import { apiRequest } from '@/lib/api'
 import { showSuccessToast, showErrorToast, showSuccessAlert } from '@/lib/swal'
@@ -12,8 +13,7 @@ export function useVolunteerAssignments() {
   const { user, isAuthenticated, updateUser } = useAuthStore()
   const navigate = useNavigate()
 
-  const [assignments, setAssignments] = useState<Assignment[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState<AssignmentTabId>('active')
   const [updatingTaskId, setUpdatingTaskId] = useState<string | null>(null)
 
@@ -34,47 +34,41 @@ export function useVolunteerAssignments() {
   const [completionNotes, setCompletionNotes] = useState('')
   const [isSubmittingVerify, setIsSubmittingVerify] = useState(false)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
-  const [volunteers, setVolunteers] = useState<VolunteerItem[]>([])
-  const [isLoadingVolunteers, setIsLoadingVolunteers] = useState(false)
 
-  const fetchVolunteers = async () => {
-    if (!isAuthenticated || user?.role !== 'ADMIN') return
-    try {
-      setIsLoadingVolunteers(true)
-      const res = await apiRequest<VolunteerItem[]>('/users/volunteers')
-      setVolunteers(res || [])
-    } catch (err: any) {
-      console.error('Gagal memuat relawan:', err)
-    } finally {
-      setIsLoadingVolunteers(false)
-    }
-  }
-
-  const fetchAssignments = async () => {
-    if (!isAuthenticated) return
-    try {
-      setIsLoading(true)
+  // TanStack Query untuk daftar penugasan (deduplikasi & caching instan)
+  const {
+    data: assignments = [],
+    isLoading,
+    refetch: fetchAssignments,
+  } = useQuery<Assignment[]>({
+    queryKey: ['assignments-list', user?.role],
+    queryFn: async () => {
       const endpoint = user?.role === 'ADMIN' ? '/assignments' : '/assignments/my-tasks'
       const res = await apiRequest(endpoint)
-      setAssignments(res || [])
-    } catch (err: any) {
-      console.error('Gagal memuat tugas relawan:', err)
-      showErrorToast(err.message || 'Gagal memuat tugas penugasan')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      return res || []
+    },
+    enabled: isAuthenticated,
+  })
+
+  // TanStack Query untuk direktori relawan (khusus admin)
+  const {
+    data: volunteers = [],
+    isLoading: isLoadingVolunteers,
+    refetch: fetchVolunteers,
+  } = useQuery<VolunteerItem[]>({
+    queryKey: ['volunteers-list'],
+    queryFn: async () => {
+      const res = await apiRequest<VolunteerItem[]>('/users/volunteers')
+      return res || []
+    },
+    enabled: isAuthenticated && user?.role === 'ADMIN',
+  })
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate({ to: '/login' })
-      return
     }
-    fetchAssignments()
-    if (user?.role === 'ADMIN') {
-      fetchVolunteers()
-    }
-  }, [isAuthenticated, user?.role])
+  }, [isAuthenticated, navigate])
 
   // Toggle Availability
   const handleToggleAvailability = async () => {
@@ -117,6 +111,7 @@ export function useVolunteerAssignments() {
 
       showSuccessToast(`Status penugasan diperbarui: ${labelMap[nextStatus] || nextStatus}`)
       await fetchAssignments()
+      queryClient.invalidateQueries({ queryKey: ['my-active-tasks'] })
     } catch (err: any) {
       showErrorToast(err.message || 'Gagal memperbarui status')
     } finally {
