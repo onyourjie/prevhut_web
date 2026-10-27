@@ -4,7 +4,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { apiRequest } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
-import { getRegencyCoordinates } from '@/lib/kalimantan-locations'
+import { getRegencyCoordinates, KALIMANTAN_PROVINCES } from '@/lib/kalimantan-locations'
 import {
   HotspotMap,
   MapHeader,
@@ -69,7 +69,7 @@ function MapPage() {
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false)
 
   // Query Area Pantauan dari Data Service / Backend
-  const { data, isFetching } = usePriorityAreas({
+  const { data, isFetching, isLoading } = usePriorityAreas({
     province: filter.province,
     regency: filter.regency,
     district: filter.district,
@@ -110,6 +110,12 @@ function MapPage() {
     const paramKey = `${areaQuery || ''}_${latQuery || ''}_${lonQuery || ''}`
     if (appliedAreaRef.current === paramKey) return
 
+    // Finding 3 Fix: Jika ada areaQuery dan data kluster satelit masih dalam proses muat (areas masih kosong),
+    // tunda penandaan appliedAreaRef agar pencocokan kluster satelit dapat berjalan saat data selesai diambil.
+    if (areaQuery && isLoading && areas.length === 0) {
+      return
+    }
+
     // 1. Coba cocokkan dengan kluster satelit NASA jika ada
     let match: PriorityArea | undefined
     if (areaQuery && areas.length > 0) {
@@ -125,7 +131,10 @@ function MapPage() {
       appliedAreaRef.current = paramKey
       setSelectedArea(match)
       setCitizenFocusPoint(null)
-    } else if (latQuery && lonQuery) {
+      return
+    }
+
+    if (latQuery && lonQuery) {
       // 2. Jika tidak ada kluster satelit NASA, tapi ada koordinat laporan warga
       const parsedLat = parseFloat(latQuery)
       const parsedLon = parseFloat(lonQuery)
@@ -138,20 +147,37 @@ function MapPage() {
           title: labelQuery || areaQuery || 'Laporan Titik Api Warga',
           subtitle: 'Laporan warga belum terdeteksi satelit NASA FIRMS (Perlu Ground Checking)',
         })
+        return
       }
-    } else if (areaQuery) {
-      // 3. Fallback jika nama wilayah ada (misal "Kota Tarakan")
-      const coords = getRegencyCoordinates(undefined, areaQuery)
-      appliedAreaRef.current = paramKey
-      setSelectedArea(null)
-      setCitizenFocusPoint({
-        lat: coords.lat,
-        lng: coords.lng,
-        title: labelQuery || areaQuery,
-        subtitle: 'Perkiraan wilayah laporan warga (Perlu Ground Checking)',
-      })
     }
-  }, [areas])
+
+    if (areaQuery) {
+      // Finding 4 Fix: Fallback HANYA jika areaQuery adalah nama kabupaten/kota yang valid di Kalimantan.
+      // Jika areaQuery adalah nama klaster yang tidak ditemukan, jangan set koordinat Sintang secara sembarangan.
+      const cleanName = areaQuery.toLowerCase().replace(/^(kabupaten|kota)\s+/i, '').trim()
+      const isRecognizedRegency = KALIMANTAN_PROVINCES.some((p) =>
+        p.regencies.some((r) => {
+          const rClean = r.name.toLowerCase().replace(/^(kabupaten|kota)\s+/i, '').trim()
+          return rClean === cleanName || r.name.toLowerCase() === areaQuery.toLowerCase()
+        })
+      )
+
+      if (isRecognizedRegency) {
+        const coords = getRegencyCoordinates(undefined, areaQuery)
+        appliedAreaRef.current = paramKey
+        setSelectedArea(null)
+        setCitizenFocusPoint({
+          lat: coords.lat,
+          lng: coords.lng,
+          title: labelQuery || areaQuery,
+          subtitle: 'Perkiraan wilayah laporan warga (Perlu Ground Checking)',
+        })
+        return
+      }
+
+      appliedAreaRef.current = paramKey
+    }
+  }, [areas, isLoading])
 
   // Ambil cuaca live sesuai kota yang sedang aktif/dipilih
   const activeCity = filter.regency || userLocationName || 'Palangka Raya'
@@ -207,6 +233,9 @@ function MapPage() {
 
   const handleSelectArea = (area: PriorityArea | null) => {
     setSelectedArea(area)
+    if (area) {
+      setCitizenFocusPoint(null)
+    }
   }
 
   const activeLocationHeader = filter.regency || filter.province || userLocationName || 'Seluruh Kalimantan'
@@ -332,7 +361,10 @@ function MapPage() {
             <MapStatusCard
               area={data.currentAreaInside}
               statusText={data.currentLocationStatusText}
-              onClick={() => setSelectedArea(data.currentAreaInside)}
+              onClick={() => {
+                setSelectedArea(data.currentAreaInside)
+                setCitizenFocusPoint(null)
+              }}
             />
           )}
 

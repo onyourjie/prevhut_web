@@ -60,7 +60,9 @@ function CommunityPage() {
     fetchPosts();
   };
 
-  const emergencyPosts = posts.filter((p) => p.category === 'DARURAT');
+  const emergencyPosts = posts.filter(
+    (p) => p.category === 'DARURAT' && p.status !== 'SELESAI' && p.status !== 'DITOLAK'
+  );
   const hasActiveFilters = Boolean(
     filter.category || filter.kabupaten || filter.kecamatan || filter.provinsi
   );

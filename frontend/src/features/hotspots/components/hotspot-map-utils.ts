@@ -115,18 +115,20 @@ export function MapCamera({
     const isDesktop = window.matchMedia(DESKTOP_QUERY).matches
     const height = map.getSize().y
 
-    if (focusPoint) {
-      map.flyTo([focusPoint.lat, focusPoint.lng], 13, {
-        duration: 0.8,
-      })
-      return
-    }
-
+    // Berikan prioritas pada selectedArea agar jika pengguna memilih area klaster,
+    // kamera langsung berpindah ke area tersebut meskipun focusPoint laporan warga sempat aktif
     if (selectedArea) {
       map.flyToBounds(selectedArea.bounds as LatLngBoundsExpression, {
         paddingTopLeft: isDesktop ? [60, 60] : [40, 150],
         paddingBottomRight: isDesktop ? [440, 60] : [40, Math.round(height * 0.55)],
         maxZoom: 14,
+        duration: 0.8,
+      })
+      return
+    }
+
+    if (focusPoint) {
+      map.flyTo([focusPoint.lat, focusPoint.lng], 13, {
         duration: 0.8,
       })
       return

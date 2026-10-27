@@ -297,10 +297,29 @@ function PostDetailPage() {
           onClose={() => setLightboxMediaUrl(null)}
           mediaUrl={lightboxMediaUrl}
           category={post.category}
-          authorName={post.author?.name}
-          authorRole={post.author?.role}
-          address={post.address}
-          dateStr={formatDateTimeIndo(post.createdAt)}
+          authorName={
+            lightboxMediaUrl === post.assignments?.[0]?.verificationPhoto
+              ? `Relawan: ${post.assignments?.[0]?.volunteer?.name || "Petugas Verifikasi"}`
+              : post.author?.name
+          }
+          authorRole={
+            lightboxMediaUrl === post.assignments?.[0]?.verificationPhoto
+              ? "RELAWAN"
+              : post.author?.role
+          }
+          address={
+            lightboxMediaUrl === post.assignments?.[0]?.verificationPhoto &&
+            post.assignments?.[0]?.verificationGpsLat != null &&
+            post.assignments?.[0]?.verificationGpsLon != null
+              ? `GPS Lapangan: ${post.assignments[0].verificationGpsLat}, ${post.assignments[0].verificationGpsLon}`
+              : post.address
+          }
+          dateStr={
+            lightboxMediaUrl === post.assignments?.[0]?.verificationPhoto &&
+            post.assignments?.[0]?.completedAt
+              ? `Selesai: ${formatDateTimeIndo(post.assignments[0].completedAt)}`
+              : formatDateTimeIndo(post.createdAt)
+          }
           isLiveCamera={post.isLiveCamera}
         />
       )}
