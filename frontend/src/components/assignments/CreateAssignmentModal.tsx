@@ -33,6 +33,7 @@ export function CreateAssignmentModal({
   const [priorityLevel, setPriorityLevel] = useState<'P1' | 'P2' | 'P3'>('P2')
   const [prioritySource, setPrioritySource] = useState<string>('Sistem Scoring AI & Status Darurat')
   const [isLockedByAi, setIsLockedByAi] = useState(false)
+  const [isLoadingClusterPriority, setIsLoadingClusterPriority] = useState(false)
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -81,6 +82,7 @@ export function CreateAssignmentModal({
     // Jika ada clusterCode tapi data cluster belum tersertakan, cek langsung ke API klaster satelit
     if (targetPost?.clusterCode && (!targetPost.cluster || !targetPost.cluster.priority_level)) {
       const clusterId = targetPost.clusterCode.toLowerCase().replace(/\s+/g, '_')
+      setIsLoadingClusterPriority(true)
       apiRequest<any>(`/hotspots/clusters/${encodeURIComponent(clusterId)}`)
         .then((cl) => {
           if (cl?.priority_level) {
@@ -102,6 +104,11 @@ export function CreateAssignmentModal({
         .catch(() => {
           // Tetap gunakan prioritas bawaan dan mode manual ground checking
         })
+        .finally(() => {
+          setIsLoadingClusterPriority(false)
+        })
+    } else {
+      setIsLoadingClusterPriority(false)
     }
   }, [isOpen, targetPost?.id, targetPost?.category, targetPost?.clusterCode])
 
@@ -420,12 +427,19 @@ export function CreateAssignmentModal({
               })}
             </div>
 
-            <div className="mt-2 text-[11px] text-neutral-700 bg-neutral-50 p-2.5 rounded-xl border border-neutral-200/80 flex items-start gap-1.5 leading-relaxed">
-              <span className="font-bold text-neutral-900 shrink-0">
-                {isLockedByAi ? 'Skoring Otomatis:' : 'Dasar Penetapan:'}
-              </span>
-              <span className="font-medium text-neutral-600 break-words flex-1">{prioritySource}</span>
-            </div>
+            {isLoadingClusterPriority ? (
+              <div className="mt-2 text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200/80 flex items-center gap-2 leading-relaxed">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600 shrink-0" />
+                <span className="font-medium">Memverifikasi prioritas klaster satelit NASA...</span>
+              </div>
+            ) : (
+              <div className="mt-2 text-[11px] text-neutral-700 bg-neutral-50 p-2.5 rounded-xl border border-neutral-200/80 flex items-start gap-1.5 leading-relaxed">
+                <span className="font-bold text-neutral-900 shrink-0">
+                  {isLockedByAi ? 'Skoring Otomatis:' : 'Dasar Penetapan:'}
+                </span>
+                <span className="font-medium text-neutral-600 break-words flex-1">{prioritySource}</span>
+              </div>
+            )}
           </div>
 
           {/* Notes / Instructions */}
@@ -454,15 +468,21 @@ export function CreateAssignmentModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || isLoadingVolunteers || !selectedVolunteerId}
+              disabled={isSubmitting || isLoadingVolunteers || isLoadingClusterPriority || !selectedVolunteerId}
               className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-extrabold transition shadow-md shadow-brand-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {isSubmitting ? (
+              {isSubmitting || isLoadingClusterPriority ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <Send className="w-3.5 h-3.5" />
               )}
-              <span>Kirim Penugasan</span>
+              <span>
+                {isLoadingClusterPriority
+                  ? 'Menunggu Prioritas...'
+                  : isSubmitting
+                  ? 'Mengirim Penugasan...'
+                  : 'Kirim Penugasan'}
+              </span>
             </button>
           </div>
         </form>

@@ -12,6 +12,7 @@ import {
   Check,
   RefreshCw,
   Maximize2,
+  Video,
 } from 'lucide-react'
 import type { Assignment, PriorityLevel } from './assignment.types'
 import { isVideoMedia } from '@/lib/cloudinary'
@@ -190,11 +191,17 @@ export function AssignmentCard({
               className="relative group w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-orange-200 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-orange-400 shadow-xs"
               title="Klik untuk melihat foto laporan warga asli"
             >
-              <img
-                src={task.post.imageUrl}
-                alt="Bukti warga"
-                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
-              />
+              {isVideoMedia(task.post.imageUrl) ? (
+                <div className="w-full h-full bg-neutral-900 flex items-center justify-center">
+                  <Video className="w-5 h-5 text-amber-400" />
+                </div>
+              ) : (
+                <img
+                  src={task.post.imageUrl}
+                  alt="Bukti warga"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                />
+              )}
               <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <Maximize2 className="w-4 h-4 text-white drop-shadow-md" />
               </div>

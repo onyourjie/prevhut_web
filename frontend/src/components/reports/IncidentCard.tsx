@@ -9,10 +9,12 @@ import {
   ChevronUp,
   Flame,
   Camera,
+  Video,
   Navigation,
   ArrowRight,
 } from 'lucide-react'
 import { formatTimeAgo, cn } from '@/lib/utils'
+import { isVideoMedia } from '@/lib/cloudinary'
 
 export interface IncidentPost {
   id: string
@@ -167,11 +169,25 @@ export function IncidentCard({
               onClick={() => p.imageUrl && onOpenLightbox(p.imageUrl)}
               className="relative w-28 sm:w-36 h-24 rounded-2xl overflow-hidden border border-neutral-200 shrink-0 bg-neutral-900 group cursor-pointer shadow-2xs"
             >
-              <img
-                src={p.imageUrl || 'https://images.unsplash.com/photo-1542385151-efd9000785a0?w=800'}
-                alt={`Laporan warga ${idx + 1}`}
-                className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-              />
+              {p.imageUrl && isVideoMedia(p.imageUrl) ? (
+                <div className="w-full h-full bg-black flex items-center justify-center relative">
+                  <video
+                    src={p.imageUrl}
+                    className="w-full h-full object-cover opacity-60 pointer-events-none"
+                    muted
+                    playsInline
+                  />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Video className="w-6 h-6 text-amber-400 drop-shadow-md" />
+                  </div>
+                </div>
+              ) : (
+                <img
+                  src={p.imageUrl || 'https://images.unsplash.com/photo-1542385151-efd9000785a0?w=800'}
+                  alt={`Laporan warga ${idx + 1}`}
+                  className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                />
+              )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-2 text-white">
                 <span className="text-[10px] font-bold truncate">
                   {p.author?.name || 'Warga'}
@@ -182,7 +198,11 @@ export function IncidentCard({
               </div>
               {p.isLiveCamera && (
                 <div className="absolute top-1.5 left-1.5 bg-black/60 rounded-md p-1">
-                  <Camera className="w-2.5 h-2.5 text-amber-400" />
+                  {p.imageUrl && isVideoMedia(p.imageUrl) ? (
+                    <Video className="w-2.5 h-2.5 text-amber-400" />
+                  ) : (
+                    <Camera className="w-2.5 h-2.5 text-amber-400" />
+                  )}
                 </div>
               )}
             </div>
