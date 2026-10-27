@@ -56,6 +56,8 @@ export class CommunityService {
     }
     if (query.status) {
       andConditions.push({ status: query.status });
+    } else {
+      andConditions.push({ status: { not: PostStatus.DITOLAK } });
     }
     if (query.clusterCode) {
       andConditions.push({ clusterCode: { contains: query.clusterCode.trim(), mode: 'insensitive' } });
@@ -216,6 +218,9 @@ export class CommunityService {
 
     if (!post) {
       throw new NotFoundException('Postingan tidak ditemukan');
+    }
+    if (post.status === PostStatus.DITOLAK) {
+      throw new NotFoundException('Postingan tidak ditemukan atau telah ditolak oleh moderator');
     }
 
     // Jika belum ada assignment langsung tapi ada clusterCode, ambil penugasan klaster
@@ -441,6 +446,8 @@ export class CommunityService {
     }
     if (query.status) {
       where.status = query.status;
+    } else {
+      where.status = { not: PostStatus.DITOLAK };
     }
     if (query.search) {
       where.OR = [
