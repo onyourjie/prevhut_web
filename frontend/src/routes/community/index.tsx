@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { createFileRoute, Link } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import {
   Users,
   Search,
@@ -22,9 +23,8 @@ export const Route = createFileRoute('/community/')({
 
 function CommunityPage() {
   const { user } = useAuthStore();
-  const [posts, setPosts] = useState<PostItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [submittedSearch, setSubmittedSearch] = useState('');
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [filter, setFilter] = useState<FilterState>({
     category: '',
@@ -33,32 +33,30 @@ function CommunityPage() {
     kecamatan: '',
   });
 
-  const fetchPosts = async () => {
-    try {
-      setIsLoading(true);
+  // TanStack Query untuk daftar postingan komunitas (caching, deduplikasi, dan instan)
+  const {
+    data: posts = [],
+    isLoading,
+    refetch: fetchPosts,
+  } = useQuery<PostItem[]>({
+    queryKey: ['community-posts', filter, submittedSearch],
+    queryFn: async () => {
       const params = new URLSearchParams();
       if (filter.category) params.append('category', filter.category);
       if (filter.provinsi) params.append('province', filter.provinsi);
       if (filter.kabupaten) params.append('kabupaten', filter.kabupaten);
       if (filter.kecamatan) params.append('kecamatan', filter.kecamatan);
-      if (searchTerm.trim()) params.append('search', searchTerm.trim());
+      if (submittedSearch.trim()) params.append('search', submittedSearch.trim());
 
       const url = `/community/posts${params.toString() ? `?${params.toString()}` : ''}`;
       const data = await apiRequest<PostItem[]>(url);
-      setPosts(data || []);
-    } catch (err) {
-      console.error('Failed to fetch community posts:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPosts();
-  }, [filter]);
+      return data || [];
+    },
+  });
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setSubmittedSearch(searchTerm.trim());
     fetchPosts();
   };
 

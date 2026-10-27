@@ -1,5 +1,6 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { apiRequest } from "@/lib/api";
@@ -38,46 +39,29 @@ function CreatePostPage() {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [quota, setQuota] = useState<{
-    role: string;
-    postsToday: number;
-    maxDaily: number;
-    remainingQuota: number;
-    canPost: boolean;
-  } | null>(null);
-
-  const [quotaError, setQuotaError] = useState(false);
-  const [isLoadingQuota, setIsLoadingQuota] = useState(false);
+  const queryClient = useQueryClient();
 
   // Review & Confirmation Modals
   const [showEmergencyHelpPrompt, setShowEmergencyHelpPrompt] = useState(false);
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
 
-  const loadQuota = useCallback(async () => {
-    setIsLoadingQuota(true);
-    setQuotaError(false);
-    try {
-      const data = await apiRequest<NonNullable<typeof quota>>("/community/quota", { cache: "no-store" });
-      setQuota(data);
-      if (!data.canPost) {
-        setShowPublishConfirmation(false);
-        setShowEmergencyHelpPrompt(false);
-      }
-      return data;
-    } catch {
-      setQuota(null);
-      setQuotaError(true);
-      setShowPublishConfirmation(false);
-      setShowEmergencyHelpPrompt(false);
-      return null;
-    } finally {
-      setIsLoadingQuota(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated) void loadQuota();
-  }, [isAuthenticated, loadQuota]);
+  // TanStack Query untuk kuota pelaporan harian (otomatis cache & deduplikasi 1 kali fetch)
+  const {
+    data: quota,
+    isLoading: isLoadingQuota,
+    isError: quotaError,
+    refetch: refetchQuota,
+  } = useQuery<{
+    role: string;
+    postsToday: number;
+    maxDaily: number;
+    remainingQuota: number;
+    canPost: boolean;
+  }>({
+    queryKey: ['user-quota'],
+    queryFn: () => apiRequest('/community/quota'),
+    enabled: isAuthenticated,
+  });
 
   const quotaBlocked = isAuthenticated && (isLoadingQuota || quotaError || quota?.canPost !== true);
 
@@ -174,7 +158,8 @@ function CreatePostPage() {
 
     try {
       setIsSubmitting(true);
-      const latestQuota = await loadQuota();
+      const res = await refetchQuota();
+      const latestQuota = res.data;
       if (!latestQuota?.canPost) {
         setShowPublishConfirmation(false);
         if (latestQuota) showErrorToast("Batas kuota harian tercapai");
@@ -238,6 +223,9 @@ function CreatePostPage() {
           clusterCode: detectedClusterCode,
         }),
       });
+
+      queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['user-quota'] });
 
       showSuccessToast(
         category === "DARURAT"
@@ -333,7 +321,7 @@ function CreatePostPage() {
           {quotaError && (
             <div role="alert" className="p-3 rounded-xl bg-red-50 text-red-800 text-xs space-y-2">
               <p>Gagal memuat kuota postingan. Coba lagi sebelum melanjutkan.</p>
-              <button type="button" onClick={() => void loadQuota()} disabled={isLoadingQuota} className="font-bold underline cursor-pointer">
+              <button type="button" onClick={() => void refetchQuota()} disabled={isLoadingQuota} className="font-bold underline cursor-pointer">
                 Coba lagi
               </button>
             </div>
