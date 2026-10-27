@@ -10,6 +10,7 @@ import {
   Menu,
   X,
   LayoutDashboard,
+  HelpCircle,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 
@@ -105,6 +106,13 @@ export function LandingNavbar() {
             >
               <PhoneCall className="w-3.5 h-3.5 text-emerald-600" />
               <span>Siaga 24 Jam</span>
+            </Link>
+            <Link
+              to="/faq"
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold text-neutral-700 hover:text-neutral-900 hover:bg-white transition flex items-center gap-1.5"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-neutral-500" />
+              <span>FAQ & Metodologi</span>
             </Link>
           </nav>
 
@@ -214,6 +222,14 @@ export function LandingNavbar() {
               >
                 <PhoneCall className="w-4 h-4 text-emerald-600" />
                 <span>Kontak Siaga 24 Jam</span>
+              </Link>
+              <Link
+                to="/faq"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-sm font-semibold text-neutral-800 hover:bg-neutral-100 transition"
+              >
+                <HelpCircle className="w-4 h-4 text-neutral-500" />
+                <span>FAQ & Transparansi Algoritma</span>
               </Link>
 
               <div className="pt-3 border-t border-neutral-200 flex flex-col gap-2">

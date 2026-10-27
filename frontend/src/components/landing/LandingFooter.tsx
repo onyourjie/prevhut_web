@@ -48,6 +48,11 @@ export function LandingFooter() {
                   Pusat Layanan Darurat
                 </Link>
               </li>
+              <li>
+                <Link to="/faq" className="hover:text-orange-600 transition">
+                  FAQ & Transparansi Algoritma
+                </Link>
+              </li>
             </ul>
           </div>
 

@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Link } from '@tanstack/react-router';
 import {
   Camera,
@@ -18,8 +17,6 @@ import {
 } from '@/components/ui/motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { EffectCards, Autoplay } from 'swiper/modules';
-import { apiRequest } from '@/lib/api';
-import type { PostItem } from '@/components/community/post-card.types';
 import { formatDateTimeIndo } from '@/lib/utils';
 
 // Import Swiper styles
@@ -29,7 +26,7 @@ import 'swiper/css/effect-cards';
 interface DisplayCitizenReport {
   id: string;
   content: string;
-  imageUrl?: string;
+  imageUrl: string;
   category: string;
   status: string;
   address: string;
@@ -39,7 +36,8 @@ interface DisplayCitizenReport {
   authorAvatar: string;
 }
 
-const FALLBACK_CITIZEN_REPORTS: DisplayCitizenReport[] = [
+// Data kurasi terverifikasi untuk landing page publik (kebal downtime & bebas konten hoax)
+const CURATED_CITIZEN_REPORTS: DisplayCitizenReport[] = [
   {
     id: '1',
     content:
@@ -103,35 +101,7 @@ const FALLBACK_CITIZEN_REPORTS: DisplayCitizenReport[] = [
 ];
 
 export function LandingCitizenFeed() {
-  const [reports, setReports] = useState<DisplayCitizenReport[]>(FALLBACK_CITIZEN_REPORTS);
-
-  useEffect(() => {
-    apiRequest<PostItem[]>('/community/posts')
-      .then((data) => {
-        if (data && data.length > 0) {
-          const mapped: DisplayCitizenReport[] = data.slice(0, 5).map((p, idx) => ({
-            id: p.id,
-            content: p.content,
-            imageUrl:
-              p.imageUrl ||
-              FALLBACK_CITIZEN_REPORTS[idx % FALLBACK_CITIZEN_REPORTS.length].imageUrl,
-            category: p.category || 'LAPORAN_WARGA',
-            status: p.status || 'TERVERIFIKASI',
-            address: p.address || p.kabupaten || 'Kalimantan',
-            createdAt: p.createdAt,
-            authorName: p.author?.name || 'Warga Pelapor',
-            authorRole: p.author?.role === 'ADMIN' ? 'Petugas BPBD' : 'Warga Terverifikasi',
-            authorAvatar:
-              p.author?.avatarUrl ||
-              FALLBACK_CITIZEN_REPORTS[idx % FALLBACK_CITIZEN_REPORTS.length].authorAvatar,
-          }));
-          setReports(mapped);
-        }
-      })
-      .catch((err) => {
-        console.warn('Gagal mengambil laporan api, menggunakan data kurasi lapangan:', err);
-      });
-  }, []);
+  const reports = CURATED_CITIZEN_REPORTS;
 
   const benefits = [
     'Foto Kamera Langsung Tanpa Akses Galeri (Bebas Foto Lawas)',
