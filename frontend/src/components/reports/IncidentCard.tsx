@@ -126,14 +126,28 @@ export function IncidentCard({
 
         {/* Action Quick Link to Map */}
         <div className="flex items-center gap-2 self-start sm:self-center shrink-0">
-          <Link
-            to="/map"
-            search={{ area: incident.clusterCode || incident.title }}
-            className="px-3 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-bold transition flex items-center gap-1.5"
-          >
-            <Navigation className="w-3.5 h-3.5 text-orange-700" />
-            <span>Buka di Peta</span>
-          </Link>
+          {(() => {
+            const firstPost = incident.posts?.[0]
+            const incidentLat = incident.latitude ?? firstPost?.latitude
+            const incidentLon = incident.longitude ?? firstPost?.longitude
+
+            return (
+              <Link
+                to="/map"
+                search={{
+                  area: incident.clusterCode || incident.title,
+                  ...(incidentLat != null && incidentLon != null
+                    ? { lat: Number(incidentLat), lon: Number(incidentLon) }
+                    : {}),
+                  label: incident.title,
+                }}
+                className="px-3 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-bold transition flex items-center gap-1.5"
+              >
+                <Navigation className="w-3.5 h-3.5 text-orange-700" />
+                <span>Buka di Peta</span>
+              </Link>
+            )
+          })()}
         </div>
       </div>
 
