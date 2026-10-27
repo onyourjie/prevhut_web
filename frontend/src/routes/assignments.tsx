@@ -3,7 +3,8 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { Flame, UserPlus } from 'lucide-react'
 import { AppLayout } from '@/components/layout/app-layout'
 import { AssignmentStatsGrid } from '@/components/assignments/AssignmentStatsGrid'
-import { AssignmentCard } from '@/components/assignments/AssignmentCard'
+import { AssignmentCard, type AssignmentLightboxData } from '@/components/assignments/AssignmentCard'
+import { MediaLightboxModal } from '@/components/community/media-lightbox-modal'
 import { RejectTaskModal } from '@/components/assignments/RejectTaskModal'
 import { VerifyTaskModal } from '@/components/assignments/VerifyTaskModal'
 import { CreateAssignmentModal } from '@/components/assignments/CreateAssignmentModal'
@@ -37,6 +38,7 @@ function VolunteerAssignmentsPage() {
   // Modal assign states
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [targetVolunteer, setTargetVolunteer] = useState<VolunteerItem | null>(null)
+  const [lightboxData, setLightboxData] = useState<AssignmentLightboxData | null>(null)
 
   const {
     assignments,
@@ -191,6 +193,7 @@ function VolunteerAssignmentsPage() {
                     setVerificationLat(t.post?.latitude ?? null)
                     setVerificationLon(t.post?.longitude ?? null)
                   }}
+                  onOpenLightbox={setLightboxData}
                 />
               ))
             )}
@@ -239,6 +242,21 @@ function VolunteerAssignmentsPage() {
         onClose={() => setVerifyingTask(null)}
         onSubmit={handleSubmitVerify}
       />
+
+      {/* MEDIA LIGHTBOX MODAL */}
+      {lightboxData && (
+        <MediaLightboxModal
+          isOpen={!!lightboxData}
+          onClose={() => setLightboxData(null)}
+          mediaUrl={lightboxData.url}
+          category={lightboxData.category || 'DARURAT'}
+          authorName={lightboxData.authorName}
+          authorRole={lightboxData.authorRole}
+          address={lightboxData.address}
+          dateStr={lightboxData.dateStr}
+          isLiveCamera={true}
+        />
+      )}
     </AppLayout>
   )
 }
