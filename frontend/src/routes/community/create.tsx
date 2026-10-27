@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
@@ -32,6 +32,7 @@ function CreatePostPage() {
 
   const [category, setCategory] = useState<"DARURAT" | "INFORMASI">("DARURAT");
   const [content, setContent] = useState("");
+  const [specificLocation, setSpecificLocation] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
@@ -64,6 +65,13 @@ function CreatePostPage() {
   });
 
   const quotaBlocked = isAuthenticated && (isLoadingQuota || quotaError || quota?.canPost !== true);
+
+  // Ambil data klaster satelit NASA FIRMS untuk deteksi spasial dan fallback wilayah kabupaten
+  const { data: clusters = [] } = useQuery<any[]>({
+    queryKey: ["hotspots-clusters-simple"],
+    queryFn: () => apiRequest<any[]>("/hotspots/clusters"),
+    staleTime: 1000 * 60 * 5,
+  });
 
   // Lokasi otomatis mengikuti profil akun
   const [province, setProvince] = useState(user?.province || "Kalimantan Barat");
@@ -118,8 +126,64 @@ function CreatePostPage() {
     }
   };
 
-  // Format alamat lengkap dari profil
-  const assembledAddress = [kecamatan, kabupaten, province]
+  // Deteksi klaster satelit terhubung (Spasial < 20km atau Fallback Kabupaten yang sama)
+  const previewCluster = useMemo(() => {
+    if (category !== "DARURAT" || !Array.isArray(clusters) || clusters.length === 0) return null;
+
+    const haversineDist = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371.0;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180.0;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180.0;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((lat1 * Math.PI) / 180.0) *
+          Math.cos((lat2 * Math.PI) / 180.0) *
+          Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    // 1. Prioritas Utama: Radius spasial <= 20 km jika koordinat valid
+    if (typeof latitude === "number" && typeof longitude === "number") {
+      let closest = null;
+      let minDist = Infinity;
+      for (const c of clusters) {
+        if (typeof c.centroid?.latitude === "number" && typeof c.centroid?.longitude === "number") {
+          const d = haversineDist(c.centroid.latitude, c.centroid.longitude, latitude, longitude);
+          if (d < minDist) {
+            minDist = d;
+            closest = c;
+          }
+        }
+      }
+      if (closest && minDist <= 20.0) {
+        return closest;
+      }
+    }
+
+    // 2. Fallback Wilayah Administratif: Jika di luar 20 km (misal testing dari Jawa / tanpa GPS),
+    // cocokkan secara otomatis dengan klaster aktif di Kabupaten yang sama
+    if (kabupaten) {
+      const cleanKab = kabupaten.toLowerCase().replace(/^(kabupaten|kota)\s+/i, "").trim();
+      const inKab = clusters.filter((c) => {
+        const cKab = (c.kabupaten || "").toLowerCase().replace(/^(kabupaten|kota)\s+/i, "").trim();
+        return cKab === cleanKab || (cKab && cleanKab && (cKab.includes(cleanKab) || cleanKab.includes(cKab)));
+      });
+      if (inKab.length > 0) {
+        return inKab[0];
+      }
+    }
+
+    return null;
+  }, [category, clusters, latitude, longitude, kabupaten]);
+
+
+  // Format alamat lengkap: patokan lapangan spesifik (jika ada) + kecamatan, kabupaten, provinsi
+  const assembledAddress = [
+    specificLocation.trim(),
+    kecamatan,
+    kabupaten,
+    province,
+  ]
     .filter(Boolean)
     .join(", ");
 
@@ -165,45 +229,17 @@ function CreatePostPage() {
         if (latestQuota) showErrorToast("Batas kuota harian tercapai");
         return;
       }
-      // Deteksi kluster satelit FIRMS terdekat secara spasial & wilayah jika laporan DARURAT
+      // Deteksi klaster satelit FIRMS (Spasial <20km atau Fallback Wilayah Kabupaten)
       let detectedClusterCode: string | undefined = undefined;
-      if (category === "DARURAT") {
-        try {
-          const clusters = await apiRequest<any[]>("/hotspots/clusters");
-          if (Array.isArray(clusters) && clusters.length > 0 && typeof latitude === "number" && typeof longitude === "number") {
-            const haversineDist = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-              const R = 6371.0;
-              const dLat = ((lat2 - lat1) * Math.PI) / 180.0;
-              const dLon = ((lon2 - lon1) * Math.PI) / 180.0;
-              const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos((lat1 * Math.PI) / 180.0) *
-                  Math.cos((lat2 * Math.PI) / 180.0) *
-                  Math.sin(dLon / 2) *
-                  Math.sin(dLon / 2);
-              return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            };
+      let finalLat = latitude;
+      let finalLng = longitude;
 
-            let closestCluster = null;
-            let minDistanceKm = Infinity;
-            for (const c of clusters) {
-              const cLat = c.centroid?.latitude;
-              const cLng = c.centroid?.longitude;
-              if (typeof cLat === "number" && typeof cLng === "number") {
-                const distKm = haversineDist(cLat, cLng, latitude, longitude);
-                if (distKm < minDistanceKm) {
-                  minDistanceKm = distKm;
-                  closestCluster = c;
-                }
-              }
-            }
-            // Radius maksimal 20 km dari centroid klaster satelit
-            if (closestCluster && minDistanceKm <= 20.0) {
-              detectedClusterCode = closestCluster.code || closestCluster.name;
-            }
-          }
-        } catch (e) {
-          console.warn("Could not match hotspot cluster:", e);
+      if (category === "DARURAT" && previewCluster) {
+        detectedClusterCode = previewCluster.code || previewCluster.name;
+        // Jika koordinat sebelumnya adalah titik tengah default kabupaten, selaraskan ke centroid klaster
+        if (previewCluster.centroid?.latitude && previewCluster.centroid?.longitude) {
+          finalLat = previewCluster.centroid.latitude;
+          finalLng = previewCluster.centroid.longitude;
         }
       }
 
@@ -215,8 +251,8 @@ function CreatePostPage() {
           imageUrl: imageUrl || "https://images.unsplash.com/photo-1542385151-efd9000785a0?w=800",
           isLiveCamera: true,
           address: assembledAddress,
-          latitude,
-          longitude,
+          latitude: finalLat,
+          longitude: finalLng,
           province,
           kabupaten,
           kecamatan,
@@ -309,13 +345,16 @@ function CreatePostPage() {
             />
           </div>
 
-          {/* 4. Lokasi Laporan (Sesuai Profil) */}
+          {/* 4. Lokasi Laporan (Sesuai Profil & Patokan Lapangan) */}
           <CreateLocationSection
             province={province}
             kabupaten={kabupaten}
             kecamatan={kecamatan}
             latitude={latitude}
             longitude={longitude}
+            specificLocation={specificLocation}
+            onSpecificLocationChange={setSpecificLocation}
+            detectedClusterCode={previewCluster?.code || previewCluster?.name}
           />
 
           {quotaError && (
