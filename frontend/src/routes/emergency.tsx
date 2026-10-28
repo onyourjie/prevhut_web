@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
 import { createFileRoute } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import { PhoneCall, ShieldAlert, RefreshCw } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { apiRequest } from '@/lib/api';
@@ -9,27 +9,17 @@ export const Route = createFileRoute('/emergency')({
 });
 
 function EmergencyPage() {
-  const [contacts, setContacts] = useState<any[]>([]);
-  const [protocol, setProtocol] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: contacts = [], isLoading: isLoadingContacts } = useQuery<any[]>({
+    queryKey: ['emergency-contacts'],
+    queryFn: () => apiRequest<any[]>('/emergency/contacts'),
+  });
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [cData, pData] = await Promise.all([
-          apiRequest('/emergency/contacts'),
-          apiRequest('/emergency/protocol'),
-        ]);
-        setContacts(cData || []);
-        setProtocol(pData);
-      } catch (err) {
-        console.error('Failed to load emergency info:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+  const { data: protocol, isLoading: isLoadingProtocol } = useQuery<any>({
+    queryKey: ['emergency-protocol'],
+    queryFn: () => apiRequest<any>('/emergency/protocol'),
+  });
+
+  const isLoading = isLoadingContacts || isLoadingProtocol;
 
   return (
     <AppLayout title="Layanan Darurat" subtitle="Nomor siaga & protokol evakuasi cepat">

@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useAuthStore } from '@/store/auth.store'
 import {
@@ -10,10 +11,22 @@ import {
   Truck,
   Check,
   RefreshCw,
+  Maximize2,
+  Video,
 } from 'lucide-react'
 import type { Assignment, PriorityLevel } from './assignment.types'
 import { isVideoMedia } from '@/lib/cloudinary'
 import { CommunityVideoPlayer } from '@/components/community/community-video-player'
+import { MediaLightboxModal } from '@/components/community/media-lightbox-modal'
+
+export interface AssignmentLightboxData {
+  url: string
+  category?: 'DARURAT' | 'INFORMASI'
+  authorName?: string
+  authorRole?: string
+  address?: string
+  dateStr?: string
+}
 
 const PRIORITY_BADGES: Record<PriorityLevel, { label: string; className: string }> = {
   P1: { label: 'P1 • Prioritas Tinggi', className: 'bg-red-100 text-red-800 border border-red-200' },
@@ -29,6 +42,7 @@ interface AssignmentCardProps {
   onArrive: (id: string) => void
   onOpenReject: (task: Assignment) => void
   onOpenVerify: (task: Assignment) => void
+  onOpenLightbox?: (data: AssignmentLightboxData) => void
 }
 
 export function AssignmentCard({
@@ -39,11 +53,22 @@ export function AssignmentCard({
   onArrive,
   onOpenReject,
   onOpenVerify,
+  onOpenLightbox,
 }: AssignmentCardProps) {
   const user = useAuthStore((s) => s.user)
   const isAdmin = user?.role === "ADMIN"
   const isUpdating = updatingTaskId === task.id
   const priorityBadge = PRIORITY_BADGES[task.priorityLevel]
+
+  const [internalLightbox, setInternalLightbox] = useState<AssignmentLightboxData | null>(null)
+
+  const handleOpenMedia = (data: AssignmentLightboxData) => {
+    if (onOpenLightbox) {
+      onOpenLightbox(data)
+    } else {
+      setInternalLightbox(data)
+    }
+  }
 
   return (
     <div
@@ -139,7 +164,7 @@ export function AssignmentCard({
       {/* Linked Citizen Report Card if available */}
       {task.post && (
         <div className="p-3 rounded-xl bg-orange-50/70 border border-orange-200 flex items-start justify-between gap-3">
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-orange-500" />
               <span className="text-[11px] font-extrabold text-orange-900 uppercase">
@@ -151,11 +176,36 @@ export function AssignmentCard({
             </p>
           </div>
           {task.post.imageUrl && (
-            <img
-              src={task.post.imageUrl}
-              alt="Bukti warga"
-              className="w-12 h-12 rounded-lg object-cover shrink-0 border border-orange-200"
-            />
+            <button
+              type="button"
+              onClick={() =>
+                handleOpenMedia({
+                  url: task.post!.imageUrl!,
+                  category: 'DARURAT',
+                  authorName: 'Dokumentasi Laporan Warga',
+                  authorRole: 'WARGA',
+                  address: task.post!.address || 'Foto Kejadian Laporan Warga',
+                  dateStr: task.post?.content ? `"${task.post.content.slice(0, 100)}"` : '',
+                })
+              }
+              className="relative group w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-orange-200 cursor-pointer focus:outline-hidden focus:ring-2 focus:ring-orange-400 shadow-xs"
+              title="Klik untuk melihat foto laporan warga asli"
+            >
+              {isVideoMedia(task.post.imageUrl) ? (
+                <div className="w-full h-full bg-neutral-900 flex items-center justify-center">
+                  <Video className="w-5 h-5 text-amber-400" />
+                </div>
+              ) : (
+                <img
+                  src={task.post.imageUrl}
+                  alt="Bukti warga"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-200"
+                />
+              )}
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Maximize2 className="w-4 h-4 text-white drop-shadow-md" />
+              </div>
+            </button>
           )}
         </div>
       )}
@@ -169,18 +219,77 @@ export function AssignmentCard({
           </div>
           {task.verificationPhoto && (
             isVideoMedia(task.verificationPhoto) ? (
-              <div className="w-full h-44 rounded-xl overflow-hidden border border-emerald-200 bg-black">
+              <div className="w-full h-44 rounded-xl overflow-hidden border border-emerald-200 bg-black relative group">
                 <CommunityVideoPlayer
                   src={task.verificationPhoto}
                   className="w-full h-full object-contain"
                 />
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleOpenMedia({
+                      url: task.verificationPhoto!,
+                      category: 'INFORMASI',
+                      authorName: task.volunteer
+                        ? `Relawan: ${task.volunteer.name}`
+                        : 'Bukti Penanganan Terverifikasi',
+                      authorRole: 'RELAWAN',
+                      address:
+                        task.verificationGpsLat != null && task.verificationGpsLon != null
+                          ? `GPS Koordinat: ${task.verificationGpsLat.toFixed(5)}, ${task.verificationGpsLon.toFixed(5)}`
+                          : task.post?.address || 'Lokasi Penanganan',
+                      dateStr: task.completedAt
+                        ? `Selesai: ${new Date(task.completedAt).toLocaleString('id-ID')}`
+                        : '',
+                    })
+                  }
+                  className="absolute top-2.5 right-2.5 z-10 px-2.5 py-1.5 rounded-lg bg-black/70 hover:bg-black/90 text-white text-[11px] font-bold flex items-center gap-1.5 backdrop-blur-xs transition shadow-md cursor-pointer"
+                  title="Lihat Video Layar Penuh"
+                >
+                  <Maximize2 className="w-3.5 h-3.5" />
+                  <span>Layar Penuh</span>
+                </button>
               </div>
             ) : (
-              <img
-                src={task.verificationPhoto}
-                alt="Verifikasi foto"
-                className="w-full h-36 object-cover rounded-xl border border-emerald-200"
-              />
+              <div className="relative group rounded-xl overflow-hidden border border-emerald-200">
+                <button
+                  type="button"
+                  onClick={() =>
+                    handleOpenMedia({
+                      url: task.verificationPhoto!,
+                      category: 'INFORMASI',
+                      authorName: task.volunteer
+                        ? `Relawan: ${task.volunteer.name}`
+                        : 'Bukti Penanganan Terverifikasi Lapangan',
+                      authorRole: 'RELAWAN',
+                      address:
+                        task.verificationGpsLat != null && task.verificationGpsLon != null
+                          ? `GPS Koordinat: ${task.verificationGpsLat.toFixed(5)}, ${task.verificationGpsLon.toFixed(5)}`
+                          : task.post?.address || 'Lokasi Penanganan Lapangan',
+                      dateStr: task.completedAt
+                        ? `Selesai: ${new Date(task.completedAt).toLocaleString('id-ID')}`
+                        : '',
+                    })
+                  }
+                  className="w-full block text-left cursor-pointer focus:outline-hidden"
+                  title="Klik untuk melihat foto bukti penanganan asli ukuran penuh"
+                >
+                  <img
+                    src={task.verificationPhoto}
+                    alt="Verifikasi foto"
+                    className="w-full h-44 sm:h-52 object-cover group-hover:scale-[1.02] transition-transform duration-300"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-3 pointer-events-none">
+                    <span className="text-white text-xs font-bold flex items-center gap-1.5 drop-shadow-md">
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span>Klik untuk perbesar foto asli</span>
+                    </span>
+                    <span className="text-[10px] text-white/90 bg-white/20 backdrop-blur-xs px-2 py-0.5 rounded-md font-semibold">
+                      Resolusi Asli
+                    </span>
+                  </div>
+                </button>
+              </div>
             )
           )}
           {task.verificationGpsLat != null && task.verificationGpsLon != null && (
@@ -315,6 +424,21 @@ export function AssignmentCard({
         </div>
         )}
       </div>
+
+      {/* Local fallback lightbox modal if parent didn't provide onOpenLightbox */}
+      {!onOpenLightbox && internalLightbox && (
+        <MediaLightboxModal
+          isOpen={!!internalLightbox}
+          onClose={() => setInternalLightbox(null)}
+          mediaUrl={internalLightbox.url}
+          category={internalLightbox.category || 'DARURAT'}
+          authorName={internalLightbox.authorName}
+          authorRole={internalLightbox.authorRole}
+          address={internalLightbox.address}
+          dateStr={internalLightbox.dateStr}
+          isLiveCamera={true}
+        />
+      )}
     </div>
   )
 }

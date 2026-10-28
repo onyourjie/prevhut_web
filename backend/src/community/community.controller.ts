@@ -197,7 +197,7 @@ export class CommunityController {
     @Query('kabupaten') kabupaten?: string,
     @Query('search') search?: string,
   ) {
-    return this.moderationService.getPostReports({ status: status || 'pending', kabupaten, search });
+    return this.moderationService.getPostReports({ status: status || 'all', kabupaten, search });
   }
 
   @Get('reports/stats')
@@ -211,8 +211,8 @@ export class CommunityController {
   @ApiResponse({ status: 200, description: 'Statistik ringkasan laporan moderasi konten' })
   @ApiResponse({ status: 401, description: 'Perlu login terlebih dahulu' })
   @ApiResponse({ status: 403, description: 'Akses ditolak: Hanya Admin Posko BPBD yang diizinkan' })
-  getModerationStats() {
-    return this.moderationService.getModerationStats();
+  getModerationStats(@Query('kabupaten') kabupaten?: string) {
+    return this.moderationService.getModerationStats({ kabupaten });
   }
 
   @Post('posts/:id/moderate')

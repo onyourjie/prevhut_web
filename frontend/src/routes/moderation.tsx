@@ -31,6 +31,9 @@ export interface ModerationStats {
   pendingReports: number
   resolvedReports: number
   reportedPostsCount: number
+  totalPosts?: number
+  pendingPosts?: number
+  resolvedPosts?: number
 }
 
 function ModerationPage() {
@@ -49,14 +52,19 @@ function ModerationPage() {
   } | null>(null)
   const [isProcessing, setIsProcessing] = useState<string | null>(null)
 
-  // 1. Fetch Stats
+  // 1. Fetch Stats (didukung filter wilayah kabupaten)
   const { data: stats } = useQuery<ModerationStats>({
-    queryKey: ['moderation-stats'],
-    queryFn: () => apiRequest<ModerationStats>('/community/reports/stats'),
+    queryKey: ['moderation-stats', selectedKabupaten],
+    queryFn: () => {
+      const params = new URLSearchParams()
+      if (selectedKabupaten) params.append('kabupaten', selectedKabupaten)
+      const q = params.toString() ? `?${params.toString()}` : ''
+      return apiRequest<ModerationStats>(`/community/reports/stats${q}`)
+    },
     enabled: isAuthenticated && user?.role === 'ADMIN',
   })
 
-  // 2. Fetch Reported Posts
+  // 2. Fetch Reported Posts (selalu kirim status='all' | 'pending' | 'resolved' agar backend tidak default ke pending)
   const {
     data: reportedPosts = [],
     isLoading,
@@ -64,7 +72,7 @@ function ModerationPage() {
     queryKey: ['moderation-posts', activeTab, selectedKabupaten, searchTerm],
     queryFn: () => {
       const params = new URLSearchParams()
-      if (activeTab !== 'all') params.append('status', activeTab)
+      params.append('status', activeTab)
       if (selectedKabupaten) params.append('kabupaten', selectedKabupaten)
       if (searchTerm.trim()) params.append('search', searchTerm.trim())
       return apiRequest<ReportedPost[]>(`/community/reports?${params.toString()}`)
@@ -88,24 +96,18 @@ function ModerationPage() {
     let confirmBtnText = ''
     let confirmBtnColor = '#eb5314'
 
-    if (action === 'REJECT_HOAX') {
-      confirmTitle = 'Tolak Postingan Sebagai Data Palsu / Hoax?'
+    if (action === 'REJECT_HOAX' || action === 'DELETE_POST') {
+      confirmTitle = 'Tolak Postingan Palsu / Hoax?'
       confirmText =
-        'Status postingan akan diubah menjadi DITOLAK. Kontribusi skor konfirmasi warga pada klaster titik api otomatis dikembalikan ke 0 poin.'
-      confirmBtnText = 'Ya, Tolak Postingan'
+        'Postingan ini akan ditolak sebagai data palsu/hoax dan disembunyikan dari komunitas publik. Kontribusi skor konfirmasi warga pada klaster titik api otomatis dikembalikan ke 0 poin.'
+      confirmBtnText = 'Ya, Tolak Laporan'
       confirmBtnColor = '#dc2626'
     } else if (action === 'APPROVE_VALID') {
       confirmTitle = 'Nyatakan Postingan Sah & Valid?'
       confirmText =
-        'Seluruh aduan warga terkait postingan ini akan ditandai telah selesai ditinjau. Postingan tetap aktif seperti biasa.'
+        'Seluruh aduan warga terkait postingan ini akan ditandai telah selesai ditinjau. Postingan dinyatakan sah/valid dan tetap aktif di komunitas publik.'
       confirmBtnText = 'Ya, Nyatakan Sah'
       confirmBtnColor = '#16a34a'
-    } else if (action === 'DELETE_POST') {
-      confirmTitle = 'Hapus Postingan Secara Permanen?'
-      confirmText =
-        'Postingan beserta seluruh foto, komentar, dan riwayat aduan akan dihapus secara permanen dari server.'
-      confirmBtnText = 'Hapus Permanen'
-      confirmBtnColor = '#b91c1c'
     }
 
     const confirmRes = await FirezoneSwal.fire({
@@ -201,9 +203,11 @@ function ModerationPage() {
                 Perlu Tindakan
               </span>
               <span className="text-xl font-black text-rose-600 leading-none">
-                {stats?.pendingReports ?? 0}
+                {stats?.pendingPosts ?? stats?.pendingReports ?? 0}
               </span>
-              <span className="text-[11px] text-neutral-400 font-medium ml-1">aduan aktif</span>
+              <span className="text-[11px] text-neutral-400 font-medium ml-1">
+                unggahan ({stats?.pendingReports ?? 0} aduan)
+              </span>
             </div>
           </div>
 
@@ -216,9 +220,9 @@ function ModerationPage() {
                 Postingan Diadukan
               </span>
               <span className="text-xl font-black text-neutral-900 leading-none">
-                {stats?.reportedPostsCount ?? 0}
+                {stats?.totalPosts ?? stats?.reportedPostsCount ?? 0}
               </span>
-              <span className="text-[11px] text-neutral-400 font-medium ml-1">unggahan</span>
+              <span className="text-[11px] text-neutral-400 font-medium ml-1">total unggahan</span>
             </div>
           </div>
 
@@ -231,9 +235,11 @@ function ModerationPage() {
                 Aduan Terselesaikan
               </span>
               <span className="text-xl font-black text-emerald-700 leading-none">
-                {stats?.resolvedReports ?? 0}
+                {stats?.resolvedPosts ?? stats?.resolvedReports ?? 0}
               </span>
-              <span className="text-[11px] text-neutral-400 font-medium ml-1">kasus ditangani</span>
+              <span className="text-[11px] text-neutral-400 font-medium ml-1">
+                kasus ({stats?.resolvedReports ?? 0} aduan)
+              </span>
             </div>
           </div>
         </div>
@@ -253,7 +259,7 @@ function ModerationPage() {
                     : 'text-neutral-600 hover:text-neutral-900'
                 )}
               >
-                Perlu Ditinjau ({stats?.pendingReports ?? 0})
+                Perlu Ditinjau ({stats?.pendingPosts ?? stats?.pendingReports ?? 0})
               </button>
               <button
                 type="button"
@@ -265,7 +271,7 @@ function ModerationPage() {
                     : 'text-neutral-600 hover:text-neutral-900'
                 )}
               >
-                Semua ({stats?.totalReports ?? 0})
+                Semua ({stats?.totalPosts ?? stats?.totalReports ?? 0})
               </button>
               <button
                 type="button"
@@ -277,7 +283,7 @@ function ModerationPage() {
                     : 'text-neutral-600 hover:text-neutral-900'
                 )}
               >
-                Selesai ({stats?.resolvedReports ?? 0})
+                Selesai ({stats?.resolvedPosts ?? stats?.resolvedReports ?? 0})
               </button>
             </div>
 

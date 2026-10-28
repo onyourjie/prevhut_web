@@ -3,9 +3,12 @@ import {
   Clock,
   Truck,
   Activity,
+  Maximize2,
 } from "lucide-react";
 import { formatTimeAgo } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
+import { isVideoMedia } from "@/lib/cloudinary";
+import { CommunityVideoPlayer } from "@/components/community/community-video-player";
 
 interface ResponseTrackingSectionProps {
   post: any;
@@ -376,28 +379,53 @@ export function ResponseTrackingSection({
         </div>
       )}
 
-      {/* Bukti Foto Verifikasi Lapangan jika ada */}
+      {/* Bukti Foto / Video Verifikasi Lapangan jika ada */}
       {latestAssignment?.verificationPhoto && (
-        <div className="mt-3 p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-2">
+        <div className="mt-3 p-3.5 rounded-xl bg-emerald-50/70 border border-emerald-200 space-y-2.5">
           <div className="flex items-center gap-2 text-emerald-900 font-bold text-xs">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            <span>Bukti Foto Verifikasi Pemadaman Oleh Petugas:</span>
+            <span>
+              Bukti {isVideoMedia(latestAssignment.verificationPhoto) ? "Video" : "Foto"} Verifikasi Pemadaman Oleh Petugas:
+            </span>
           </div>
 
           <div className="flex flex-col sm:flex-row gap-3 items-start">
-            <button
-              type="button"
-              aria-label="Lihat foto verifikasi pemadaman"
-              onClick={() => onMediaClick?.(latestAssignment.verificationPhoto)}
-              className="shrink-0 rounded-lg cursor-pointer"
-            >
-              <img
-                src={latestAssignment.verificationPhoto}
-                alt="Verifikasi pemadaman"
-                className="w-24 h-24 rounded-lg object-cover border border-emerald-200 shadow-2xs cursor-pointer"
-              />
-            </button>
-            <div className="text-xs text-neutral-700 space-y-1">
+            {isVideoMedia(latestAssignment.verificationPhoto) ? (
+              <div className="w-full sm:w-64 aspect-video rounded-xl overflow-hidden border border-emerald-300 bg-black relative group shrink-0 shadow-2xs">
+                <CommunityVideoPlayer
+                  src={latestAssignment.verificationPhoto}
+                  className="w-full h-full object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={() => onMediaClick?.(latestAssignment.verificationPhoto)}
+                  className="absolute top-2 right-2 z-10 px-2 py-1 rounded-lg bg-black/75 hover:bg-black/90 text-white text-[10px] font-bold flex items-center gap-1 backdrop-blur-xs transition shadow-md cursor-pointer"
+                  title="Lihat Video Layar Penuh"
+                >
+                  <Maximize2 className="w-3 h-3 text-white" />
+                  <span>Layar Penuh</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                aria-label="Lihat foto verifikasi pemadaman"
+                onClick={() => onMediaClick?.(latestAssignment.verificationPhoto)}
+                className="relative group w-24 h-24 sm:w-28 sm:h-28 rounded-xl overflow-hidden border border-emerald-300 bg-neutral-900 shrink-0 cursor-pointer shadow-2xs focus:outline-hidden"
+                title="Ketuk untuk melihat foto ukuran penuh"
+              >
+                <img
+                  src={latestAssignment.verificationPhoto}
+                  alt="Verifikasi pemadaman"
+                  className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                />
+                <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                  <Maximize2 className="w-4 h-4 text-white drop-shadow-md" />
+                </div>
+              </button>
+            )}
+
+            <div className="text-xs text-neutral-700 space-y-1.5 flex-1 min-w-0">
               <p>
                 <strong>Pelapor Verifikasi:</strong>{" "}
                 {latestAssignment.volunteer?.name || "Relawan BPBD Sintang"}
@@ -406,12 +434,14 @@ export function ResponseTrackingSection({
                 latestAssignment.verificationGpsLon != null && (
                   <p>
                     <strong>Koordinat GPS Lapangan:</strong>{" "}
-                    {latestAssignment.verificationGpsLat},{" "}
-                    {latestAssignment.verificationGpsLon}
+                    <span className="font-mono text-neutral-600">
+                      {latestAssignment.verificationGpsLat},{" "}
+                      {latestAssignment.verificationGpsLon}
+                    </span>
                   </p>
                 )}
               {latestAssignment.notes && (
-                <p className="text-neutral-600 italic">
+                <p className="text-neutral-600 italic bg-white/60 p-2 rounded-lg border border-emerald-100 leading-relaxed">
                   "{latestAssignment.notes}"
                 </p>
               )}

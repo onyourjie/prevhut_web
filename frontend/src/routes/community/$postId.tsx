@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { createFileRoute, Link, useParams } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowLeft, MoreVertical, Flag, RefreshCw } from 'lucide-react';
 import { AppLayout } from '@/components/layout/app-layout';
 import { FlagModal } from '@/components/community/flag-modal';
@@ -26,8 +27,6 @@ function PostDetailPage() {
   const { postId } = useParams({ from: '/community/$postId' });
   const { user, isAuthenticated } = useAuthStore();
 
-  const [post, setPost] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
 
   // Modals
   const [showMenu, setShowMenu] = useState(false);
@@ -45,22 +44,24 @@ function PostDetailPage() {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const commentFileRef = useRef<HTMLInputElement>(null);
 
-  const fetchPostDetail = async () => {
-    try {
-      setIsLoading(true);
-      const data = await apiRequest(`/community/posts/${postId}`);
-      setPost(data);
-    } catch (err: any) {
-      console.error('Failed to fetch post detail:', err);
-      showErrorToast('Postingan tidak ditemukan atau telah dihapus');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchPostDetail();
-  }, [postId]);
+  // TanStack Query untuk detail postingan (deduplikasi & caching instan)
+  const {
+    data: post = null,
+    isLoading,
+    refetch: fetchPostDetail,
+  } = useQuery({
+    queryKey: ['community-post', postId],
+    queryFn: async () => {
+      try {
+        const data = await apiRequest(`/community/posts/${postId}`);
+        return data;
+      } catch (err: any) {
+        showErrorToast('Postingan tidak ditemukan atau telah dihapus');
+        throw err;
+      }
+    },
+    enabled: Boolean(postId),
+  });
 
   const handleCommentCameraCaptured = async (file: File) => {
     try {
@@ -296,10 +297,29 @@ function PostDetailPage() {
           onClose={() => setLightboxMediaUrl(null)}
           mediaUrl={lightboxMediaUrl}
           category={post.category}
-          authorName={post.author?.name}
-          authorRole={post.author?.role}
-          address={post.address}
-          dateStr={formatDateTimeIndo(post.createdAt)}
+          authorName={
+            lightboxMediaUrl === post.assignments?.[0]?.verificationPhoto
+              ? `Relawan: ${post.assignments?.[0]?.volunteer?.name || "Petugas Verifikasi"}`
+              : post.author?.name
+          }
+          authorRole={
+            lightboxMediaUrl === post.assignments?.[0]?.verificationPhoto
+              ? "RELAWAN"
+              : post.author?.role
+          }
+          address={
+            lightboxMediaUrl === post.assignments?.[0]?.verificationPhoto &&
+            post.assignments?.[0]?.verificationGpsLat != null &&
+            post.assignments?.[0]?.verificationGpsLon != null
+              ? `GPS Lapangan: ${post.assignments[0].verificationGpsLat}, ${post.assignments[0].verificationGpsLon}`
+              : post.address
+          }
+          dateStr={
+            lightboxMediaUrl === post.assignments?.[0]?.verificationPhoto &&
+            post.assignments?.[0]?.completedAt
+              ? `Selesai: ${formatDateTimeIndo(post.assignments[0].completedAt)}`
+              : formatDateTimeIndo(post.createdAt)
+          }
           isLiveCamera={post.isLiveCamera}
         />
       )}
