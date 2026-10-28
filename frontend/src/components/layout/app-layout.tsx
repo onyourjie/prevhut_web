@@ -26,16 +26,14 @@ export function AppLayout({
   const { user, isAuthenticated } = useAuthStore();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
-  // Jika peran adalah WARGA (atau unauthenticated), gunakan TopNavbar yang lapang & ramah warga
-  const isWarga = !isAuthenticated || user?.role === 'WARGA';
-
-  if (isWarga) {
+  // Jika unauthenticated, gunakan TopNavbar
+  if (!isAuthenticated) {
     return (
       <div className="min-h-screen bg-neutral-50/50 text-neutral-900 flex flex-col">
-        {/* Top Navbar Bersih & Luwes untuk Warga */}
+        {/* Top Navbar Bersih & Luwes untuk Pengunjung/Unauthenticated */}
         <TopNavbar />
 
-        {/* Page Main View untuk Warga: Full-width immersion tanpa terhimpit sidebar */}
+        {/* Page Main View untuk Pengunjung/Unauthenticated*/}
         <div className="flex-1 w-full flex flex-col pt-20 sm:pt-24 pb-20">
           {(title || subtitle) && (
             <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2 text-left">
@@ -67,7 +65,7 @@ export function AppLayout({
     );
   }
 
-  // Jika peran adalah ADMIN atau RELAWAN, tetap gunakan layout Sidebar operasional
+  // Jika sudah login (WARGA, RELAWAN, atau ADMIN), gunakan layout Dasbor dengan Sidebar
   return (
     <div className="min-h-screen bg-neutral-50/70 text-neutral-900 flex">
       {/* 1. Desktop & Tablet Persistent Sidebar */}

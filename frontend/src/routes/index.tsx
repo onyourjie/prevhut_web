@@ -153,10 +153,18 @@ function HomePage() {
 
   return (
     <AppLayout
-      title={isVolunteer ? 'Dasbor Relawan Lapangan' : 'Dasbor Warga Karhutla'}
+      title={
+        isVolunteer
+          ? 'Dasbor Relawan Lapangan'
+          : isAdmin
+          ? 'Dasbor Posko BPBD'
+          : 'Dasbor Warga Karhutla'
+      }
       subtitle={
         isVolunteer
           ? 'Sistem Pemantauan Titik Panas & Disposisi Aksi Lapangan'
+          : isAdmin
+          ? 'Pusat Komando & Manajemen Tanggap Kebakaran Hutan'
           : 'Deteksi Dini Bahaya Kebakaran Lahan & Tanggap Bencana'
       }
     >

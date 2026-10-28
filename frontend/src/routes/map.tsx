@@ -243,13 +243,13 @@ function MapPage() {
     ? (filter.province || userProvinceName || 'Kalimantan')
     : (filter.province || (userLocationName ? (userProvinceName || 'Kalimantan') : 'Seluruh Kalimantan'))
 
-  // Hanya tampilkan sidebar admin jika user adalah staf (Admin Posko atau Relawan)
-  const isStaff = isAuthenticated && (user?.role === 'ADMIN' || user?.role === 'RELAWAN')
+  // sidebar jika user sudah login
+  const showSidebar = isAuthenticated
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-neutral-100 flex flex-row select-none">
-      {/* Sidebar Navigasi Utama FIREZONE (Hanya untuk Admin Posko & Relawan) */}
-      {isStaff && <AppSidebar className="hidden lg:flex" />}
+      {/* Sidebar Navigasi Utama FIREZONE */}
+      {showSidebar && <AppSidebar className="hidden lg:flex" />}
 
       {/* Konten Peta & Drawer Area Pantau */}
       <div className="flex-1 relative w-full overflow-hidden flex flex-col lg:flex-row h-full">
@@ -272,8 +272,8 @@ function MapPage() {
         />
 
         <div className="flex-1 relative h-full w-full overflow-hidden">
-          {/* Floating Navigation Bar untuk Warga & Pengunjung Publik di Desktop */}
-          {!isStaff && (
+          {/* Floating Navigation Bar buat Unlogin */}
+          {!showSidebar && (
             <div className="absolute top-4 right-4 z-[400] hidden lg:flex items-center gap-2 p-1.5 rounded-2xl bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-md select-none pointer-events-auto">
               <Link
                 to="/"

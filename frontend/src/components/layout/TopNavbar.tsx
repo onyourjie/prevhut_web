@@ -198,13 +198,15 @@ export function TopNavbar({ className }: TopNavbarProps) {
             {isAuthenticated && user ? (
               <div className="flex items-center gap-3">
                 {/* Tombol Cepat Lapor Titik Api untuk Warga */}
-                <Link
-                  to="/community/create"
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-xs active:scale-98 transition duration-150"
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span>Lapor Api</span>
-                </Link>
+                {currentPath !== '/profile' && (
+                  <Link
+                    to="/community/create"
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-xs active:scale-98 transition duration-150"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>Lapor Api</span>
+                  </Link>
+                )}
 
                 {/* Profile Avatar Lingkaran dengan Dropdown (Profil & Logout) */}
                 <div className="relative" ref={profileDropdownRef}>
@@ -313,21 +315,23 @@ export function TopNavbar({ className }: TopNavbarProps) {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  to="/login"
-                  className="px-4 py-2 rounded-xl text-xs font-bold text-neutral-800 bg-white hover:bg-neutral-50 border border-neutral-300 shadow-2xs transition"
-                >
-                  Masuk
-                </Link>
-                <Link
-                  to="/community/create"
-                  className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-xs active:scale-98 transition"
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  <span>Lapor Api</span>
-                </Link>
-              </div>
+              currentPath !== '/profile' && (
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/login"
+                    className="px-4 py-2 rounded-xl text-xs font-bold text-neutral-800 bg-white hover:bg-neutral-50 border border-neutral-300 shadow-2xs transition"
+                  >
+                    Masuk
+                  </Link>
+                  <Link
+                    to="/community/create"
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-xs active:scale-98 transition"
+                  >
+                    <PlusCircle className="w-3.5 h-3.5" />
+                    <span>Lapor Api</span>
+                  </Link>
+                </div>
+              )
             )}
           </div>
 
