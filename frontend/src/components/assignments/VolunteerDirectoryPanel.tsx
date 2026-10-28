@@ -9,6 +9,8 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
+  AlertTriangle,
+  RefreshCw,
 } from 'lucide-react'
 
 export interface VolunteerItem {
@@ -30,6 +32,9 @@ export interface VolunteerItem {
 interface VolunteerDirectoryPanelProps {
   volunteers: VolunteerItem[]
   isLoading?: boolean
+  isError?: boolean
+  errorMessage?: string
+  onRetry?: () => void
   onAssignVolunteer: (volunteer: VolunteerItem) => void
   compact?: boolean
 }
@@ -48,6 +53,9 @@ const ITEMS_PER_PAGE = 10
 export function VolunteerDirectoryPanel({
   volunteers,
   isLoading = false,
+  isError = false,
+  errorMessage,
+  onRetry,
   onAssignVolunteer,
   compact = false,
 }: VolunteerDirectoryPanelProps) {
@@ -199,6 +207,28 @@ export function VolunteerDirectoryPanel({
             <div className="inline-block w-6 h-6 border-2 border-brand-500 border-t-transparent rounded-full animate-spin mb-2" />
             <p>Memuat daftar relawan...</p>
           </div>
+        ) : isError ? (
+          <div className="py-14 text-center px-4 bg-red-50/50">
+            <div className="w-10 h-10 bg-red-100 text-red-600 rounded-xl flex items-center justify-center mx-auto mb-2">
+              <AlertTriangle className="w-5 h-5" />
+            </div>
+            <p className="text-xs font-bold text-red-800">
+              Gagal Memuat Relawan
+            </p>
+            <p className="text-[11px] text-red-600/80 mt-0.5 max-w-xs mx-auto mb-3">
+              {errorMessage || 'Terjadi kesalahan jaringan saat mengambil data relawan siaga.'}
+            </p>
+            {onRetry && (
+              <button
+                type="button"
+                onClick={onRetry}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition cursor-pointer shadow-2xs"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                <span>Coba Lagi</span>
+              </button>
+            )}
+          </div>
         ) : filteredVolunteers.length === 0 ? (
           <div className="py-16 text-center px-4">
             <Users className="w-10 h-10 text-neutral-300 mx-auto mb-2" />
@@ -281,7 +311,7 @@ export function VolunteerDirectoryPanel({
       </div>
 
       {/* Pagination Footer (Limit 10 per halaman) */}
-      {!isLoading && filteredVolunteers.length > 0 && (
+      {!isLoading && !isError && filteredVolunteers.length > 0 && (
         <div className="p-3.5 sm:p-4 border-t border-neutral-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-neutral-50/70">
           <p className="text-xs text-neutral-500 font-medium">
             Menampilkan{' '}

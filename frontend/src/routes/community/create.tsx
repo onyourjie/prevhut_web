@@ -7,7 +7,7 @@ import { apiRequest } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { uploadMediaToCloudinary } from "@/lib/cloudinary";
 import { showSuccessToast, showErrorToast } from "@/lib/swal";
-import { getRegencyCoordinates } from "@/lib/kalimantan-locations";
+import { getRegencyCoordinates, isInsideKalimantan } from "@/lib/kalimantan-locations";
 import { EmergencyPromptModal } from "@/components/community/emergency-prompt-modal";
 import { PublishConfirmationModal } from "@/components/community/publish-confirmation-modal";
 import { CreateMediaPicker } from "@/components/community/create-media-picker";
@@ -59,9 +59,9 @@ function CreatePostPage() {
     remainingQuota: number;
     canPost: boolean;
   }>({
-    queryKey: ['user-quota'],
+    queryKey: ['user-quota', user?.id],
     queryFn: () => apiRequest('/community/quota'),
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!user?.id,
   });
 
   const quotaBlocked = isAuthenticated && (isLoadingQuota || quotaError || quota?.canPost !== true);
@@ -127,7 +127,7 @@ function CreatePostPage() {
   };
 
   // Deteksi klaster satelit terhubung (Spasial < 20km atau Fallback Kabupaten yang sama)
-  const previewCluster = useMemo(() => {
+  const clusterDetection = useMemo(() => {
     if (category !== "DARURAT" || !Array.isArray(clusters) || clusters.length === 0) return null;
 
     const haversineDist = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -156,7 +156,7 @@ function CreatePostPage() {
         }
       }
       if (closest && minDist <= 20.0) {
-        return closest;
+        return { cluster: closest, isFallback: false };
       }
     }
 
@@ -169,12 +169,15 @@ function CreatePostPage() {
         return cKab === cleanKab || (cKab && cleanKab && (cKab.includes(cleanKab) || cleanKab.includes(cKab)));
       });
       if (inKab.length > 0) {
-        return inKab[0];
+        return { cluster: inKab[0], isFallback: true };
       }
     }
 
     return null;
   }, [category, clusters, latitude, longitude, kabupaten]);
+
+  const previewCluster = clusterDetection?.cluster ?? null;
+  const isClusterFallback = clusterDetection?.isFallback ?? false;
 
 
   // Format alamat lengkap: patokan lapangan spesifik (jika ada) + kecamatan, kabupaten, provinsi
@@ -236,8 +239,15 @@ function CreatePostPage() {
 
       if (category === "DARURAT" && previewCluster) {
         detectedClusterCode = previewCluster.code || previewCluster.name;
-        // Jika koordinat sebelumnya adalah titik tengah default kabupaten, selaraskan ke centroid klaster
-        if (previewCluster.centroid?.latitude && previewCluster.centroid?.longitude) {
+        // Pertahankan koordinat presisi pelapor jika berada dalam radius spasial klaster (<= 20 km).
+        // Ganti ke koordinat centroid klaster HANYA jika titik pelapor adalah fallback administratif
+        // (misal user di luar radius atau di luar Kalimantan dan dicocokkan via nama kabupaten).
+        const isOutsideKalimantan = !isInsideKalimantan(latitude, longitude);
+        if (
+          (isClusterFallback || isOutsideKalimantan) &&
+          previewCluster.centroid?.latitude &&
+          previewCluster.centroid?.longitude
+        ) {
           finalLat = previewCluster.centroid.latitude;
           finalLng = previewCluster.centroid.longitude;
         }

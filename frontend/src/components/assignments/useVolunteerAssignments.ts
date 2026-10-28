@@ -35,33 +35,37 @@ export function useVolunteerAssignments() {
   const [isSubmittingVerify, setIsSubmittingVerify] = useState(false)
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false)
 
-  // TanStack Query untuk daftar penugasan (deduplikasi & caching instan)
+  // TanStack Query untuk daftar penugasan (discope per user ID & role)
   const {
     data: assignments = [],
     isLoading,
+    isError,
+    error,
     refetch: fetchAssignments,
   } = useQuery<Assignment[]>({
-    queryKey: ['assignments-list', user?.role],
+    queryKey: ['assignments-list', user?.id, user?.role],
     queryFn: async () => {
       const endpoint = user?.role === 'ADMIN' ? '/assignments' : '/assignments/my-tasks'
       const res = await apiRequest(endpoint)
       return res || []
     },
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!user?.id,
   })
 
-  // TanStack Query untuk direktori relawan (khusus admin)
+  // TanStack Query untuk direktori relawan (khusus admin, discope per user ID)
   const {
     data: volunteers = [],
     isLoading: isLoadingVolunteers,
+    isError: isErrorVolunteers,
+    error: errorVolunteers,
     refetch: fetchVolunteers,
   } = useQuery<VolunteerItem[]>({
-    queryKey: ['volunteers-list'],
+    queryKey: ['volunteers-list', user?.id],
     queryFn: async () => {
       const res = await apiRequest<VolunteerItem[]>('/users/volunteers')
       return res || []
     },
-    enabled: isAuthenticated && user?.role === 'ADMIN',
+    enabled: isAuthenticated && !!user?.id && user?.role === 'ADMIN',
   })
 
   useEffect(() => {
@@ -250,6 +254,10 @@ export function useVolunteerAssignments() {
   return {
     assignments,
     isLoading,
+    isError,
+    error,
+    isErrorVolunteers,
+    errorVolunteers,
     activeTab,
     setActiveTab,
     updatingTaskId,
