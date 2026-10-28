@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useState, useMemo } from 'react'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Bell, Shield, Users } from 'lucide-react'
 import { AppLayout } from '@/components/layout/app-layout'
@@ -15,20 +15,35 @@ import { VolunteerPrioritySection } from '@/components/home/VolunteerPrioritySec
 import { VolunteerAvailabilityCard } from '@/components/home/VolunteerAvailabilityCard'
 import { LocationStatusCard } from '@/components/home/LocationStatusCard'
 import { CitizenActionsSection } from '@/components/home/CitizenActionsSection'
+import { LandingPage } from '@/components/landing/LandingPage'
 
 export const Route = createFileRoute('/')({
-  component: HomePage,
+  component: RootPage,
 })
 
-function HomePage() {
-  const { user, isAuthenticated, hasHydrated, updateUser } = useAuthStore()
-  const navigate = useNavigate()
+function RootPage() {
+  const { user, isAuthenticated, hasHydrated } = useAuthStore()
 
-  useEffect(() => {
-    if (hasHydrated && !isAuthenticated) {
-      navigate({ to: '/login' })
-    }
-  }, [hasHydrated, isAuthenticated, navigate])
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen bg-neutral-950 flex items-center justify-center text-neutral-400">
+        <div className="flex items-center gap-2.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-orange-500 animate-ping" />
+          <span className="text-xs font-semibold tracking-wide">Memuat FIREZONE...</span>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated || !user) {
+    return <LandingPage />
+  }
+
+  return <HomePage />
+}
+
+function HomePage() {
+  const { user, isAuthenticated, updateUser } = useAuthStore()
   const isVolunteer = user?.role === 'RELAWAN'
   const isAdmin = user?.role === 'ADMIN'
 
@@ -138,10 +153,18 @@ function HomePage() {
 
   return (
     <AppLayout
-      title={isVolunteer ? 'Dasbor Relawan Lapangan' : 'Dasbor Warga Karhutla'}
+      title={
+        isVolunteer
+          ? 'Dasbor Relawan Lapangan'
+          : isAdmin
+          ? 'Dasbor Posko BPBD'
+          : 'Dasbor Warga Karhutla'
+      }
       subtitle={
         isVolunteer
           ? 'Sistem Pemantauan Titik Panas & Disposisi Aksi Lapangan'
+          : isAdmin
+          ? 'Pusat Komando & Manajemen Tanggap Kebakaran Hutan'
           : 'Deteksi Dini Bahaya Kebakaran Lahan & Tanggap Bencana'
       }
     >

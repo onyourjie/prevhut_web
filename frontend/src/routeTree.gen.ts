@@ -12,6 +12,8 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AssignmentsRouteImport } from './routes/assignments'
 import { Route as EmergencyRouteImport } from './routes/emergency'
+import { Route as FaqRouteImport } from './routes/faq'
+import { Route as LandingRouteImport } from './routes/landing'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as MapRouteImport } from './routes/map'
 import { Route as ModerationRouteImport } from './routes/moderation'
@@ -35,6 +37,16 @@ const AssignmentsRoute = AssignmentsRouteImport.update({
 const EmergencyRoute = EmergencyRouteImport.update({
   id: '/emergency',
   path: '/emergency',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LandingRoute = LandingRouteImport.update({
+  id: '/landing',
+  path: '/landing',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -87,6 +99,8 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/assignments': typeof AssignmentsRoute
   '/emergency': typeof EmergencyRoute
+  '/faq': typeof FaqRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/moderation': typeof ModerationRoute
@@ -101,6 +115,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/assignments': typeof AssignmentsRoute
   '/emergency': typeof EmergencyRoute
+  '/faq': typeof FaqRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/moderation': typeof ModerationRoute
@@ -116,6 +132,8 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/assignments': typeof AssignmentsRoute
   '/emergency': typeof EmergencyRoute
+  '/faq': typeof FaqRoute
+  '/landing': typeof LandingRoute
   '/login': typeof LoginRoute
   '/map': typeof MapRoute
   '/moderation': typeof ModerationRoute
@@ -132,6 +150,8 @@ export interface FileRouteTypes {
     | '/'
     | '/assignments'
     | '/emergency'
+    | '/faq'
+    | '/landing'
     | '/login'
     | '/map'
     | '/moderation'
@@ -146,6 +166,8 @@ export interface FileRouteTypes {
     | '/'
     | '/assignments'
     | '/emergency'
+    | '/faq'
+    | '/landing'
     | '/login'
     | '/map'
     | '/moderation'
@@ -160,6 +182,8 @@ export interface FileRouteTypes {
     | '/'
     | '/assignments'
     | '/emergency'
+    | '/faq'
+    | '/landing'
     | '/login'
     | '/map'
     | '/moderation'
@@ -175,6 +199,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AssignmentsRoute: typeof AssignmentsRoute
   EmergencyRoute: typeof EmergencyRoute
+  FaqRoute: typeof FaqRoute
+  LandingRoute: typeof LandingRoute
   LoginRoute: typeof LoginRoute
   MapRoute: typeof MapRoute
   ModerationRoute: typeof ModerationRoute
@@ -207,6 +233,20 @@ declare module '@tanstack/react-router' {
       path: '/emergency'
       fullPath: '/emergency'
       preLoaderRoute: typeof EmergencyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/landing': {
+      id: '/landing'
+      path: '/landing'
+      fullPath: '/landing'
+      preLoaderRoute: typeof LandingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -279,6 +319,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AssignmentsRoute: AssignmentsRoute,
   EmergencyRoute: EmergencyRoute,
+  FaqRoute: FaqRoute,
+  LandingRoute: LandingRoute,
   LoginRoute: LoginRoute,
   MapRoute: MapRoute,
   ModerationRoute: ModerationRoute,

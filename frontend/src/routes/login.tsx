@@ -228,7 +228,16 @@ function LoginPage() {
                 Daftar di sini
               </Link>
             </p>
-            <p className="text-xs text-neutral-400">
+            <div className="pt-2">
+              <Link
+                to="/"
+                className="text-xs font-semibold text-neutral-500 hover:text-orange-600 transition flex items-center justify-center gap-1"
+              >
+                <span>Kembali</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+            <p className="text-xs text-neutral-400 pt-2">
               © 2026 FIREZONE
             </p>
           </div>

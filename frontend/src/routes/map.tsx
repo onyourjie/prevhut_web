@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
-import { Flame, X } from 'lucide-react'
-import { createFileRoute } from '@tanstack/react-router'
+import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
+import { Flame, PlusCircle, X } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
 import { getRegencyCoordinates, KALIMANTAN_PROVINCES } from '@/lib/kalimantan-locations'
@@ -243,10 +243,13 @@ function MapPage() {
     ? (filter.province || userProvinceName || 'Kalimantan')
     : (filter.province || (userLocationName ? (userProvinceName || 'Kalimantan') : 'Seluruh Kalimantan'))
 
+  // sidebar jika user sudah login
+  const showSidebar = isAuthenticated
+
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-neutral-100 flex flex-row select-none">
       {/* Sidebar Navigasi Utama FIREZONE */}
-      <AppSidebar className="hidden lg:flex" />
+      {showSidebar && <AppSidebar className="hidden lg:flex" />}
 
       {/* Konten Peta & Drawer Area Pantau */}
       <div className="flex-1 relative w-full overflow-hidden flex flex-col lg:flex-row h-full">
@@ -269,6 +272,45 @@ function MapPage() {
         />
 
         <div className="flex-1 relative h-full w-full overflow-hidden">
+          {/* Floating Navigation Bar buat Unlogin */}
+          {!showSidebar && (
+            <div className="absolute top-4 right-4 z-[400] hidden lg:flex items-center gap-2 p-1.5 rounded-2xl bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-md select-none pointer-events-auto">
+              <Link
+                to="/"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-neutral-800 hover:bg-neutral-100 transition"
+              >
+                <Flame className="w-4 h-4 text-orange-600" />
+                <span>FIREZONE</span>
+              </Link>
+              <div className="w-px h-4 bg-neutral-200" />
+              <Link
+                to="/community"
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 transition"
+              >
+                Kabar Warga
+              </Link>
+              <Link
+                to="/emergency"
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 transition"
+              >
+                Siaga Darurat
+              </Link>
+              <Link
+                to="/faq"
+                className="px-3 py-1.5 rounded-xl text-xs font-semibold text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 transition"
+              >
+                FAQ
+              </Link>
+              <Link
+                to="/community/create"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-xs transition"
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>Lapor Api</span>
+              </Link>
+            </div>
+          )}
+
           <HotspotMap
             areas={areas}
             selectedArea={selectedArea}
