@@ -1,16 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
 import 'leaflet/dist/leaflet.css'
 import './index.css'
 import { routeTree } from './routeTree.gen'
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 30_000, retry: 1, refetchOnWindowFocus: false },
-  },
-})
+import { queryClient } from './lib/query-client'
 
 const router = createRouter({ routeTree, defaultPreload: 'intent' })
 

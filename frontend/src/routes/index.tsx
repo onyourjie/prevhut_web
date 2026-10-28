@@ -73,11 +73,11 @@ function HomePage() {
     enabled: isAuthenticated,
   })
 
-  // TanStack Query: Tugas aktif relawan
+  // TanStack Query: Tugas aktif relawan (discope per user ID)
   const { data: myTasks = [] } = useQuery<Assignment[]>({
-    queryKey: ['my-active-tasks'],
+    queryKey: ['my-active-tasks', user?.id],
     queryFn: () => apiRequest<Assignment[]>('/assignments/my-tasks'),
-    enabled: isAuthenticated && (isVolunteer || isAdmin),
+    enabled: isAuthenticated && !!user?.id && (isVolunteer || isAdmin),
   })
 
   const activeTask = useMemo<ActiveTask | null>(() => {

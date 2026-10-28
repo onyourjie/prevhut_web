@@ -47,17 +47,17 @@ function ProfilePage() {
   // GPS Toggle state
   const [gpsActive, setGpsActive] = useState(false);
 
-  // TanStack Query untuk profil akun dan riwayat aktivitas
+  // TanStack Query untuk profil akun dan riwayat aktivitas (discope per user ID)
   const { data: profileData } = useQuery({
-    queryKey: ['user-profile'],
+    queryKey: ['user-profile', user?.id],
     queryFn: () => apiRequest('/users/profile'),
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!user?.id,
   });
 
   const { data: activities } = useQuery({
-    queryKey: ['user-activities'],
+    queryKey: ['user-activities', user?.id],
     queryFn: () => apiRequest('/users/activities'),
-    enabled: isAuthenticated,
+    enabled: isAuthenticated && !!user?.id,
   });
 
   // Sinkronisasi form edit saat profileData berhasil dimuat
@@ -119,8 +119,8 @@ function ProfilePage() {
               }),
             });
             const updatedUser = updated.user || updated;
-            queryClient.setQueryData(['user-profile'], updatedUser);
-            queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+            queryClient.setQueryData(['user-profile', user?.id], updatedUser);
+            queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
             if (user) {
               setAuth({ ...user, ...updatedUser }, localStorage.getItem("firezone_token") || "");
             }
@@ -189,8 +189,8 @@ function ProfilePage() {
       });
 
       const updatedUser = updated.user || updated;
-      queryClient.setQueryData(['user-profile'], updatedUser);
-      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      queryClient.setQueryData(['user-profile', user?.id], updatedUser);
+      queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
       if (user) {
         setAuth({ ...user, ...updatedUser }, localStorage.getItem('firezone_token') || '');
       }
