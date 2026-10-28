@@ -8,18 +8,21 @@ export class ModerationService {
   constructor(private prisma: PrismaService) {}
 
   async getPostReports(query: { status?: 'all' | 'pending' | 'resolved'; kabupaten?: string; search?: string }) {
-    const reportWhere: any = {};
+    let reportFilter: any = {};
     if (query.status === 'pending') {
-      reportWhere.isResolved = false;
+      reportFilter = { some: { isResolved: false } };
     } else if (query.status === 'resolved') {
-      reportWhere.isResolved = true;
+      reportFilter = {
+        some: { isResolved: true },
+        none: { isResolved: false },
+      };
+    } else {
+      reportFilter = { some: {} };
     }
 
     const posts = await this.prisma.post.findMany({
       where: {
-        reports: {
-          some: reportWhere,
-        },
+        reports: reportFilter,
         ...(query.kabupaten
           ? { kabupaten: { contains: query.kabupaten.replace(/^(kabupaten|kota)\s+/i, '').trim(), mode: 'insensitive' } }
           : {}),
@@ -96,19 +99,68 @@ export class ModerationService {
     });
   }
 
-  async getModerationStats() {
-    const totalReports = await this.prisma.postReport.count();
-    const pendingReports = await this.prisma.postReport.count({ where: { isResolved: false } });
-    const resolvedReports = await this.prisma.postReport.count({ where: { isResolved: true } });
-    const reportedPostsCount = await this.prisma.post.count({
-      where: { reports: { some: { isResolved: false } } },
+  async getModerationStats(query?: { kabupaten?: string }) {
+    const kabFilter = query?.kabupaten
+      ? {
+          kabupaten: {
+            contains: query.kabupaten.replace(/^(kabupaten|kota)\s+/i, '').trim(),
+            mode: 'insensitive' as const,
+          },
+        }
+      : {};
+
+    const totalReports = await this.prisma.postReport.count({
+      where: {
+        ...(query?.kabupaten ? { post: kabFilter } : {}),
+      },
+    });
+
+    const pendingReports = await this.prisma.postReport.count({
+      where: {
+        isResolved: false,
+        ...(query?.kabupaten ? { post: kabFilter } : {}),
+      },
+    });
+
+    const resolvedReports = await this.prisma.postReport.count({
+      where: {
+        isResolved: true,
+        ...(query?.kabupaten ? { post: kabFilter } : {}),
+      },
+    });
+
+    const totalPosts = await this.prisma.post.count({
+      where: {
+        ...kabFilter,
+        reports: { some: {} },
+      },
+    });
+
+    const pendingPosts = await this.prisma.post.count({
+      where: {
+        ...kabFilter,
+        reports: { some: { isResolved: false } },
+      },
+    });
+
+    const resolvedPosts = await this.prisma.post.count({
+      where: {
+        ...kabFilter,
+        reports: {
+          some: { isResolved: true },
+          none: { isResolved: false },
+        },
+      },
     });
 
     return {
       totalReports,
       pendingReports,
       resolvedReports,
-      reportedPostsCount,
+      totalPosts,
+      pendingPosts,
+      resolvedPosts,
+      reportedPostsCount: totalPosts,
     };
   }
 
@@ -122,32 +174,40 @@ export class ModerationService {
       throw new NotFoundException('Postingan tidak ditemukan');
     }
 
-    if (dto.action === ModerationAction.DELETE_POST) {
-      await this.prisma.post.delete({ where: { id: postId } });
-      return {
-        success: true,
-        action: dto.action,
-        message: 'Postingan berhasil dihapus permanen oleh Admin Posko.',
-      };
+    const hasUnresolved = post.reports.some((r) => !r.isResolved);
+    if (!hasUnresolved) {
+      throw new BadRequestException('Aduan pada postingan ini telah selesai ditinjau dan statusnya tidak dapat diubah lagi.');
     }
 
-    if (dto.action === ModerationAction.REJECT_HOAX) {
-      const updatedPost = await this.prisma.post.update({
-        where: { id: postId },
+    if (dto.action === ModerationAction.REJECT_HOAX || dto.action === ModerationAction.DELETE_POST) {
+      // 1. Batalkan penugasan relawan aktif yang terhubung ke laporan palsu ini
+      await this.prisma.volunteerAssignment.updateMany({
+        where: {
+          postId,
+          status: { in: ['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'] },
+        },
         data: {
-          status: PostStatus.DITOLAK,
+          status: 'REJECTED',
+          rejectionReason: 'Dibatalkan oleh Posko: Laporan warga terbukti data palsu / hoax.',
         },
       });
 
+      // 2. Tandai seluruh aduan pada postingan ini telah diselesaikan
       await this.prisma.postReport.updateMany({
         where: { postId },
         data: { isResolved: true },
       });
 
+      // 3. Update status postingan menjadi DITOLAK (soft-delete / disembunyikan dari publik & riwayat moderasi tersimpan)
+      const updatedPost = await this.prisma.post.update({
+        where: { id: postId },
+        data: { status: PostStatus.DITOLAK },
+      });
+
       return {
         success: true,
         action: dto.action,
-        message: 'Postingan telah ditolak sebagai hoax/data tidak sesuai. Kontribusi skoring konfirmasi warga pada klaster telah dinonaktifkan (kembali ke 0).',
+        message: 'Postingan terbukti data palsu/hoax, berhasil ditolak dan disembunyikan dari publik.',
         post: updatedPost,
       };
     }
@@ -161,7 +221,7 @@ export class ModerationService {
       return {
         success: true,
         action: dto.action,
-        message: 'Aduan telah diabaikan. Postingan dinyatakan sah/valid.',
+        message: 'Aduan telah diselesaikan. Postingan dinyatakan sah/valid.',
         post,
       };
     }

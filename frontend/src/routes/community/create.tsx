@@ -1,12 +1,13 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { apiRequest } from "@/lib/api";
 import { useAuthStore } from "@/store/auth.store";
 import { uploadMediaToCloudinary } from "@/lib/cloudinary";
 import { showSuccessToast, showErrorToast } from "@/lib/swal";
-import { getRegencyCoordinates } from "@/lib/kalimantan-locations";
+import { getRegencyCoordinates, isInsideKalimantan } from "@/lib/kalimantan-locations";
 import { EmergencyPromptModal } from "@/components/community/emergency-prompt-modal";
 import { PublishConfirmationModal } from "@/components/community/publish-confirmation-modal";
 import { CreateMediaPicker } from "@/components/community/create-media-picker";
@@ -31,6 +32,7 @@ function CreatePostPage() {
 
   const [category, setCategory] = useState<"DARURAT" | "INFORMASI">("DARURAT");
   const [content, setContent] = useState("");
+  const [specificLocation, setSpecificLocation] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [previewUrl, setPreviewUrl] = useState("");
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
@@ -38,48 +40,38 @@ function CreatePostPage() {
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [quota, setQuota] = useState<{
-    role: string;
-    postsToday: number;
-    maxDaily: number;
-    remainingQuota: number;
-    canPost: boolean;
-  } | null>(null);
-
-  const [quotaError, setQuotaError] = useState(false);
-  const [isLoadingQuota, setIsLoadingQuota] = useState(false);
+  const queryClient = useQueryClient();
 
   // Review & Confirmation Modals
   const [showEmergencyHelpPrompt, setShowEmergencyHelpPrompt] = useState(false);
   const [showPublishConfirmation, setShowPublishConfirmation] = useState(false);
 
-  const loadQuota = useCallback(async () => {
-    setIsLoadingQuota(true);
-    setQuotaError(false);
-    try {
-      const data = await apiRequest<NonNullable<typeof quota>>("/community/quota", { cache: "no-store" });
-      setQuota(data);
-      if (!data.canPost) {
-        setShowPublishConfirmation(false);
-        setShowEmergencyHelpPrompt(false);
-      }
-      return data;
-    } catch {
-      setQuota(null);
-      setQuotaError(true);
-      setShowPublishConfirmation(false);
-      setShowEmergencyHelpPrompt(false);
-      return null;
-    } finally {
-      setIsLoadingQuota(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated) void loadQuota();
-  }, [isAuthenticated, loadQuota]);
+  // TanStack Query untuk kuota pelaporan harian (otomatis cache & deduplikasi 1 kali fetch)
+  const {
+    data: quota,
+    isLoading: isLoadingQuota,
+    isError: quotaError,
+    refetch: refetchQuota,
+  } = useQuery<{
+    role: string;
+    postsToday: number;
+    maxDaily: number;
+    remainingQuota: number;
+    canPost: boolean;
+  }>({
+    queryKey: ['user-quota', user?.id],
+    queryFn: () => apiRequest('/community/quota'),
+    enabled: isAuthenticated && !!user?.id,
+  });
 
   const quotaBlocked = isAuthenticated && (isLoadingQuota || quotaError || quota?.canPost !== true);
+
+  // Ambil data klaster satelit NASA FIRMS untuk deteksi spasial dan fallback wilayah kabupaten
+  const { data: clusters = [] } = useQuery<any[]>({
+    queryKey: ["hotspots-clusters-simple"],
+    queryFn: () => apiRequest<any[]>("/hotspots/clusters"),
+    staleTime: 1000 * 60 * 5,
+  });
 
   // Lokasi otomatis mengikuti profil akun
   const [province, setProvince] = useState(user?.province || "Kalimantan Barat");
@@ -134,8 +126,67 @@ function CreatePostPage() {
     }
   };
 
-  // Format alamat lengkap dari profil
-  const assembledAddress = [kecamatan, kabupaten, province]
+  // Deteksi klaster satelit terhubung (Spasial < 20km atau Fallback Kabupaten yang sama)
+  const clusterDetection = useMemo(() => {
+    if (category !== "DARURAT" || !Array.isArray(clusters) || clusters.length === 0) return null;
+
+    const haversineDist = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371.0;
+      const dLat = ((lat2 - lat1) * Math.PI) / 180.0;
+      const dLon = ((lon2 - lon1) * Math.PI) / 180.0;
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((lat1 * Math.PI) / 180.0) *
+          Math.cos((lat2 * Math.PI) / 180.0) *
+          Math.sin(dLon / 2) ** 2;
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    };
+
+    // 1. Prioritas Utama: Radius spasial <= 20 km jika koordinat valid
+    if (typeof latitude === "number" && typeof longitude === "number") {
+      let closest = null;
+      let minDist = Infinity;
+      for (const c of clusters) {
+        if (typeof c.centroid?.latitude === "number" && typeof c.centroid?.longitude === "number") {
+          const d = haversineDist(c.centroid.latitude, c.centroid.longitude, latitude, longitude);
+          if (d < minDist) {
+            minDist = d;
+            closest = c;
+          }
+        }
+      }
+      if (closest && minDist <= 20.0) {
+        return { cluster: closest, isFallback: false };
+      }
+    }
+
+    // 2. Fallback Wilayah Administratif: Jika di luar 20 km (misal testing dari Jawa / tanpa GPS),
+    // cocokkan secara otomatis dengan klaster aktif di Kabupaten yang sama
+    if (kabupaten) {
+      const cleanKab = kabupaten.toLowerCase().replace(/^(kabupaten|kota)\s+/i, "").trim();
+      const inKab = clusters.filter((c) => {
+        const cKab = (c.kabupaten || "").toLowerCase().replace(/^(kabupaten|kota)\s+/i, "").trim();
+        return cKab === cleanKab || (cKab && cleanKab && (cKab.includes(cleanKab) || cleanKab.includes(cKab)));
+      });
+      if (inKab.length > 0) {
+        return { cluster: inKab[0], isFallback: true };
+      }
+    }
+
+    return null;
+  }, [category, clusters, latitude, longitude, kabupaten]);
+
+  const previewCluster = clusterDetection?.cluster ?? null;
+  const isClusterFallback = clusterDetection?.isFallback ?? false;
+
+
+  // Format alamat lengkap: patokan lapangan spesifik (jika ada) + kecamatan, kabupaten, provinsi
+  const assembledAddress = [
+    specificLocation.trim(),
+    kecamatan,
+    kabupaten,
+    province,
+  ]
     .filter(Boolean)
     .join(", ");
 
@@ -174,51 +225,31 @@ function CreatePostPage() {
 
     try {
       setIsSubmitting(true);
-      const latestQuota = await loadQuota();
+      const res = await refetchQuota();
+      const latestQuota = res.data;
       if (!latestQuota?.canPost) {
         setShowPublishConfirmation(false);
         if (latestQuota) showErrorToast("Batas kuota harian tercapai");
         return;
       }
-      // Deteksi kluster satelit FIRMS terdekat secara spasial & wilayah jika laporan DARURAT
+      // Deteksi klaster satelit FIRMS (Spasial <20km atau Fallback Wilayah Kabupaten)
       let detectedClusterCode: string | undefined = undefined;
-      if (category === "DARURAT") {
-        try {
-          const clusters = await apiRequest<any[]>("/hotspots/clusters");
-          if (Array.isArray(clusters) && clusters.length > 0 && typeof latitude === "number" && typeof longitude === "number") {
-            const haversineDist = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-              const R = 6371.0;
-              const dLat = ((lat2 - lat1) * Math.PI) / 180.0;
-              const dLon = ((lon2 - lon1) * Math.PI) / 180.0;
-              const a =
-                Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.cos((lat1 * Math.PI) / 180.0) *
-                  Math.cos((lat2 * Math.PI) / 180.0) *
-                  Math.sin(dLon / 2) *
-                  Math.sin(dLon / 2);
-              return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            };
+      let finalLat = latitude;
+      let finalLng = longitude;
 
-            let closestCluster = null;
-            let minDistanceKm = Infinity;
-            for (const c of clusters) {
-              const cLat = c.centroid?.latitude;
-              const cLng = c.centroid?.longitude;
-              if (typeof cLat === "number" && typeof cLng === "number") {
-                const distKm = haversineDist(cLat, cLng, latitude, longitude);
-                if (distKm < minDistanceKm) {
-                  minDistanceKm = distKm;
-                  closestCluster = c;
-                }
-              }
-            }
-            // Radius maksimal 20 km dari centroid klaster satelit
-            if (closestCluster && minDistanceKm <= 20.0) {
-              detectedClusterCode = closestCluster.code || closestCluster.name;
-            }
-          }
-        } catch (e) {
-          console.warn("Could not match hotspot cluster:", e);
+      if (category === "DARURAT" && previewCluster) {
+        detectedClusterCode = previewCluster.code || previewCluster.name;
+        // Pertahankan koordinat presisi pelapor jika berada dalam radius spasial klaster (<= 20 km).
+        // Ganti ke koordinat centroid klaster HANYA jika titik pelapor adalah fallback administratif
+        // (misal user di luar radius atau di luar Kalimantan dan dicocokkan via nama kabupaten).
+        const isOutsideKalimantan = !isInsideKalimantan(latitude, longitude);
+        if (
+          (isClusterFallback || isOutsideKalimantan) &&
+          previewCluster.centroid?.latitude &&
+          previewCluster.centroid?.longitude
+        ) {
+          finalLat = previewCluster.centroid.latitude;
+          finalLng = previewCluster.centroid.longitude;
         }
       }
 
@@ -230,14 +261,17 @@ function CreatePostPage() {
           imageUrl: imageUrl || "https://images.unsplash.com/photo-1542385151-efd9000785a0?w=800",
           isLiveCamera: true,
           address: assembledAddress,
-          latitude,
-          longitude,
+          latitude: finalLat,
+          longitude: finalLng,
           province,
           kabupaten,
           kecamatan,
           clusterCode: detectedClusterCode,
         }),
       });
+
+      queryClient.invalidateQueries({ queryKey: ['community-posts'] });
+      queryClient.invalidateQueries({ queryKey: ['user-quota'] });
 
       showSuccessToast(
         category === "DARURAT"
@@ -321,19 +355,22 @@ function CreatePostPage() {
             />
           </div>
 
-          {/* 4. Lokasi Laporan (Sesuai Profil) */}
+          {/* 4. Lokasi Laporan (Sesuai Profil & Patokan Lapangan) */}
           <CreateLocationSection
             province={province}
             kabupaten={kabupaten}
             kecamatan={kecamatan}
             latitude={latitude}
             longitude={longitude}
+            specificLocation={specificLocation}
+            onSpecificLocationChange={setSpecificLocation}
+            detectedClusterCode={previewCluster?.code || previewCluster?.name}
           />
 
           {quotaError && (
             <div role="alert" className="p-3 rounded-xl bg-red-50 text-red-800 text-xs space-y-2">
               <p>Gagal memuat kuota postingan. Coba lagi sebelum melanjutkan.</p>
-              <button type="button" onClick={() => void loadQuota()} disabled={isLoadingQuota} className="font-bold underline cursor-pointer">
+              <button type="button" onClick={() => void refetchQuota()} disabled={isLoadingQuota} className="font-bold underline cursor-pointer">
                 Coba lagi
               </button>
             </div>

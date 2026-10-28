@@ -2,8 +2,8 @@ import { useState } from 'react'
 import {
   AlertTriangle,
   CheckCircle,
-  Trash2,
   Camera,
+  Video,
   MapPin,
   ChevronDown,
   ChevronUp,
@@ -13,6 +13,8 @@ import {
   ExternalLink,
 } from 'lucide-react'
 import { formatTimeAgo, cn } from '@/lib/utils'
+import { isVideoMedia } from '@/lib/cloudinary'
+import { CommunityVideoPlayer } from '@/components/community/community-video-player'
 
 export interface ReportItem {
   id: string
@@ -87,7 +89,7 @@ export interface ModerationPostCardProps {
   isProcessing: boolean
   onModerate: (
     postId: string,
-    action: 'REJECT_HOAX' | 'APPROVE_VALID' | 'DELETE_POST',
+    action: 'REJECT_HOAX' | 'APPROVE_VALID',
     postTitle: string
   ) => Promise<void>
   onOpenLightbox: (media: {
@@ -169,20 +171,21 @@ export function ModerationPostCard({
           >
             {post.category}
           </span>
-          <span
-            className={cn(
-              'px-2.5 py-1 rounded-full text-[11px] font-bold border',
-              post.status === 'MENUNGGU_VERIFIKASI'
-                ? 'bg-amber-50 text-amber-800 border-amber-200'
-                : post.status === 'DALAM_PENANGANAN'
-                ? 'bg-blue-50 text-blue-800 border-blue-200'
-                : post.status === 'SELESAI'
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                : 'bg-rose-100 text-rose-800 border-rose-300'
-            )}
-          >
-            Status: {post.status === 'DITOLAK' ? 'Ditolak (Palsu)' : post.status}
-          </span>
+
+          {/* Status Moderasi Posko: Hanya 'Sah', 'Ditolak', atau 'Perlu Ditinjau' */}
+          {post.status === 'DITOLAK' ? (
+            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-rose-100 text-rose-800 border-rose-300">
+              Status: Ditolak (Palsu / Hoax)
+            </span>
+          ) : !hasUnresolved ? (
+            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-emerald-100 text-emerald-800 border-emerald-300">
+              Status: Sah (Valid)
+            </span>
+          ) : (
+            <span className="px-2.5 py-1 rounded-full text-[11px] font-bold border bg-amber-100 text-amber-800 border-amber-300">
+              Status: Perlu Ditinjau
+            </span>
+          )}
         </div>
       </div>
 
@@ -199,26 +202,42 @@ export function ModerationPostCard({
           {post.content}
         </p>
 
-        {/* Media Preview */}
+        {/* Media Preview (Video & Foto berukuran proporsional yang sama) */}
         {post.imageUrl && (
-          <div className="relative rounded-2xl overflow-hidden bg-neutral-900 max-w-md border border-neutral-200 shadow-2xs group">
-            <img
-              src={post.imageUrl}
-              alt="Bukti foto lapangan"
-              className="w-full max-h-64 object-cover group-hover:opacity-95 transition cursor-pointer"
-              onClick={() =>
-                onOpenLightbox({
-                  url: post.imageUrl!,
-                  authorName: post.author?.name,
-                  address: post.address,
-                  category: post.category,
-                })
-              }
-            />
-            <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold">
-              <Camera className="w-3 h-3 text-brand-400" />
-              <span>Foto Lapangan</span>
-            </div>
+          <div className="relative rounded-2xl overflow-hidden bg-black max-w-md border border-neutral-200 shadow-2xs group aspect-video sm:aspect-[16/10] flex items-center justify-center">
+            {isVideoMedia(post.imageUrl) ? (
+              <>
+                <CommunityVideoPlayer
+                  src={post.imageUrl}
+                  className="w-full h-full object-contain"
+                />
+                <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold pointer-events-none z-10">
+                  <Video className="w-3 h-3 text-amber-400" />
+                  <span>Video Lapangan</span>
+                </div>
+              </>
+            ) : (
+              <>
+                <img
+                  src={post.imageUrl}
+                  alt="Bukti foto lapangan"
+                  className="w-full h-full object-contain group-hover:scale-102 transition duration-300 cursor-pointer"
+                  onClick={() =>
+                    onOpenLightbox({
+                      url: post.imageUrl!,
+                      authorName: post.author?.name,
+                      address: post.address,
+                      category: post.category,
+                    })
+                  }
+                />
+                <div className="absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-sm text-white text-[10px] font-bold pointer-events-none">
+                  <Camera className="w-3 h-3 text-amber-400" />
+                  <span>Foto Lapangan</span>
+                </div>
+              </>
+            )}
+
             <button
               type="button"
               onClick={() =>
@@ -229,7 +248,8 @@ export function ModerationPostCard({
                   category: post.category,
                 })
               }
-              className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 text-neutral-800 text-[11px] font-bold hover:bg-white shadow-xs transition cursor-pointer"
+              className="absolute bottom-2.5 right-2.5 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white/90 text-neutral-800 text-[11px] font-bold hover:bg-white shadow-xs transition cursor-pointer z-10"
+              title="Perbesar tampilan media"
             >
               <ExternalLink className="w-3 h-3" />
               <span>Perbesar</span>
@@ -362,51 +382,49 @@ export function ModerationPostCard({
       <div className="p-4 sm:p-5 border-t border-neutral-100 bg-neutral-50/60 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div className="text-[11px] text-neutral-500">
           {hasUnresolved ? (
-            <span className="font-medium">
-              Pilih tindakan untuk menyelesaikan aduan warga terhadap postingan ini.
+            <span className="font-medium text-neutral-600">
+              Pilih tindakan moderasi untuk menyelesaikan aduan warga terhadap postingan ini:
+            </span>
+          ) : post.status === 'DITOLAK' ? (
+            <span className="inline-flex items-center gap-1.5 font-bold text-xs text-rose-700 bg-rose-50 px-3 py-1.5 rounded-xl border border-rose-200">
+              <AlertTriangle className="w-4 h-4 text-rose-600" />
+              <span>Postingan ini telah DITOLAK (Data Palsu / Hoax) & disembunyikan dari publik</span>
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1.5 font-bold text-emerald-700">
-              <CheckCircle className="w-4 h-4" />
-              Aduan pada postingan ini telah selesai ditinjau.
+            <span className="inline-flex items-center gap-1.5 font-bold text-xs text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+              <CheckCircle className="w-4 h-4 text-emerald-600" />
+              <span>Postingan ini telah diverifikasi SAH (Valid) & aktif di komunitas</span>
             </span>
           )}
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Action: Reject as Fake / Hoax */}
-          <button
-            type="button"
-            disabled={isProcessing}
-            onClick={() => onModerate(post.id, 'REJECT_HOAX', post.content)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-95 transition shadow-xs disabled:opacity-50 cursor-pointer"
-          >
-            <AlertTriangle className="w-3.5 h-3.5" />
-            <span>Tolak (Data Palsu / Hoax)</span>
-          </button>
+        {hasUnresolved && (
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Action: Reject as Fake / Hoax */}
+            <button
+              type="button"
+              disabled={isProcessing}
+              onClick={() => onModerate(post.id, 'REJECT_HOAX', post.content)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-95 transition shadow-xs disabled:opacity-50 cursor-pointer"
+              title="Tolak postingan dan tandai sebagai data palsu / hoax"
+            >
+              <AlertTriangle className="w-3.5 h-3.5" />
+              <span>Tolak (Data Palsu / Hoax)</span>
+            </button>
 
-          {/* Action: Approve as Valid */}
-          <button
-            type="button"
-            disabled={isProcessing}
-            onClick={() => onModerate(post.id, 'APPROVE_VALID', post.content)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-neutral-700 bg-white hover:bg-neutral-100 border border-neutral-300 active:scale-95 transition shadow-2xs disabled:opacity-50 cursor-pointer"
-          >
-            <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Abaikan Aduan (Sah)</span>
-          </button>
-
-          {/* Action: Permanent Delete */}
-          <button
-            type="button"
-            disabled={isProcessing}
-            onClick={() => onModerate(post.id, 'DELETE_POST', post.content)}
-            aria-label="Hapus postingan permanen"
-            className="inline-flex items-center justify-center p-2 rounded-xl text-neutral-400 hover:text-red-700 hover:bg-red-50 border border-neutral-200 transition cursor-pointer"
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
+            {/* Action: Approve as Valid */}
+            <button
+              type="button"
+              disabled={isProcessing}
+              onClick={() => onModerate(post.id, 'APPROVE_VALID', post.content)}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-neutral-700 bg-white hover:bg-neutral-100 border border-neutral-300 active:scale-95 transition shadow-2xs disabled:opacity-50 cursor-pointer"
+              title="Abaikan aduan dan tetapkan postingan sebagai konten yang sah"
+            >
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Abaikan Aduan (Sah)</span>
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

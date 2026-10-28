@@ -276,7 +276,12 @@ function ReportsPage() {
       {assignIncident && (
         <CreateAssignmentModal
           isOpen={!!assignIncident}
-          targetPost={assignIncident.posts[0]}
+          targetPost={{
+            ...assignIncident.posts[0],
+            clusterCode: assignIncident.clusterCode,
+            kabupaten: assignIncident.kabupaten,
+            province: assignIncident.province,
+          }}
           onClose={() => setAssignIncident(null)}
           onSuccess={() => {
             refetch()

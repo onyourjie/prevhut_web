@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { AppLayout } from '@/components/layout/app-layout';
 import { apiRequest } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
@@ -22,8 +23,7 @@ function ProfilePage() {
   const navigate = useNavigate();
   const { user, isAuthenticated, setAuth, logout } = useAuthStore();
 
-  const [profileData, setProfileData] = useState<any>(null);
-  const [activities, setActivities] = useState<any>(null);
+  const queryClient = useQueryClient();
 
   // Edit Profile Modal State
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -47,47 +47,46 @@ function ProfilePage() {
   // GPS Toggle state
   const [gpsActive, setGpsActive] = useState(false);
 
-  const fetchProfileAndActivities = async () => {
-    if (!isAuthenticated) return;
+  // TanStack Query untuk profil akun dan riwayat aktivitas (discope per user ID)
+  const { data: profileData } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: () => apiRequest('/users/profile'),
+    enabled: isAuthenticated && !!user?.id,
+  });
 
-    try {
-      const [profileRes, actRes] = await Promise.all([
-        apiRequest('/users/profile'),
-        apiRequest('/users/activities'),
-      ]);
+  const { data: activities } = useQuery({
+    queryKey: ['user-activities', user?.id],
+    queryFn: () => apiRequest('/users/activities'),
+    enabled: isAuthenticated && !!user?.id,
+  });
 
-      setProfileData(profileRes);
-      setActivities(actRes);
-      setGpsActive(profileRes.isGpsAlwaysActive ?? false);
-      setEditName(profileRes.name || '');
-      setEditPhone(profileRes.phone || '');
-      setEditAvatar(profileRes.avatarUrl || '');
-      setEditProvince(profileRes.province || 'Kalimantan Barat');
-      setEditKabupaten(profileRes.kabupaten || 'Kabupaten Sintang');
-      setEditKecamatan(profileRes.kecamatan ?? (profileRes.kabupaten ? '' : 'Kecamatan Sintang'));
+  // Sinkronisasi form edit saat profileData berhasil dimuat
+  useEffect(() => {
+    if (profileData) {
+      setGpsActive(profileData.isGpsAlwaysActive ?? false);
+      setEditName(profileData.name || '');
+      setEditPhone(profileData.phone || '');
+      setEditAvatar(profileData.avatarUrl || '');
+      setEditProvince(profileData.province || 'Kalimantan Barat');
+      setEditKabupaten(profileData.kabupaten || 'Kabupaten Sintang');
+      setEditKecamatan(profileData.kecamatan ?? (profileData.kabupaten ? '' : 'Kecamatan Sintang'));
 
-      const savedProvince = profileRes.province || 'Kalimantan Barat';
-      const savedKabupaten = profileRes.kabupaten || 'Kabupaten Sintang';
+      const savedProvince = profileData.province || 'Kalimantan Barat';
+      const savedKabupaten = profileData.kabupaten || 'Kabupaten Sintang';
       if (
-        profileRes.latitude &&
-        profileRes.longitude &&
-        isInsideKalimantan(profileRes.latitude, profileRes.longitude)
+        profileData.latitude &&
+        profileData.longitude &&
+        isInsideKalimantan(profileData.latitude, profileData.longitude)
       ) {
-        setEditLatitude(profileRes.latitude);
-        setEditLongitude(profileRes.longitude);
+        setEditLatitude(profileData.latitude);
+        setEditLongitude(profileData.longitude);
       } else {
         const coords = getRegencyCoordinates(savedProvince, savedKabupaten);
         setEditLatitude(coords.lat);
         setEditLongitude(coords.lng);
       }
-    } catch (err: any) {
-      console.error('Failed to load profile:', err);
     }
-  };
-
-  useEffect(() => {
-    fetchProfileAndActivities();
-  }, [isAuthenticated]);
+  }, [profileData]);
 
   // Handle GPS Toggle on Profile Settings
   const handleToggleGps = async () => {
@@ -120,7 +119,8 @@ function ProfilePage() {
               }),
             });
             const updatedUser = updated.user || updated;
-            setProfileData(updatedUser);
+            queryClient.setQueryData(['user-profile', user?.id], updatedUser);
+            queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
             if (user) {
               setAuth({ ...user, ...updatedUser }, localStorage.getItem("firezone_token") || "");
             }
@@ -189,7 +189,8 @@ function ProfilePage() {
       });
 
       const updatedUser = updated.user || updated;
-      setProfileData(updatedUser);
+      queryClient.setQueryData(['user-profile', user?.id], updatedUser);
+      queryClient.invalidateQueries({ queryKey: ['user-profile', user?.id] });
       if (user) {
         setAuth({ ...user, ...updatedUser }, localStorage.getItem('firezone_token') || '');
       }

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { X, UserPlus, MapPin, AlertTriangle, Send, RefreshCw, FileText, Lock } from 'lucide-react'
+import { X, UserPlus, MapPin, AlertTriangle, Send, RefreshCw, FileText, Lock, SlidersHorizontal } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
 import { showSuccessToast, showErrorToast } from '@/lib/swal'
 import type { VolunteerItem } from './VolunteerDirectoryPanel'
@@ -30,68 +30,85 @@ export function CreateAssignmentModal({
   // Form states
   const [selectedVolunteerId, setSelectedVolunteerId] = useState('')
   const [clusterCode, setClusterCode] = useState('')
-  const [priorityLevel, setPriorityLevel] = useState<'P1' | 'P2' | 'P3'>('P1')
+  const [priorityLevel, setPriorityLevel] = useState<'P1' | 'P2' | 'P3'>('P2')
   const [prioritySource, setPrioritySource] = useState<string>('Sistem Scoring AI & Status Darurat')
+  const [isLockedByAi, setIsLockedByAi] = useState(false)
+  const [isLoadingClusterPriority, setIsLoadingClusterPriority] = useState(false)
   const [notes, setNotes] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // 1. Tentukan Prioritas Lapangan Otomatis dari Model Scoring AI & Status Laporan Warga
+  // 1. Tentukan Prioritas Lapangan (Otomatis jika Klaster Satelit Terkonfirmasi, atau Manual Admin Posko untuk Ground Checking Laporan Warga)
   useEffect(() => {
     if (!isOpen) return
 
-    let calculatedPriority: 'P1' | 'P2' | 'P3' = 'P1'
-    let sourceText = 'Model Scoring Satelit & Laporan Darurat'
+    let calculatedPriority: 'P1' | 'P2' | 'P3' = 'P2'
+    let sourceText = 'Penetapan Manual Admin Posko'
+    let locked = false
 
     if (targetPost) {
+      // Default untuk laporan warga yang belum terkonfirmasi satelit NASA FIRMS
       if (targetPost.category === 'DARURAT') {
-        calculatedPriority = 'P1'
-        sourceText = 'Laporan Darurat Warga (SOP Tanggap Darurat P1)'
-      } else if (targetPost.category === 'INFORMASI') {
         calculatedPriority = 'P2'
-        sourceText = 'Laporan Informasi Warga (Siaga P2)'
+        sourceText =
+          'Aduan Darurat Warga (Bobot Skoring: +10 Poin / Maks 15 Poin) • Belum terkonfirmasi satelit NASA FIRMS. Penugasan ditujukan untuk Ground Checking (verifikasi titik api langsung di lapangan).'
+      } else {
+        calculatedPriority = 'P3'
+        sourceText =
+          'Aduan Informasi Warga (Bobot Skoring: +5 Poin / Maks 15 Poin) • Belum terkonfirmasi satelit NASA FIRMS. Penugasan ditujukan untuk Verifikasi Wilayah.'
       }
 
       // Jika terhubung ke klaster satelit yang memiliki priority_level
       if (targetPost.cluster?.priority_level) {
+        locked = true
         const pStr = String(targetPost.cluster.priority_level).toUpperCase()
+        const scoreInfo = targetPost.cluster.risk_score ? `${targetPost.cluster.risk_score} Poin - ` : ''
         if (pStr.startsWith('P1')) {
           calculatedPriority = 'P1'
-          sourceText = `Skor Risiko Klaster ${targetPost.clusterCode || ''} (P1 Prioritas Tinggi)`
+          sourceText = `Skor Risiko Klaster ${targetPost.clusterCode || ''} (${scoreInfo}P1 Prioritas Tinggi)`
         } else if (pStr.startsWith('P2')) {
           calculatedPriority = 'P2'
-          sourceText = `Skor Risiko Klaster ${targetPost.clusterCode || ''} (P2 Perhatian Meningkat)`
+          sourceText = `Skor Risiko Klaster ${targetPost.clusterCode || ''} (${scoreInfo}P2 Perhatian Meningkat)`
         } else if (pStr.startsWith('P3')) {
           calculatedPriority = 'P3'
-          sourceText = `Skor Risiko Klaster ${targetPost.clusterCode || ''} (P3 Waspada Ringan)`
+          sourceText = `Skor Risiko Klaster ${targetPost.clusterCode || ''} (${scoreInfo}P3 Waspada Ringan)`
         }
       }
     }
 
     setPriorityLevel(calculatedPriority)
     setPrioritySource(sourceText)
+    setIsLockedByAi(locked)
 
     // Jika ada clusterCode tapi data cluster belum tersertakan, cek langsung ke API klaster satelit
     if (targetPost?.clusterCode && (!targetPost.cluster || !targetPost.cluster.priority_level)) {
       const clusterId = targetPost.clusterCode.toLowerCase().replace(/\s+/g, '_')
+      setIsLoadingClusterPriority(true)
       apiRequest<any>(`/hotspots/clusters/${encodeURIComponent(clusterId)}`)
         .then((cl) => {
           if (cl?.priority_level) {
+            setIsLockedByAi(true)
             const pStr = String(cl.priority_level).toUpperCase()
+            const scoreInfo = cl.risk_score ? `${cl.risk_score} Poin - ` : ''
             if (pStr.startsWith('P1')) {
               setPriorityLevel('P1')
-              setPrioritySource(`Skor Risiko Klaster ${cl.code || cl.name} (${cl.risk_score} Poin - P1 Prioritas Tinggi)`)
+              setPrioritySource(`Skor Risiko Klaster ${cl.code || cl.name} (${scoreInfo}P1 Prioritas Tinggi)`)
             } else if (pStr.startsWith('P2')) {
               setPriorityLevel('P2')
-              setPrioritySource(`Skor Risiko Klaster ${cl.code || cl.name} (${cl.risk_score} Poin - P2 Perhatian Meningkat)`)
+              setPrioritySource(`Skor Risiko Klaster ${cl.code || cl.name} (${scoreInfo}P2 Perhatian Meningkat)`)
             } else if (pStr.startsWith('P3')) {
               setPriorityLevel('P3')
-              setPrioritySource(`Skor Risiko Klaster ${cl.code || cl.name} (${cl.risk_score} Poin - P3 Waspada Ringan)`)
+              setPrioritySource(`Skor Risiko Klaster ${cl.code || cl.name} (${scoreInfo}P3 Waspada Ringan)`)
             }
           }
         })
         .catch(() => {
-          // Tetap gunakan prioritas bawaan
+          // Tetap gunakan prioritas bawaan dan mode manual ground checking
         })
+        .finally(() => {
+          setIsLoadingClusterPriority(false)
+        })
+    } else {
+      setIsLoadingClusterPriority(false)
     }
   }, [isOpen, targetPost?.id, targetPost?.category, targetPost?.clusterCode])
 
@@ -347,17 +364,24 @@ export function CreateAssignmentModal({
             />
           </div>
 
-          {/* Priority Level (Terkunci Sesuai Model Scoring AI) */}
+          {/* Priority Level */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
               <label className="text-xs font-bold text-neutral-800 flex items-center gap-1.5">
                 <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
                 <span>Tingkat Prioritas Lapangan</span>
               </label>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200 flex items-center gap-1">
-                <Lock className="w-2.5 h-2.5" />
-                <span>Terkunci (Sistem Scoring AI)</span>
-              </span>
+              {isLockedByAi ? (
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200 flex items-center gap-1">
+                  <Lock className="w-2.5 h-2.5" />
+                  <span>Terkunci (Sistem Scoring AI Satelit)</span>
+                </span>
+              ) : (
+                <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200 flex items-center gap-1">
+                  <SlidersHorizontal className="w-2.5 h-2.5" />
+                  <span>Penetapan Manual Admin Posko (Ground Checking)</span>
+                </span>
+              )}
             </div>
 
             <div className="grid grid-cols-3 gap-2">
@@ -374,12 +398,21 @@ export function CreateAssignmentModal({
                   <button
                     key={p}
                     type="button"
-                    disabled
-                    aria-disabled="true"
-                    className={`py-2.5 px-3 rounded-xl border text-xs font-extrabold flex flex-col items-center gap-0.5 transition-all select-none cursor-not-allowed ${
+                    disabled={isLockedByAi}
+                    onClick={() => {
+                      if (!isLockedByAi) {
+                        setPriorityLevel(p)
+                      }
+                    }}
+                    aria-disabled={isLockedByAi}
+                    className={`py-2.5 px-3 rounded-xl border text-xs font-extrabold flex flex-col items-center gap-0.5 transition-all select-none ${
+                      isLockedByAi ? 'cursor-not-allowed' : 'cursor-pointer hover:border-neutral-400'
+                    } ${
                       isSelected
                         ? badgeColor + ' ring-2 ring-offset-1 ring-neutral-400 font-black'
-                        : 'border-neutral-200/80 bg-neutral-50/60 text-neutral-400 opacity-35'
+                        : isLockedByAi
+                        ? 'border-neutral-200/80 bg-neutral-50/60 text-neutral-400 opacity-35'
+                        : 'border-neutral-200 bg-white text-neutral-600 hover:bg-neutral-50'
                     }`}
                   >
                     <div className="flex items-center gap-1">
@@ -394,10 +427,19 @@ export function CreateAssignmentModal({
               })}
             </div>
 
-            <div className="mt-2 text-[11px] text-neutral-700 bg-neutral-50 p-2.5 rounded-xl border border-neutral-200/80 flex items-start gap-1.5 leading-relaxed">
-              <span className="font-bold text-neutral-900 shrink-0">Penetapan Otomatis:</span>
-              <span className="font-medium text-neutral-600 break-words flex-1">{prioritySource}</span>
-            </div>
+            {isLoadingClusterPriority ? (
+              <div className="mt-2 text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200/80 flex items-center gap-2 leading-relaxed">
+                <RefreshCw className="w-3.5 h-3.5 animate-spin text-amber-600 shrink-0" />
+                <span className="font-medium">Memverifikasi prioritas klaster satelit NASA...</span>
+              </div>
+            ) : (
+              <div className="mt-2 text-[11px] text-neutral-700 bg-neutral-50 p-2.5 rounded-xl border border-neutral-200/80 flex items-start gap-1.5 leading-relaxed">
+                <span className="font-bold text-neutral-900 shrink-0">
+                  {isLockedByAi ? 'Skoring Otomatis:' : 'Dasar Penetapan:'}
+                </span>
+                <span className="font-medium text-neutral-600 break-words flex-1">{prioritySource}</span>
+              </div>
+            )}
           </div>
 
           {/* Notes / Instructions */}
@@ -426,15 +468,21 @@ export function CreateAssignmentModal({
             </button>
             <button
               type="submit"
-              disabled={isSubmitting || isLoadingVolunteers || !selectedVolunteerId}
+              disabled={isSubmitting || isLoadingVolunteers || isLoadingClusterPriority || !selectedVolunteerId}
               className="px-5 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-extrabold transition shadow-md shadow-brand-500/20 flex items-center gap-2 cursor-pointer disabled:opacity-50"
             >
-              {isSubmitting ? (
+              {isSubmitting || isLoadingClusterPriority ? (
                 <RefreshCw className="w-3.5 h-3.5 animate-spin" />
               ) : (
                 <Send className="w-3.5 h-3.5" />
               )}
-              <span>Kirim Penugasan</span>
+              <span>
+                {isLoadingClusterPriority
+                  ? 'Menunggu Prioritas...'
+                  : isSubmitting
+                  ? 'Mengirim Penugasan...'
+                  : 'Kirim Penugasan'}
+              </span>
             </button>
           </div>
         </form>

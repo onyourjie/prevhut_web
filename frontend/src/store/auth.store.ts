@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { queryClient } from "@/lib/query-client";
 
 export type UserRole = "WARGA" | "RELAWAN" | "ADMIN";
 
@@ -43,7 +44,12 @@ export const useAuthStore = create<AuthStore>()(
         if (typeof window !== "undefined") {
           localStorage.setItem("firezone_token", token);
         }
-        set({ user, token, isAuthenticated: true });
+        set((state) => {
+          if (state.user?.id && state.user.id !== user.id) {
+            queryClient.clear();
+          }
+          return { user, token, isAuthenticated: true };
+        });
       },
       updateUser: (partial) => {
         set((state) => ({
@@ -54,6 +60,7 @@ export const useAuthStore = create<AuthStore>()(
         if (typeof window !== "undefined") {
           localStorage.removeItem("firezone_token");
         }
+        queryClient.clear();
         set({ user: null, token: null, isAuthenticated: false });
       },
       setHasHydrated: (val) => set({ hasHydrated: val }),

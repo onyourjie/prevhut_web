@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { useQuery } from '@tanstack/react-query'
 import { Bell, Shield, Users } from 'lucide-react'
 import { AppLayout } from '@/components/layout/app-layout'
 import { useAuthStore } from '@/store/auth.store'
@@ -31,8 +32,7 @@ function HomePage() {
   const isVolunteer = user?.role === 'RELAWAN'
   const isAdmin = user?.role === 'ADMIN'
 
-  // Active Task for volunteer
-  const [activeTask, setActiveTask] = useState<ActiveTask | null>(null)
+
 
   // Volunteer availability
   const [isAvailable, setIsAvailable] = useState<boolean>(user?.isAvailable ?? true)
@@ -57,20 +57,44 @@ function HomePage() {
     district: userDistrict,
     userCoordinates: userCoords,
   })
-  const [weatherData, setWeatherData] = useState<any>(null)
+  // TanStack Query: Cuaca & ISPU live
+  const userCity = user?.kabupaten
+    ? user.kabupaten.replace(/^(kabupaten|kota)\s+/i, '').trim()
+    : ''
 
-  useEffect(() => {
-    if (!isAuthenticated) return
-    const city = user?.kabupaten
-      ? user.kabupaten.replace(/^(kabupaten|kota)\s+/i, '').trim()
-      : ''
-    const endpoint = city
-      ? `/hotspots/weather-ispu?city=${encodeURIComponent(city)}`
-      : '/hotspots/weather-ispu'
-    apiRequest(endpoint)
-      .then((res) => setWeatherData(res))
-      .catch((err) => console.warn('Weather live fetch fallback:', err))
-  }, [isAuthenticated, user?.kabupaten])
+  const { data: weatherData } = useQuery<any>({
+    queryKey: ['weather-ispu', userCity],
+    queryFn: () => {
+      const endpoint = userCity
+        ? `/hotspots/weather-ispu?city=${encodeURIComponent(userCity)}`
+        : '/hotspots/weather-ispu'
+      return apiRequest(endpoint)
+    },
+    enabled: isAuthenticated,
+  })
+
+  // TanStack Query: Tugas aktif relawan (discope per user ID)
+  const { data: myTasks = [] } = useQuery<Assignment[]>({
+    queryKey: ['my-active-tasks', user?.id],
+    queryFn: () => apiRequest<Assignment[]>('/assignments/my-tasks'),
+    enabled: isAuthenticated && !!user?.id && (isVolunteer || isAdmin),
+  })
+
+  const activeTask = useMemo<ActiveTask | null>(() => {
+    const ongoing = myTasks.find((t) =>
+      ['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'].includes(t.status)
+    )
+    if (!ongoing) return null
+    return {
+      id: ongoing.id,
+      reportId: ongoing.post?.id ?? ongoing.postId ?? '',
+      title: ongoing.post?.content || ongoing.notes || 'Penugasan Lapangan',
+      locationName: ongoing.post?.address || ongoing.clusterCode || 'Lokasi tidak tersedia',
+      urgency: ongoing.priorityLevel,
+      status: ongoing.status,
+      assignedAt: new Date(ongoing.createdAt).toLocaleString('id-ID'),
+    }
+  }, [myTasks])
 
   const totalHotspots = priorityData?.areas.reduce<number | null>((total, area) =>
     total != null && area.hotspotCount != null ? total + area.hotspotCount : null, 0) ?? null
@@ -80,32 +104,6 @@ function HomePage() {
   const topAreas = (priorityData?.areas || []).slice(0, 3)
   const topCluster = topAreas[0]
   const lastSyncTime = topCluster?.lastUpdatedText ?? 'Data tidak tersedia'
-
-  // Fetch volunteer assignments if RELAWAN
-  useEffect(() => {
-    if (isAuthenticated && (isVolunteer || isAdmin)) {
-      const fetchMyTasks = async () => {
-        try {
-          const tasks = await apiRequest<Assignment[]>('/assignments/my-tasks')
-          const ongoing = (tasks || []).find((t) =>
-            ['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'].includes(t.status)
-          )
-          setActiveTask(ongoing ? {
-            id: ongoing.id,
-            reportId: ongoing.post?.id ?? ongoing.postId ?? '',
-            title: ongoing.post?.content || ongoing.notes || 'Penugasan Lapangan',
-            locationName: ongoing.post?.address || ongoing.clusterCode || 'Lokasi tidak tersedia',
-            urgency: ongoing.priorityLevel,
-            status: ongoing.status,
-            assignedAt: new Date(ongoing.createdAt).toLocaleString('id-ID'),
-          } : null)
-        } catch (err) {
-          console.error('Gagal memuat tugas aktif:', err)
-        }
-      }
-      fetchMyTasks()
-    }
-  }, [isAuthenticated, isVolunteer, isAdmin])
 
   // Handle availability toggle
   const handleToggleAvailability = async () => {

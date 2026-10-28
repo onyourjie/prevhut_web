@@ -64,6 +64,27 @@ export function createUserMarkerIcon() {
   })
 }
 
+export function createCitizenReportMarkerIcon() {
+  return L.divIcon({
+    className: '',
+    html: `
+      <div class="relative flex flex-col items-center" style="transform: translate(-50%, -100%);">
+        <div class="px-2.5 py-0.5 rounded-full bg-amber-600 text-white text-[10px] font-black tracking-wide shadow-lg border-2 border-white flex items-center gap-1 whitespace-nowrap mb-1">
+          <span>Laporan Warga</span>
+        </div>
+        <div class="relative flex items-center justify-center w-8 h-8">
+          <span class="absolute inline-flex h-full w-full rounded-full bg-amber-500/40 animate-ping"></span>
+          <div class="w-7 h-7 rounded-full bg-amber-600 border-2 border-white shadow-xl flex items-center justify-center text-white">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+          </div>
+        </div>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  })
+}
+
 export function MapResizer() {
   const map = useMap()
 
@@ -80,9 +101,11 @@ export function MapResizer() {
 export function MapCamera({
   areas,
   selectedArea,
+  focusPoint,
 }: {
   areas: PriorityArea[]
   selectedArea?: PriorityArea | null
+  focusPoint?: { lat: number; lng: number } | null
 }) {
   const map = useMap()
   const hasFitted = useRef(false)
@@ -92,11 +115,20 @@ export function MapCamera({
     const isDesktop = window.matchMedia(DESKTOP_QUERY).matches
     const height = map.getSize().y
 
+    // Berikan prioritas pada selectedArea agar jika pengguna memilih area klaster,
+    // kamera langsung berpindah ke area tersebut meskipun focusPoint laporan warga sempat aktif
     if (selectedArea) {
       map.flyToBounds(selectedArea.bounds as LatLngBoundsExpression, {
         paddingTopLeft: isDesktop ? [60, 60] : [40, 150],
         paddingBottomRight: isDesktop ? [440, 60] : [40, Math.round(height * 0.55)],
         maxZoom: 14,
+        duration: 0.8,
+      })
+      return
+    }
+
+    if (focusPoint) {
+      map.flyTo([focusPoint.lat, focusPoint.lng], 13, {
         duration: 0.8,
       })
       return
@@ -115,7 +147,7 @@ export function MapCamera({
       duration: 0.8,
     })
     hasFitted.current = true
-  }, [selectedArea, areaKey, map])
+  }, [selectedArea, areaKey, map, focusPoint])
 
   return null
 }
