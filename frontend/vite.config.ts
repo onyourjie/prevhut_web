@@ -19,7 +19,20 @@ export default defineConfig({
     include: ["leaflet", "react-leaflet"],
   },
   server: {
-    // Port ini sudah terdaftar di CORS_ORIGINS backend.
     port: 5173,
+    host: true,
+    allowedHosts: true,
+    proxy: {
+      '/auth': 'http://localhost:3000',
+      '/notifications': 'http://localhost:3000',
+      '/assignments': 'http://localhost:3000',
+      '/community': 'http://localhost:3000',
+      '/hotspots': 'http://localhost:3000',
+      '/reports': 'http://localhost:3000',
+      '/emergency': 'http://localhost:3000',
+      '/moderation': 'http://localhost:3000',
+      '/users': 'http://localhost:3000',
+      '/uploads': 'http://localhost:3000',
+    },
   },
 })
