@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Flame, Bell } from 'lucide-react';
+import { Flame } from 'lucide-react';
 import { AppSidebar } from './app-sidebar';
 import { BottomNav } from './bottom-nav';
 import { MobileNavDrawer } from './MobileNavDrawer';
 import { TopNavbar } from './TopNavbar';
+import { NotificationBell } from './NotificationBell';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
 
@@ -105,15 +106,8 @@ export function AppLayout({
 
           {/* Right: Quick actions & user menu */}
           <div className="flex items-center gap-2.5">
-            {/* Notifications Trigger */}
-            <button
-              type="button"
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl border border-neutral-200 text-neutral-600 hover:text-neutral-900 hover:bg-neutral-100 flex items-center justify-center transition relative shadow-2xs"
-              aria-label="Pusat Notifikasi"
-            >
-              <Bell className="w-4 h-4" />
-              <span className="w-2 h-2 rounded-full bg-brand-600 absolute top-2 right-2" />
-            </button>
+            {/* Notifications Center with FCM Push */}
+            <NotificationBell />
 
             {/* Mobile User Avatar / Menu Shortcut */}
             {isAuthenticated && user && (

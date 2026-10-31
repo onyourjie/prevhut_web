@@ -28,14 +28,15 @@ export async function apiRequest<T = any>(
   options: RequestInit = {},
 ): Promise<T> {
   const token = getAuthToken();
+  const cleanToken = token ? token.trim().replace(/^["']|["']$/g, '') : null;
   const headers = new Headers(options.headers || {});
 
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
     headers.set('Content-Type', 'application/json');
   }
 
-  if (token && !headers.has('Authorization')) {
-    headers.set('Authorization', `Bearer ${token}`);
+  if (cleanToken && !headers.has('Authorization')) {
+    headers.set('Authorization', `Bearer ${cleanToken}`);
   }
 
   let url: string;
@@ -53,27 +54,49 @@ export async function apiRequest<T = any>(
   });
 
   if (!response.ok) {
-    let errorMessage = response.statusText;
+    let errorMessage = response.statusText || `HTTP ${response.status}`;
     let errorBody: any = null;
+
     try {
-      errorBody = await response.json();
-      if (Array.isArray(errorBody.message)) {
-        errorMessage = errorBody.message.join(', ');
-      } else if (errorBody.message) {
-        errorMessage = errorBody.message;
+      const text = await response.text();
+      try {
+        errorBody = JSON.parse(text);
+        if (Array.isArray(errorBody.message)) {
+          errorMessage = errorBody.message.join(', ');
+        } else if (errorBody.message) {
+          errorMessage = errorBody.message;
+        }
+      } catch {
+        // Bukan response JSON (misal HTML 502 Bad Gateway dari proxy Vite)
+        if (response.status === 502) {
+          errorMessage =
+            'Server backend (port 3000) sedang tidak aktif atau terputus (502 Bad Gateway). Pastikan server backend sedang berjalan.';
+        } else if (text && text.length < 200 && !text.includes('<html')) {
+          errorMessage = text;
+        }
       }
     } catch {
-      // response is not JSON
+      // Gagal membaca response body
     }
+
     throw new ApiError(response.status, errorMessage, errorBody);
   }
 
-  // Handle empty 204 responses
+  // Handle empty 204 responses or empty body (mencegah error 'Unexpected end of JSON input')
   if (response.status === 204) {
     return {} as T;
   }
 
-  return response.json();
+  const text = await response.text();
+  if (!text || !text.trim()) {
+    return {} as T;
+  }
+
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    return text as unknown as T;
+  }
 }
 
 /**
