@@ -10,7 +10,6 @@ import {
   Info,
   Radio,
   CheckCircle2,
-  Send,
   Loader2,
   ChevronRight,
   RefreshCw,
@@ -65,7 +64,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const { isSubscribed, isLoading: isFcmLoading, enableNotifications, testPush } =
+  const { isSubscribed, isLoading: isFcmLoading, enableNotifications } =
     useFcmNotification();
 
   // Query daftar notifikasi
@@ -196,7 +195,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
             </div>
 
             {/* Banner Status Web Push (FCM) */}
-            <div className="px-4 py-2.5 bg-orange-50/60 border-b border-orange-100 flex items-center justify-between gap-2">
+            <div className="px-4 py-2.5 bg-neutral-50/70 border-b border-neutral-100 flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0">
                 <span
                   className={cn(
@@ -204,7 +203,7 @@ export function NotificationBell({ className }: NotificationBellProps) {
                     isSubscribed ? 'bg-emerald-500' : 'bg-amber-500 animate-ping',
                   )}
                 />
-                <p className="text-[11px] text-neutral-700 truncate">
+                <p className="text-[11px] text-neutral-600 truncate">
                   {isSubscribed ? (
                     <span className="font-semibold text-emerald-800">Push Notification Aktif</span>
                   ) : (
@@ -214,32 +213,20 @@ export function NotificationBell({ className }: NotificationBellProps) {
               </div>
 
               {isSubscribed ? (
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={enableNotifications}
-                    disabled={isFcmLoading}
-                    className="px-2 py-1 rounded-lg text-[10px] font-medium text-neutral-600 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-50 shadow-2xs flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
-                    title="Sinkronkan ulang token perangkat ke server"
-                  >
-                    {isFcmLoading ? (
-                      <Loader2 className="w-2.5 h-2.5 animate-spin" />
-                    ) : (
-                      <RefreshCw className="w-2.5 h-2.5 text-neutral-500" />
-                    )}
-                    <span>Sinkron</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={testPush}
-                    disabled={isFcmLoading}
-                    className="px-2.5 py-1 rounded-lg text-[10px] font-bold bg-white text-neutral-800 border border-neutral-200 hover:bg-neutral-50 shadow-2xs flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
-                    title="Uji coba push notification"
-                  >
-                    <Send className="w-2.5 h-2.5 text-orange-600" />
-                    <span>Tes Push</span>
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  onClick={enableNotifications}
+                  disabled={isFcmLoading}
+                  className="shrink-0 px-2.5 py-1 rounded-lg text-[10px] font-medium text-neutral-600 hover:text-neutral-900 border border-neutral-200 hover:bg-neutral-50 shadow-2xs flex items-center gap-1 transition cursor-pointer disabled:opacity-50"
+                  title="Sinkronkan ulang token perangkat ke server"
+                >
+                  {isFcmLoading ? (
+                    <Loader2 className="w-2.5 h-2.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-2.5 h-2.5 text-neutral-500" />
+                  )}
+                  <span>Sinkron</span>
+                </button>
               ) : (
                 <button
                   type="button"
