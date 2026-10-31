@@ -18,6 +18,8 @@ out/
 .env.*
 !.env.example
 *.local
+*firebase*.json
+*service-account*.json
 
 # Logs
 logs/

@@ -80,6 +80,7 @@ model User {
   volunteerTasks    VolunteerAssignment[] @relation("VolunteerTasks")
   dispatchedTasks   VolunteerAssignment[] @relation("AdminDispatches")
   notifications     Notification[]
+  devices           UserDevice[]
 
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -214,3 +215,19 @@ model EmergencyContact {
 
   @@map("emergency_contacts")
 }
+
+model UserDevice {
+  id          String   @id @default(uuid())
+  userId      String
+  fcmToken    String   @unique
+  deviceType  String?  @default("web") // "web", "android", "ios"
+  userAgent   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_devices")
+}
+
