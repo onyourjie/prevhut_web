@@ -7,11 +7,12 @@ import { CreateUpdateDto } from './dto/create-update.dto.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { FlagPostDto } from './dto/flag-post.dto.js';
 import { PostCategory, PostStatus, Role } from '@prisma/client';
+import { normalizeDataServiceUrl } from '../common/url.util.js';
 
 @Injectable()
 export class CommunityService {
   private readonly logger = new Logger(CommunityService.name);
-  private readonly dataServiceUrl = (process.env.DATA_SERVICE_URL || 'http://localhost:8000').replace(/\/api\/?$/, "");
+  private readonly dataServiceUrl = normalizeDataServiceUrl(process.env.DATA_SERVICE_URL);
 
   constructor(private prisma: PrismaService) {}
 

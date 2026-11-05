@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ConfigService } from '@nestjs/config';
+import { normalizeDataServiceUrl } from '../common/url.util.js';
 
 @Injectable()
 export class SyncScheduler {
@@ -22,7 +23,7 @@ export class SyncScheduler {
 
   async triggerSync(triggerSource: string = 'Manual Admin') {
     const rawUrl = this.configService.get<string>('DATA_SERVICE_URL', 'http://localhost:8000');
-    const dataServiceUrl = rawUrl.replace(/\/api\/?$/, '');
+    const dataServiceUrl = normalizeDataServiceUrl(rawUrl);
     const syncEndpoint = `${dataServiceUrl}/api/sync`;
 
     try {

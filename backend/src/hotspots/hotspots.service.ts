@@ -2,6 +2,7 @@ import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { PostStatus } from "@prisma/client";
+import { normalizeDataServiceUrl } from "../common/url.util.js";
 
 function haversineDistKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371.0;
@@ -41,7 +42,7 @@ export class HotspotsService {
     private prisma: PrismaService,
   ) {
     const rawUrl = this.configService.get<string>("DATA_SERVICE_URL", "http://localhost:8000");
-    this.dataServiceUrl = rawUrl.replace(/\/api\/?$/, "");
+    this.dataServiceUrl = normalizeDataServiceUrl(rawUrl);
   }
 
   /**
