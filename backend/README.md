@@ -74,11 +74,13 @@ npx tsx prisma/seed.ts
 npm run start:dev
 ```
 Server akan aktif di: **`http://localhost:3000`**  
-Dokumentasi interaktif Swagger UI: **`http://localhost:3000/api/docs`**
+Dokumentasi interaktif Swagger UI (Lokal): **`http://localhost:3000/api/docs`**  
+Dokumentasi interaktif Swagger UI (Production): [**`https://prevhutweb-production.up.railway.app/api/docs`**](https://prevhutweb-production.up.railway.app/api/docs)  
+Dokumentasi FastAPI Data Service (Production): [**`https://prevhut-production.up.railway.app/docs`**](https://prevhut-production.up.railway.app/docs)
 
 ---
 
-## 📡 Rangkuman Endpoint API Sesuai Mockup Figma
+## Rangkuman Endpoint API Sesuai Mockup Figma
 
 ### 1. Autentikasi (`/auth`)
 * `POST /auth/register` — Registrasi akun (alur multi-step: Warga/Relawan, domisili GPS, validasi kata sandi kuat).

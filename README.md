@@ -8,9 +8,21 @@
 [![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20v4-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Leaflet](https://img.shields.io/badge/Maps-Leaflet-199900?logo=leaflet&logoColor=white)](https://leafletjs.com/)
 [![Docker](https://img.shields.io/badge/Container-Docker%20Compose-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
-[![Swagger](https://img.shields.io/badge/API%20Docs-Swagger%20OpenAPI-85EA2D?logo=swagger&logoColor=black)](http://localhost:3000/api/docs)
+[![Swagger Backend](https://img.shields.io/badge/NestJS%20API%20Docs-Swagger%20OpenAPI-85EA2D?logo=swagger&logoColor=black)](https://prevhutweb-production.up.railway.app/api/docs)
+[![Swagger FastAPI](https://img.shields.io/badge/FastAPI%20Docs-OpenAPI%203.1-009688?logo=fastapi&logoColor=white)](https://prevhut-production.up.railway.app/docs)
 
 > **Platform Terpadu Peringatan Dini Kebakaran Hutan dan Lahan (Karhutla), Disposisi Relawan Lapangan, serta Transparansi Publik Berbasis AI dan Verifikasi Komunitas.**
+
+---
+
+## Tautan Deployment Production & Dokumentasi API Live
+
+| Layanan | Deskripsi | URL Production (Railway) |
+| :--- | :--- | :--- |
+| **Frontend Web App** | Antarmuka utama aplikasi web **FIREZONE** | [https://firezone-production.up.railway.app](https://firezone-production.up.railway.app) |
+| **Core Backend API Docs** | Dokumentasi interaktif Swagger OpenAPI (NestJS) | [https://prevhutweb-production.up.railway.app/api/docs](https://prevhutweb-production.up.railway.app/api/docs) |
+| **Data & AI Microservice Docs** | Dokumentasi interaktif Swagger UI (FastAPI PrevHut) | [https://prevhut-production.up.railway.app/docs](https://prevhut-production.up.railway.app/docs) |
+| **Data & AI Microservice ReDoc** | Dokumentasi alternatif ReDoc (FastAPI PrevHut) | [https://prevhut-production.up.railway.app/redoc](https://prevhut-production.up.railway.app/redoc) |
 
 ---
 
@@ -18,7 +30,8 @@
 
 Model *Machine Learning*, kalkulasi skor risiko, dan *pipeline* pengolahan data satelit untuk platform FIREZONE dikembangkan secara terpisah pada repositori berikut:
 
-**GitHub Model Repo:** [**https://github.com/onyourjie/prevhut**](https://github.com/onyourjie/prevhut)
+* **GitHub Model Repo:** [**https://github.com/onyourjie/prevhut**](https://github.com/onyourjie/prevhut)
+* **Live FastAPI Swagger Docs:** [**https://prevhut-production.up.railway.app/docs**](https://prevhut-production.up.railway.app/docs)
 
 ### Peran Repositori Model (prevhut):
 * **Pembersihan dan Ingesti Data Satelit:** Mengambil data telemetri satelit NASA FIRMS (VIIRS dan MODIS) untuk memantau titik panas (*hotspot*) secara *near real-time*.
@@ -348,16 +361,26 @@ fireline_web/
 
 ---
 
-## Rangkuman Endpoint API (Swagger OpenAPI)
+## Dokumentasi dan Rangkuman Endpoint API (Swagger OpenAPI)
 
-Dokumentasi lengkap dapat dieksplorasi secara interaktif di `http://localhost:3000/api/docs`.
+Platform ini memiliki dua layanan API terdokumentasi penuh dengan standar OpenAPI / Swagger UI:
 
-### 1. Autentikasi (/auth)
+1. **Core Backend API (NestJS):**
+   * **Production Swagger UI:** [**https://prevhutweb-production.up.railway.app/api/docs**](https://prevhutweb-production.up.railway.app/api/docs)
+   * **Local Development:** `http://localhost:3000/api/docs`
+2. **Data & Intelligence Microservice API (FastAPI):**
+   * **Production Swagger UI:** [**https://prevhut-production.up.railway.app/docs**](https://prevhut-production.up.railway.app/docs)
+   * **Production ReDoc:** [**https://prevhut-production.up.railway.app/redoc**](https://prevhut-production.up.railway.app/redoc)
+   * **Local Development:** `http://localhost:8000/docs`
+
+### A. Endpoint Core Backend (NestJS)
+
+#### 1. Autentikasi (/auth)
 * `POST /auth/register` — Pendaftaran akun multi-peran dengan validasi kata sandi kuat.
 * `POST /auth/login` — Autentikasi pengguna dan pembuatan token akses JWT.
 * `GET /auth/me` — Memeriksa profil dan sesi akun yang sedang aktif.
 
-### 2. Komunitas dan Laporan Warga (/community)
+#### 2. Komunitas dan Laporan Warga (/community)
 * `GET /community/posts` — Mengambil feed laporan titik api warga (filter: kategori, status, wilayah).
 * `GET /community/posts/:id` — Detail laporan lengkap beserta kabar terbaru pengirim dan komentar.
 * `POST /community/posts` — Membuat laporan darurat baru (simulasi kamera langsung dan koordinat GPS).
@@ -367,7 +390,7 @@ Dokumentasi lengkap dapat dieksplorasi secara interaktif di `http://localhost:30
 * `POST /community/posts/:id/moderate` — *(Admin Only)* Aksi moderasi: tolak hoaks, setujui, atau hapus.
 * `GET /community/incidents` — Mengelompokkan laporan warga ke dalam klaster insiden posko.
 
-### 3. Penugasan Relawan Lapangan (/assignments)
+#### 3. Penugasan Relawan Lapangan (/assignments)
 * `POST /assignments` — *(Admin Only)* Menerbitkan penugasan baru kepada relawan untuk klaster tertentu.
 * `GET /assignments` — *(Admin Only)* Memonitor seluruh penugasan relawan lapangan.
 * `GET /assignments/my-tasks` — *(Relawan)* Melihat daftar penugasan pribadi.
@@ -375,15 +398,31 @@ Dokumentasi lengkap dapat dieksplorasi secara interaktif di `http://localhost:30
 * `POST /assignments/:id/reject` — *(Relawan)* Menolak penugasan disertai alasan logistik/jarak.
 * `POST /assignments/:id/verify` — *(Relawan)* Mengunggah bukti foto dan GPS verifikasi tuntas.
 
-### 4. Klaster Satelit dan Hotspot (/hotspots)
+#### 4. Klaster Satelit dan Hotspot (/hotspots)
 * `GET /hotspots/clusters` — Mengambil daftar klaster area pantau yang telah diperkaya skor verifikasi warga.
 * `GET /hotspots/clusters/:id` — Detail spesifik klaster, *bounding box*, dan daftar titik panas.
 * `GET /hotspots/statistics` — Rekapitulasi jumlah klaster P1, P2, P3, dan total titik api aktif 24 jam.
 * `GET /hotspots/live` — Mengambil titik panas mentah satelit NASA FIRMS terkini.
+* `GET /hotspots/weather-ispu` — Kondisi cuaca dan ISPU real-time per kota di Kalimantan.
+* `GET /hotspots/transparency/summary` — Ringkasan metrik akuntabilitas penanganan publik.
+* `GET /hotspots/transparency/download-csv` — Unduh data terbuka daftar Area Pantau dalam format CSV.
 
-### 5. Otomasi dan Sinkronisasi (/sync)
+#### 5. Otomasi dan Sinkronisasi (/sync)
 * `GET /sync/status` — Status eksekusi cron sinkronisasi satelit (interval 3 jam).
 * `POST /sync/trigger` — *(Admin Only)* Memicu proses sinkronisasi satelit secara langsung (*on-demand*).
+
+### B. Endpoint Data & AI Microservice (FastAPI PrevHut)
+
+* `GET /api/clusters` — Klaster hasil pengelompokan spasial DBSCAN (Haversine 8 km) dan Explainable Multi-Criteria Risk Score.
+* `GET /api/clusters/statistics` — Statistik agregat klaster P1, P2, P3 dan total titik panas terklaster.
+* `GET /api/clusters/{cluster_id}` — Detail lengkap satu Area Pantau beserta 30 titik panas FRP tertinggi di dalamnya.
+* `GET /api/hotspots/live` (`/api/hotspots/24h`) — Data titik panas satelit NASA FIRMS VIIRS 375m 24 jam terakhir.
+* `GET /api/hotspots/7d` — Riwayat titik panas satelit 7 hari terakhir untuk analisis persistensi.
+* `GET /api/hotspots/stats` — Distribusi titik panas dan total energi radiasi termal (FRP) per provinsi di Kalimantan.
+* `GET /api/weather-ispu` & `GET /api/weather-ispu/{city}` — Observasi meteorologi atmosfer langsung dari Open-Meteo (suhu, kelembapan, arah angin, dan kondisi cuaca).
+* `GET /api/transparency/summary` — Metrik KPI transparansi publik.
+* `GET /api/transparency/download-csv` — Ekspor dataset Area Pantau prioritas Kalimantan ke CSV.
+* `POST /api/sync` — Sinkronisasi langsung ke API NASA FIRMS dan kalkulasi ulang DBSCAN clustering.
 
 ---
 
