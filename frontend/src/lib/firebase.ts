@@ -204,7 +204,7 @@ export async function onForegroundMessage(callback: (payload: any) => void): Pro
   const messaging = await getFirebaseMessaging();
   if (!messaging) return null;
 
-  return onMessage(messaging, (payload) => {
+  return onMessage(messaging, (payload: any) => {
     callback(payload);
   });
 }
