@@ -2,16 +2,21 @@ import { initializeApp, getApps, getApp } from 'firebase/app';
 import { getMessaging, getToken, onMessage, isSupported, type Messaging } from 'firebase/messaging';
 
 export const firebaseConfig = {
-  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyBmB3rRubda-fBB_Qzmn9uO_3uXGPwOwq0',
-  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'firezone-68bd5.firebaseapp.com',
-  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID || 'firezone-68bd5',
-  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'firezone-68bd5.firebasestorage.app',
-  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '850267577964',
-  appId: import.meta.env.VITE_FIREBASE_APP_ID || '1:850267577964:web:a3165b85648d4054838249',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY?.trim() || '',
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN?.trim() || '',
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID?.trim() || '',
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET?.trim() || '',
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID?.trim() || '',
+  appId: import.meta.env.VITE_FIREBASE_APP_ID?.trim() || '',
 };
 
 // Inisialisasi Firebase App (Singleton)
-export const firebaseApp = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const hasFirebaseConfig = Object.values(firebaseConfig).every(Boolean);
+export const firebaseApp = hasFirebaseConfig
+  ? getApps().length === 0
+    ? initializeApp(firebaseConfig)
+    : getApp()
+  : null;
 
 let messagingInstance: Messaging | null = null;
 
@@ -58,6 +63,10 @@ export function urlBase64ToUint8Array(base64String: string): Uint8Array {
  */
 export async function getFirebaseMessaging(): Promise<Messaging | null> {
   if (typeof window === 'undefined') return null;
+  if (!firebaseApp) {
+    console.warn('[FCM] Konfigurasi Firebase belum tersedia di environment frontend.');
+    return null;
+  }
 
   try {
     const supported = await isSupported();
@@ -103,8 +112,8 @@ export async function requestFcmToken(vapidKey?: string): Promise<string> {
 
   const rawKey =
     vapidKey ||
-    import.meta.env.VITE_FIREBASE_VAPID_KEY ||
-    'BHgR85bc0X8z5L_3yGMPRPsIbm5XzXUegDGq5e9BzuU7kH3V_TEO0mKH8PGGKOWOv68nHjDqnm6yLDjzbvjplaY';
+    import.meta.env.VITE_FIREBASE_VAPID_KEY?.trim() ||
+    '';
   const currentVapidKey = typeof rawKey === 'string' ? rawKey.trim().replace(/^["']|["']$/g, '') : '';
 
   if (!currentVapidKey) {
@@ -127,7 +136,11 @@ export async function requestFcmToken(vapidKey?: string): Promise<string> {
       }
 
       // 2. Daftarkan service worker dengan scope root
-      await navigator.serviceWorker.register('/firebase-messaging-sw.js', { scope: '/' });
+      const serviceWorkerConfig = new URLSearchParams(firebaseConfig).toString();
+      await navigator.serviceWorker.register(
+        `/firebase-messaging-sw.js?${serviceWorkerConfig}`,
+        { scope: '/' },
+      );
 
       // 3. Pastikan service worker sudah dalam keadaan siap & aktif (mencegah WebKit pattern error)
       serviceWorkerRegistration = await navigator.serviceWorker.ready;
