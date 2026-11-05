@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
+import { NotificationBell } from './NotificationBell';
 
 export interface TopNavbarProps {
   className?: string;
@@ -208,6 +209,9 @@ export function TopNavbar({ className }: TopNavbarProps) {
                   </Link>
                 )}
 
+                {/* Notification Bell with FCM Push Status */}
+                <NotificationBell />
+
                 {/* Profile Avatar Lingkaran dengan Dropdown (Profil & Logout) */}
                 <div className="relative" ref={profileDropdownRef}>
                   <button
@@ -335,12 +339,15 @@ export function TopNavbar({ className }: TopNavbarProps) {
             )}
           </div>
 
-          {/* Mobile Hamburger Button */}
-          <div className="flex items-center gap-2 lg:hidden">
+          {/* Mobile Action & Hamburger Button */}
+          <div className="flex items-center gap-1.5 lg:hidden">
             {isAuthenticated && user && (
-              <Link to="/community/create" className="p-2 text-orange-600">
-                <PlusCircle className="w-5 h-5" />
-              </Link>
+              <>
+                <Link to="/community/create" className="p-2 text-orange-600" title="Lapor Api">
+                  <PlusCircle className="w-5 h-5" />
+                </Link>
+                <NotificationBell />
+              </>
             )}
             <button
               type="button"

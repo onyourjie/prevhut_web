@@ -5,10 +5,14 @@ import { UpdateStatusDto } from './dto/update-status.dto.js';
 import { RejectTaskDto } from './dto/reject-task.dto.js';
 import { VerifyTaskDto } from './dto/verify-task.dto.js';
 import { AssignmentStatus, PostStatus, NotificationType, Role, PostCategory } from '@prisma/client';
+import { NotificationsService } from '../notifications/notifications.service.js';
 
 @Injectable()
 export class AssignmentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
 
   async createAssignment(adminId: string, dto: CreateAssignmentDto) {
     const volunteer = await this.prisma.user.findUnique({
@@ -54,15 +58,14 @@ export class AssignmentsService {
       });
     }
 
-    // Send notification to volunteer
-    await this.prisma.notification.create({
-      data: {
-        userId: dto.volunteerId,
-        title: `Penugasan Lapangan Baru (${dto.priorityLevel})`,
-        message: `Admin Posko menugaskan kamu ke ${dto.clusterCode ?? 'lokasi laporan warga'}. Ketuk untuk lihat rute & detail tugas.`,
-        type: NotificationType.TUGAS_BARU,
-        metadata: { assignmentId: assignment.id },
-      },
+    // Send push notification & in-app alert to volunteer
+    await this.notificationsService.createAndSendNotification({
+      userId: dto.volunteerId,
+      title: `Penugasan Lapangan Baru (${dto.priorityLevel})`,
+      message: `Admin Posko menugaskan kamu ke ${dto.clusterCode ?? 'lokasi laporan warga'}. Ketuk untuk lihat rute & detail tugas.`,
+      type: NotificationType.TUGAS_BARU,
+      metadata: { assignmentId: assignment.id },
+      url: '/assignments',
     });
 
     return {
@@ -165,7 +168,13 @@ export class AssignmentsService {
   }
 
   async rejectTask(volunteerId: string, assignmentId: string, dto: RejectTaskDto) {
-    const task = await this.prisma.volunteerAssignment.findUnique({ where: { id: assignmentId } });
+    const task = await this.prisma.volunteerAssignment.findUnique({
+      where: { id: assignmentId },
+      include: {
+        admin: { select: { id: true, name: true, phone: true } },
+        volunteer: { select: { id: true, name: true } },
+      },
+    });
     if (!task) {
       throw new NotFoundException('Data penugasan tidak ditemukan');
     }
@@ -181,15 +190,14 @@ export class AssignmentsService {
       },
     });
 
-    // Notify Admin Posko about rejection
-    await this.prisma.notification.create({
-      data: {
-        userId: task.adminId,
-        title: 'Penugasan Ditolak oleh Relawan',
-        message: `Relawan menolak tugas di ${task.clusterCode ?? 'lokasi laporan'} dengan alasan: "${dto.rejectionReason}". Silakan tugaskan relawan lain.`,
-        type: NotificationType.UPDATE_STATUS,
-        metadata: { assignmentId },
-      },
+    // Notify Admin Posko about rejection via push & in-app
+    await this.notificationsService.createAndSendNotification({
+      userId: task.adminId,
+      title: 'Penugasan Ditolak oleh Relawan',
+      message: `Relawan menolak tugas di ${task.clusterCode ?? 'lokasi laporan'} dengan alasan: "${dto.rejectionReason}". Silakan tugaskan relawan lain.`,
+      type: NotificationType.UPDATE_STATUS,
+      metadata: { assignmentId },
+      url: '/assignments',
     });
 
     return {

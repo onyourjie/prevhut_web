@@ -1,8 +1,9 @@
 import { useState, useMemo } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { Bell, Shield, Users } from 'lucide-react'
+import { Shield, Users } from 'lucide-react'
 import { AppLayout } from '@/components/layout/app-layout'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 import { useAuthStore } from '@/store/auth.store'
 import type { Assignment } from '@/components/assignments/assignment.types'
 import { apiRequest } from '@/lib/api'
@@ -206,13 +207,7 @@ function HomePage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <Link
-              to="/emergency"
-              className="w-10 h-10 rounded-full bg-white border border-neutral-200 hover:border-neutral-300 shadow-2xs flex items-center justify-center text-neutral-600 hover:text-neutral-900 transition"
-              title="Notifikasi & Kontak Darurat"
-            >
-              <Bell className="w-5 h-5" />
-            </Link>
+            <NotificationBell className="w-10 h-10 bg-white border border-neutral-200 hover:border-neutral-300 shadow-2xs" />
           </div>
         </div>
 
