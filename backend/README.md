@@ -1,10 +1,10 @@
-# 🔥 FIRELINE Core Backend (NestJS + PostgreSQL + Prisma + Docker)
+# FIREZONE Core Backend (NestJS + PostgreSQL + Prisma + Docker)
 
-Backend inti untuk platform **FIRELINE** (WIA MIA 2026), mengimplementasikan seluruh alur desain Figma, sistem autentikasi 3 peran (*Warga, Relawan, Admin*), pelaporan titik api komunitas, penugasan relawan lapangan, notifikasi darurat, data panggilan darurat, dan otomatisasi sinkronisasi data satelit NASA FIRMS.
+Backend inti untuk platform **FIREZONE** (WIA MIA 2026), mengimplementasikan seluruh alur desain Figma, sistem autentikasi 3 peran (*Warga, Relawan, Admin*), pelaporan titik api komunitas, penugasan relawan lapangan, notifikasi darurat, data panggilan darurat, dan otomatisasi sinkronisasi data satelit NASA FIRMS.
 
 ---
 
-## 🔒 Kebijakan Keamanan Kata Sandi (Password Policy)
+## Kebijakan Keamanan Kata Sandi (Password Policy)
 
 Sesuai standar keamanan sistem modern dan format registrasi:
 * **Panjang Minimal:** 8 Karakter
@@ -17,7 +17,7 @@ Sesuai standar keamanan sistem modern dan format registrasi:
 
 ---
 
-## 👤 Akun Demo Seed Terverifikasi (Database Fresh)
+## Akun Demo Seed Terverifikasi (Database Fresh)
 
 Database PostgreSQL telah dibersihkan secara total (*clean slate*) dan diisi ulang (*re-seeded*) dengan kredensial berikut:
 
@@ -30,7 +30,7 @@ Database PostgreSQL telah dibersihkan secara total (*clean slate*) dan diisi ula
 
 ---
 
-## ⏰ Otomatisasi Pembaruan Data Satelit (Setiap 3 Jam)
+## Otomatisasi Pembaruan Data Satelit (Setiap 3 Jam)
 
 Modul **`AppSchedulerModule`** menjalankan cron job otomatis di latar belakang:
 * **Jadwal Otomatis:** Setiap 3 jam pada **`01.00, 04.00, 07.00, 10.00, 13.00, 16.00, 19.00, 22.00 WIB`**.
@@ -43,7 +43,7 @@ Modul **`AppSchedulerModule`** menjalankan cron job otomatis di latar belakang:
 
 ---
 
-## 🚀 Cara Menjalankan dengan Docker
+## Cara Menjalankan dengan Docker
 
 Cukup jalankan satu perintah dari folder `fireline_web`:
 ```bash
@@ -55,7 +55,7 @@ Ini akan otomatis menyalakan:
 
 ---
 
-## 💻 Cara Menjalankan Secara Lokal (Development)
+## Cara Menjalankan Secara Lokal (Development)
 
 ### 1. Nyalakan Database PostgreSQL saja:
 ```bash
@@ -103,7 +103,7 @@ Dokumentasi interaktif Swagger UI: **`http://localhost:3000/api/docs`**
 * `POST /assignments` — *(Admin Only)* Tugaskan relawan ke area pantau / laporan warga.
 * `GET /assignments` — *(Admin Only)* Monitor seluruh penugasan lapangan.
 * `GET /assignments/my-tasks` — *(Relawan)* Lihat daftar tugas saya.
-* `PATCH /assignments/:id/status` — *(Relawan)* Update alur penanganan: `ACCEPTED` $\rightarrow$ `ON_THE_WAY` $\rightarrow$ `ON_SITE` $\rightarrow$ `COMPLETED`.
+* `PATCH /assignments/:id/status` — *(Relawan)* Update alur penanganan: `ACCEPTED` → `ON_THE_WAY` → `ON_SITE` → `COMPLETED`.
 * `POST /assignments/:id/reject` — *(Relawan)* Tolak tugas disertai alasan.
 * `POST /assignments/:id/verify` — *(Relawan)* Upload foto bukti & koordinat GPS pemadaman.
 

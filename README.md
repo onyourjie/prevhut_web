@@ -1,4 +1,4 @@
-# FIRELINE — Early Hazard Intelligence & Civic Transparency
+# FIREZONE — Early Hazard Intelligence & Civic Transparency
 
 [![React](https://img.shields.io/badge/Frontend-React%2019-61DAFB?logo=react&logoColor=black)](https://react.dev/)
 [![NestJS](https://img.shields.io/badge/Backend-NestJS%2012-E0234E?logo=nestjs&logoColor=white)](https://nestjs.com/)
@@ -16,7 +16,7 @@
 
 ## Repositori Model AI dan Pemrosesan Data (PrevHut)
 
-Model *Machine Learning*, kalkulasi skor risiko, dan *pipeline* pengolahan data satelit untuk platform FIRELINE dikembangkan secara terpisah pada repositori berikut:
+Model *Machine Learning*, kalkulasi skor risiko, dan *pipeline* pengolahan data satelit untuk platform FIREZONE dikembangkan secara terpisah pada repositori berikut:
 
 **GitHub Model Repo:** [**https://github.com/onyourjie/prevhut**](https://github.com/onyourjie/prevhut)
 
@@ -29,11 +29,11 @@ Model *Machine Learning*, kalkulasi skor risiko, dan *pipeline* pengolahan data 
 
 ---
 
-## Tentang FIRELINE
+## Tentang FIREZONE
 
 Kebakaran Hutan dan Lahan (Karhutla) di Indonesia, khususnya wilayah rawan seperti Kalimantan Barat, membutuhkan respon penanganan yang cepat, presisi, dan terkoordinasi. Keterbatasan pantauan satelit akibat tutupan awan atau latensi orbit sering kali menimbulkan jeda informasi, sedangkan laporan warga sering kali terkendala validitas data (isu hoaks atau ketidaksesuaian titik lokasi).
 
-**FIRELINE** hadir sebagai jembatan dua arah (*Dual-Confirmed Early Warning*):
+**FIREZONE** hadir sebagai jembatan dua arah (*Dual-Confirmed Early Warning*):
 1. **Top-Down:** Pemantauan satelit NASA FIRMS yang diolah dengan *machine learning* untuk mendeteksi klaster potensi api (P1: Kritis/Tinggi, P2: Waspada/Sedang, P3: Pantauan/Rendah).
 2. **Bottom-Up:** Verifikasi *ground-truth* dari warga lokal melalui pelaporan kamera langsung (*live WebRTC camera*) dengan *watermark* GPS dan waktu presisi guna menangkal laporan palsu.
 3. **Aksi Lapangan:** Disposisi tugas dari Admin Posko BPBD langsung ke gawai Relawan Lapangan terdekat, lengkap dengan pelacakan status penanganan hingga bukti verifikasi pemadaman tuntas.
@@ -59,7 +59,7 @@ flowchart TD
         Ingest --> Cluster --> RiskScore --> APIPrev
     end
 
-    subgraph CoreBackend["FIRELINE Core Backend (NestJS + Prisma)"]
+    subgraph CoreBackend["FIREZONE Core Backend (NestJS + Prisma)"]
         SyncCron["3-Hour Sync Cron dan On-Demand Trigger"]
         Enrichment["Crowd Multiplier dan Geospatial Matcher<br/>(Haversine <= 25km Boundary)"]
         DB[(PostgreSQL 16<br/>Users, Posts, Assignments, Reports)]
@@ -67,7 +67,7 @@ flowchart TD
         Swagger["Swagger OpenAPI Docs (:3000/api/docs)"]
     end
 
-    subgraph FrontendWeb["FIRELINE Web Interface (React 19 + Vite)"]
+    subgraph FrontendWeb["FIREZONE Web Interface (React 19 + Vite)"]
         Landing["Landing Page Publik"]
         MapInter["Peta Interaktif dan Klaster P1-P3 (Leaflet)"]
         CommunityFeed["Kabar Warga dan Live Camera Report"]
@@ -113,7 +113,7 @@ Sistem penggabungan antara skor satelit dan konfirmasi warga menggunakan prinsip
 ### 4. Sistem Disposisi Relawan Lapangan (Field Operations)
 * **Direktori Relawan:** Admin Posko dapat melihat relawan yang berstatus *Available* (Siap Bertugas) terdekat dari titik insiden.
 * **Alur Penanganan Transparan:**
-  $$\text{ASSIGNED} \longrightarrow \text{ACCEPTED} \longrightarrow \text{ON\_THE\_WAY} \longrightarrow \text{ON\_SITE} \longrightarrow \text{COMPLETED}$$
+  `ASSIGNED` → `ACCEPTED` → `ON_THE_WAY` → `ON_SITE` → `COMPLETED`
 * **Verifikasi Tuntas:** Relawan wajib mengunggah foto bukti pemadaman beserta koordinat GPS lokasi sebelum tugas dapat ditandai sebagai `COMPLETED`.
 * **Hak Menolak Disertai Alasan:** Relawan dapat menolak tugas jika berada di luar jangkauan atau terdapat kendala logistik.
 
@@ -287,7 +287,7 @@ Agar fitur kalkulasi klaster dan *live hotspots* satelit bekerja penuh secara lo
    ```bash
    uvicorn main:app --host 0.0.0.0 --port 8000 --reload
    ```
-   Data service akan menyala di **`http://localhost:8000`** dan siap dihubungkan dengan Core Backend FIRELINE.
+   Data service akan menyala di **`http://localhost:8000`** dan siap dihubungkan dengan Core Backend FIREZONE.
 
 ---
 
@@ -371,7 +371,7 @@ Dokumentasi lengkap dapat dieksplorasi secara interaktif di `http://localhost:30
 * `POST /assignments` — *(Admin Only)* Menerbitkan penugasan baru kepada relawan untuk klaster tertentu.
 * `GET /assignments` — *(Admin Only)* Memonitor seluruh penugasan relawan lapangan.
 * `GET /assignments/my-tasks` — *(Relawan)* Melihat daftar penugasan pribadi.
-* `PATCH /assignments/:id/status` — *(Relawan)* Memperbarui status: `ACCEPTED` $\rightarrow$ `ON_THE_WAY` $\rightarrow$ `ON_SITE` $\rightarrow$ `COMPLETED`.
+* `PATCH /assignments/:id/status` — *(Relawan)* Memperbarui status: `ACCEPTED` → `ON_THE_WAY` → `ON_SITE` → `COMPLETED`.
 * `POST /assignments/:id/reject` — *(Relawan)* Menolak penugasan disertai alasan logistik/jarak.
 * `POST /assignments/:id/verify` — *(Relawan)* Mengunggah bukti foto dan GPS verifikasi tuntas.
 

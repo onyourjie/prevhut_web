@@ -1,10 +1,10 @@
-# 🔥 FIREZONE Frontend (React 19 + TypeScript + TanStack Router & Query + Tailwind CSS v4)
+# FIREZONE Frontend (React 19 + TypeScript + TanStack Router & Query + Tailwind CSS v4)
 
 Frontend web interaktif untuk platform **FIREZONE — Kalimantan Early Hazard** (WIA MIA 2026). Mengimplementasikan sistem peringatan dini kebakaran hutan dan lahan (Karhutla) berbasis klaster satelit NASA FIRMS, pelaporan warga *real-time* dengan kamera langsung & verifikasi GPS, manajemen disposisi relawan lapangan, serta pusat komando Admin Posko BPBD.
 
 ---
 
-## 🛠️ Tech Stack Utama
+## Tech Stack Utama
 
 * **Framework & Build Tool:** React 19 + TypeScript + Vite 8
 * **Routing:** `@tanstack/react-router` (File-based routing dengan proteksi peran/role)
