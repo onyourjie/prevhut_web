@@ -21,7 +21,8 @@ export class SyncScheduler {
   }
 
   async triggerSync(triggerSource: string = 'Manual Admin') {
-    const dataServiceUrl = this.configService.get<string>('DATA_SERVICE_URL', 'http://localhost:8000');
+    const rawUrl = this.configService.get<string>('DATA_SERVICE_URL', 'http://localhost:8000');
+    const dataServiceUrl = rawUrl.replace(/\/api\/?$/, '');
     const syncEndpoint = `${dataServiceUrl}/api/sync`;
 
     try {

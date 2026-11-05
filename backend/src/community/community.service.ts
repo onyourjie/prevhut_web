@@ -11,7 +11,7 @@ import { PostCategory, PostStatus, Role } from '@prisma/client';
 @Injectable()
 export class CommunityService {
   private readonly logger = new Logger(CommunityService.name);
-  private readonly dataServiceUrl = process.env.DATA_SERVICE_URL || 'http://localhost:8000';
+  private readonly dataServiceUrl = (process.env.DATA_SERVICE_URL || 'http://localhost:8000').replace(/\/api\/?$/, "");
 
   constructor(private prisma: PrismaService) {}
 

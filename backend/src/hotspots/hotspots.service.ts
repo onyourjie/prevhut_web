@@ -40,7 +40,8 @@ export class HotspotsService {
     private configService: ConfigService,
     private prisma: PrismaService,
   ) {
-    this.dataServiceUrl = this.configService.get<string>("DATA_SERVICE_URL", "http://localhost:8000");
+    const rawUrl = this.configService.get<string>("DATA_SERVICE_URL", "http://localhost:8000");
+    this.dataServiceUrl = rawUrl.replace(/\/api\/?$/, "");
   }
 
   /**
