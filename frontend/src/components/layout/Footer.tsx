@@ -1,9 +1,9 @@
 import { Link } from '@tanstack/react-router';
 import { Flame, Shield } from 'lucide-react';
 
-export function LandingFooter() {
+export function Footer() {
   return (
-    <footer className="bg-white border-t border-neutral-200 text-neutral-600 py-12 sm:py-16 text-left">
+    <footer className="bg-white border-t border-neutral-200 text-neutral-600 pt-12 sm:pt-16 pb-28 sm:pb-16 text-left">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Brand Info */}
@@ -85,3 +85,6 @@ export function LandingFooter() {
     </footer>
   );
 }
+
+export { Footer as PublicFooter };
+

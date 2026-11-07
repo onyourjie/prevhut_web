@@ -6,6 +6,7 @@ import { BottomNav } from './bottom-nav';
 import { MobileNavDrawer } from './MobileNavDrawer';
 import { TopNavbar } from './TopNavbar';
 import { NotificationBell } from './NotificationBell';
+import { Footer } from './Footer';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
 
@@ -53,6 +54,9 @@ export function AppLayout({
             {children}
           </main>
         </div>
+
+        {/* Footer untuk semua halaman pengunjung belum login */}
+        <Footer />
 
         {/* Mobile Bottom Navigation */}
         <BottomNav variant="floating" onOpenMenu={() => setIsMobileDrawerOpen(true)} />

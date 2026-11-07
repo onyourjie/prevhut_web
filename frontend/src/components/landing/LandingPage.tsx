@@ -8,7 +8,7 @@ import { LandingHowItWorksSection } from './LandingHowItWorksSection';
 import { LandingCitizenFeed } from './LandingCitizenFeed';
 import { LandingEmergencySection } from './LandingEmergencySection';
 import { LandingCtaSection } from './LandingCtaSection';
-import { LandingFooter } from './LandingFooter';
+import { Footer } from '@/components/layout/Footer';
 
 export function LandingPage() {
   // Ambil data live klaster titik panas satelit
@@ -63,7 +63,7 @@ export function LandingPage() {
         {/* 7. Interactive Mouse Parallax CTA Section with Spring Physics */}
         <LandingCtaSection />
       </main>
-      <LandingFooter />
+      <Footer />
     </div>
   );
 }
