@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import {
   Satellite,
   Camera,
-  Send,
+  Bell,
   Clock,
   ShieldCheck,
   Flame,
@@ -130,7 +130,7 @@ function CitizenCameraPreview() {
   );
 }
 
-// Preview 2: WhatsApp Dispatch to Emergency Team Mockup
+// Preview 2: Push Notification Dispatch to Volunteer Mockup
 function DispatchPreview() {
   return (
     <div className="absolute inset-0 w-full h-full flex flex-col justify-end px-6 sm:px-12 pt-10 overflow-hidden bg-neutral-100">
@@ -141,7 +141,7 @@ function DispatchPreview() {
               Lembar Tugas Darurat
             </div>
             <div className="text-base font-bold text-neutral-900">
-              Disposisi Regu Manggala Agni / BPBD
+              Disposisi Relawan & Regu Lapangan
             </div>
           </div>
           <span className="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 border border-red-200">
@@ -150,22 +150,22 @@ function DispatchPreview() {
         </div>
 
         <div className="py-6 space-y-3 flex-1">
-          {/* Simulated WhatsApp Notification Box */}
+          {/* Simulated Web Push Notification Box */}
           <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 space-y-2">
             <div className="flex items-center gap-2 text-xs font-bold text-emerald-900">
-              <Send className="w-4 h-4 text-emerald-600" />
-              <span>Instruksi WhatsApp Terkirim Otomatis</span>
+              <Bell className="w-4 h-4 text-emerald-600" />
+              <span>Web Push Notification Terkirim</span>
             </div>
             <p className="text-xs text-emerald-800 leading-relaxed font-mono">
-              [FIREZONE POSKO] Peringatan P1! Titik api terdeteksi di Desa Teluk Melano. Koordinat:
-              -0.0389, 110.3421. Rute navigasi: https://firezone.id/r/s7a9. Mohon konfirmasi unit.
+              [FIREZONE POSKO] Penugasan Baru: Verifikasi hotspot di Desa Teluk Melano. Koordinat:
+              -0.0389, 110.3421. Rute navigasi: https://firezone.id/r/s7a9. Konfirmasi tugas di aplikasi.
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3 text-xs">
             <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200">
-              <span className="text-neutral-500 block text-[11px]">Personel Bertugas</span>
-              <span className="font-bold text-neutral-900">Regu 3 BPBD Sintang</span>
+              <span className="text-neutral-500 block text-[11px]">Relawan Bertugas</span>
+              <span className="font-bold text-neutral-900">Relawan Sintang & MPA</span>
             </div>
             <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200">
               <span className="text-neutral-500 block text-[11px]">Estimasi Tiba</span>
@@ -177,9 +177,9 @@ function DispatchPreview() {
         <div className="mt-auto p-3 bg-neutral-50 rounded-xl border border-neutral-200 flex items-center justify-between text-xs text-neutral-600">
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-            WhatsApp Delivery Confirmed
+            Push Notification Diterima di Perangkat
           </span>
-          <span className="font-semibold text-neutral-900">2 Personel Terkonfirmasi</span>
+          <span className="font-semibold text-neutral-900">2 Relawan Terkonfirmasi</span>
         </div>
       </div>
     </div>
@@ -199,9 +199,9 @@ export function LandingHowItWorksSection() {
       desc: 'Warga memotret langsung melalui kamera web app tanpa akses galeri foto. Koordinat GPS latitude/longitude dan cap waktu terkunci otomatis di metadata server.',
     },
     {
-      title: 'Disposisi WhatsApp Cepat',
-      subtitle: 'Aksi Tanggap Darurat Posko BPBD',
-      desc: 'Admin posko langsung menugaskan relawan dan regu pemadam terdekat. Tautan navigasi dan detail bahaya terkirim instan ke nomor WhatsApp tim pemadam.',
+      title: 'Push Notifikasi & Disposisi Instan',
+      subtitle: 'Aksi Tanggap Cepat Relawan & Posko',
+      desc: 'Admin posko langsung menugaskan relawan terdekat. Instruksi penugasan, rute navigasi, dan koordinat titik api terkirim langsung ke perangkat relawan via web push notification.',
     },
   ];
 

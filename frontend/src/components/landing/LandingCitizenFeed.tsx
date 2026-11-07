@@ -106,7 +106,7 @@ export function LandingCitizenFeed() {
   const benefits = [
     'Foto Kamera Langsung Tanpa Akses Galeri (Bebas Foto Lawas)',
     'Koordinat Satelit GPS Terkunci Otomatis (Akurasi Tinggi)',
-    'Terhubung Langsung ke WhatsApp Regu Pemadam & BPBD',
+    'Push Notification Otomatis ke Relawan dan Petugas Lapangan',
     'Catatan Arah Asap dan Karakteristik Lahan Gambut Sekitar',
   ];
 

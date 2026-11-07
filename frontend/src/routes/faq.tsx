@@ -11,10 +11,10 @@ import {
   ArrowRight,
   Camera,
   Sparkles,
-  MessageSquare,
+  Bell,
 } from 'lucide-react';
 import { TopNavbar } from '@/components/layout/TopNavbar';
-import { LandingFooter } from '@/components/landing/LandingFooter';
+import { Footer } from '@/components/layout/Footer';
 
 export const Route = createFileRoute('/faq')({
   component: FaqPage,
@@ -54,7 +54,7 @@ const FAQS: FaqItem[] = [
   {
     question: 'Bagaimana regu relawan dan pemadam menerima instruksi tugas?',
     answer:
-      'Saat posko BPBD menetapkan penugasan pada suatu kluster kebakaran, sistem Firezone secara otomatis mengirimkan lembar tugas terenkripsi langsung ke nomor WhatsApp relawan melalui integrasi WhatsApp Gateway resmi posko siaga.',
+      'Saat posko menetapkan penugasan pada suatu kluster kebakaran, sistem Firezone secara otomatis mengirimkan lembar tugas dan rute navigasi langsung ke perangkat relawan melalui Web Push Notification (FCM). Relawan dapat langsung mengonfirmasi dan memperbarui status penanganan di aplikasi.',
   },
   {
     question: 'Apakah seluruh data dan peta di Firezone dapat diakses gratis oleh masyarakat?',
@@ -191,14 +191,14 @@ function FaqPage() {
 
                 <div className="flex items-center gap-4 text-neutral-700 group w-fit">
                   <div className="w-12 h-12 bg-neutral-50 rounded-2xl flex items-center justify-center shadow-xs border border-neutral-200/90">
-                    <MessageSquare className="w-5 h-5 text-emerald-600" />
+                    <Bell className="w-5 h-5 text-emerald-600" />
                   </div>
                   <div className="text-left">
                     <span className="block text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                      Dispatch Komando WhatsApp
+                      Web Push Notification
                     </span>
                     <span className="font-heading font-semibold text-neutral-900">
-                      Aktif 24 Jam Reaksi Cepat
+                      Notifikasi Instan ke Perangkat
                     </span>
                   </div>
                 </div>
@@ -555,7 +555,7 @@ function FaqPage() {
         </section>
       </main>
 
-      <LandingFooter />
+      <Footer />
     </div>
   );
 }
