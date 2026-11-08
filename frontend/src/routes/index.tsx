@@ -3,20 +3,18 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Shield, Users } from 'lucide-react'
 import { AppLayout } from '@/components/layout/app-layout'
-import { NotificationBell } from '@/components/layout/NotificationBell'
 import { useAuthStore } from '@/store/auth.store'
 import type { Assignment } from '@/components/assignments/assignment.types'
 import { apiRequest } from '@/lib/api'
 import { usePriorityAreas } from '@/features/hotspots'
 import { showSuccessToast, showErrorToast } from '@/lib/swal'
-import { EvacuationGuideModal } from '@/components/home/EvacuationGuideModal'
-import { EmergencyCallModal } from '@/components/home/EmergencyCallModal'
 import { VolunteerActiveTaskCard, type ActiveTask } from '@/components/home/VolunteerActiveTaskCard'
 import { VolunteerPrioritySection } from '@/components/home/VolunteerPrioritySection'
 import { VolunteerAvailabilityCard } from '@/components/home/VolunteerAvailabilityCard'
 import { LocationStatusCard } from '@/components/home/LocationStatusCard'
-import { CitizenActionsSection } from '@/components/home/CitizenActionsSection'
+import { CitizenDashboard } from '@/components/home/CitizenDashboard'
 import { LandingPage } from '@/components/landing/LandingPage'
+import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/')({
   component: RootPage,
@@ -53,10 +51,6 @@ function HomePage() {
   // Volunteer availability
   const [isAvailable, setIsAvailable] = useState<boolean>(user?.isAvailable ?? true)
   const [isTogglingAvail, setIsTogglingAvail] = useState(false)
-
-  // Modals for Warga
-  const [isEvacuationModalOpen, setIsEvacuationModalOpen] = useState(false)
-  const [isEmergencyModalOpen, setIsEmergencyModalOpen] = useState(false)
 
   const userProvince = user?.province || undefined
   const userRegency = user?.kabupaten || undefined
@@ -169,8 +163,13 @@ function HomePage() {
           : 'Deteksi Dini Bahaya Kebakaran Lahan & Tanggap Bencana'
       }
     >
-      <div className="max-w-2xl mx-auto space-y-5 text-left pb-24">
-        {/* HEADER TOP: Halo, Nama! + Badge Role + Notification Bell */}
+      <div
+        className={cn(
+          'mx-auto text-left pb-24',
+          isVolunteer || isAdmin ? 'max-w-2xl space-y-5' : 'max-w-5xl space-y-6'
+        )}
+      >
+        {/* HEADER TOP: Halo, Nama! + Role (khusus relawan/admin) + Notification Bell */}
         <div className="flex items-center justify-between pt-1">
           <div className="flex items-center gap-3">
             <img
@@ -186,51 +185,52 @@ function HomePage() {
                 <h1 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">
                   Halo, {displayName}!
                 </h1>
-                <span
-                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide border ${
-                    isVolunteer
-                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
-                      : isAdmin
-                      ? 'bg-neutral-900 text-amber-400 border-neutral-700'
-                      : 'bg-orange-100 text-orange-800 border-orange-200'
-                  }`}
-                >
-                  {isVolunteer ? 'Relawan' : isAdmin ? 'Admin Posko' : 'Warga'}
-                </span>
+                {(isVolunteer || isAdmin) && (
+                  <span
+                    className={cn(
+                      'px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wide border',
+                      isVolunteer
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-neutral-900 text-amber-400 border-neutral-700'
+                    )}
+                  >
+                    {isVolunteer ? 'Relawan' : 'Admin Posko'}
+                  </span>
+                )}
               </div>
               <p className="text-xs text-neutral-500 font-medium">
                 {isVolunteer
                   ? 'Regu Tanggap Siaga Kebakaran Hutan & Lahan'
+                  : isAdmin
+                  ? 'Pusat Komando & Manajemen Tanggap Kebakaran Hutan'
                   : 'Pantauan lingkungan terkini sekitar tempat tinggal Anda'}
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <NotificationBell className="w-10 h-10 bg-white border border-neutral-200 hover:border-neutral-300 shadow-2xs" />
-          </div>
         </div>
-
-        {priorityData?.isSample && (
-          <p role="status" className="text-xs font-bold text-amber-800">Data sampel • Bukan pengamatan terkini</p>
-        )}
-
-        {/* LOKASI DAN STATUS WILAYAH */}
-        <LocationStatusCard
-          displayLocation={displayLocation}
-          displayProvince={displayProvince}
-          hasPriorityAlert={Boolean(priorityData?.currentAreaInside)}
-          currentLocationStatusText={priorityData?.currentLocationStatusText ?? 'Data tidak tersedia'}
-          sourceLabel={priorityData?.isSample ? 'Data sampel' : priorityData || weatherData ? 'Satelit & Cuaca' : 'Data tidak tersedia'}
-          totalHotspots={totalHotspots}
-          weatherText={weatherText}
-          tempText={tempText}
-          humidityText={humidityText}
-        />
 
         {/* SECTION SESUAI ROLE PENGGUNA */}
         {isVolunteer || isAdmin ? (
           <>
+            {priorityData?.isSample && (
+              <p role="status" className="text-xs font-bold text-amber-800">
+                Data sampel • Bukan pengamatan terkini
+              </p>
+            )}
+
+            {/* LOKASI DAN STATUS WILAYAH */}
+            <LocationStatusCard
+              displayLocation={displayLocation}
+              displayProvince={displayProvince}
+              hasPriorityAlert={Boolean(priorityData?.currentAreaInside)}
+              currentLocationStatusText={priorityData?.currentLocationStatusText ?? 'Data tidak tersedia'}
+              sourceLabel={priorityData?.isSample ? 'Data sampel' : priorityData || weatherData ? 'Satelit & Cuaca' : 'Data tidak tersedia'}
+              totalHotspots={totalHotspots}
+              weatherText={weatherText}
+              tempText={tempText}
+              humidityText={humidityText}
+            />
+
             {/* KESIAPSIAGAAN RELAWAN */}
             <VolunteerAvailabilityCard
               isAvailable={isAvailable}
@@ -279,33 +279,25 @@ function HomePage() {
             </div>
           </>
         ) : (
-          /* SECTION UNTUK WARGA */
-          <CitizenActionsSection
+          /* SECTION UNTUK WARGA (REVAMP CITIZEN DASHBOARD) */
+          <CitizenDashboard
+            userLocation={{
+              province: displayProvince,
+              regency: displayLocation,
+              district: userDistrict,
+              coords: userCoords,
+            }}
             weatherText={weatherText}
-            totalHotspots={totalHotspots}
             tempText={tempText}
-            displayLocation={displayLocation}
-            topCluster={topCluster}
-            observedAt={weatherData?.observed_at}
+            humidityText={humidityText}
+            totalHotspots={totalHotspots}
+            priorityAreas={priorityData?.areas || []}
             isSample={priorityData?.isSample}
             lastSyncTime={lastSyncTime}
-            onOpenEvacuationModal={() => setIsEvacuationModalOpen(true)}
-            onOpenEmergencyModal={() => setIsEmergencyModalOpen(true)}
+            observedAt={weatherData?.observed_at}
           />
         )}
       </div>
-
-      {/* MODAL PANDUAN & PROTOKOL EVAKUASI CEPAT */}
-      <EvacuationGuideModal
-        isOpen={isEvacuationModalOpen}
-        onClose={() => setIsEvacuationModalOpen(false)}
-      />
-
-      {/* MODAL PANGGILAN DARURAT */}
-      <EmergencyCallModal
-        isOpen={isEmergencyModalOpen}
-        onClose={() => setIsEmergencyModalOpen(false)}
-      />
     </AppLayout>
   )
 }

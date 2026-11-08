@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { Link } from '@tanstack/react-router';
 import { motion, useMotionValue, useSpring, useTransform } from 'motion/react';
-import { Satellite, Camera, Send, ShieldCheck, Map } from 'lucide-react';
+import { Satellite, Camera, Bell, ShieldCheck, Map } from 'lucide-react';
 import { StaggerTextContainer, SplitText, BlurReveal } from '@/components/ui/motion';
 
 export function LandingCtaSection() {
@@ -17,9 +17,9 @@ export function LandingCtaSection() {
       sub: 'Otentik tanpa akses galeri',
     },
     {
-      icon: <Send className="w-5 h-5 text-emerald-600" />,
-      text: 'Disposisi Instan ke WhatsApp',
-      sub: 'Rute titik api ke personel lapangan',
+      icon: <Bell className="w-5 h-5 text-emerald-600" />,
+      text: 'Push Notification Penugasan Cepat',
+      sub: 'Rute titik api langsung ke perangkat relawan',
     },
     {
       icon: <ShieldCheck className="w-5 h-5 text-neutral-800" />,

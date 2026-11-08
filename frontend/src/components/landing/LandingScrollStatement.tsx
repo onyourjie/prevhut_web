@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import { Satellite, Camera, Send, MapPin, CheckCircle2 } from 'lucide-react';
+import { Satellite, Camera, Bell, MapPin, CheckCircle2 } from 'lucide-react';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -169,14 +169,14 @@ export function LandingScrollStatement() {
           </span>
         </div>
 
-        {/* ================= PHRASE 3: DISPOSISI BPBD & WHATSAPP ================= */}
+        {/* ================= PHRASE 3: DISPOSISI RELAWAN & PUSH NOTIFIKASI ================= */}
         <div className="scroll-obj phrase3-obj absolute top-[15%] left-[8%] md:left-[15%] bg-white/95 backdrop-blur-xl border border-emerald-200 shadow-xl shadow-neutral-900/5 rounded-2xl p-4 flex items-center gap-3 rotate-[-3deg] text-left">
           <div className="w-10 h-10 rounded-xl bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600">
-            <Send className="w-5 h-5" />
+            <Bell className="w-5 h-5" />
           </div>
           <div>
-            <div className="text-xs font-bold text-neutral-900">Disposisi Regu Lapangan</div>
-            <div className="text-[11px] text-emerald-700 font-semibold">Terkirim ke WhatsApp Personel</div>
+            <div className="text-xs font-bold text-neutral-900">Disposisi Relawan Lapangan</div>
+            <div className="text-[11px] text-emerald-700 font-semibold">Push Notification ke Perangkat Relawan</div>
           </div>
         </div>
 

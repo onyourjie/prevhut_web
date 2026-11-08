@@ -152,9 +152,7 @@ export function AppSidebar({ className }: { className?: string }) {
               <div
                 className={cn(
                   'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition',
-                  isActive
-                    ? 'bg-white shadow-xs'
-                    : 'bg-neutral-100 group-hover:bg-white'
+                  isActive ? 'bg-white shadow-xs' : 'bg-transparent'
                 )}
               >
                 {item.icon}
