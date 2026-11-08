@@ -15,7 +15,7 @@ export class SyncScheduler {
    * Cron Job otomatis setiap 3 jam (01.00, 04.00, 07.00, 10.00, 13.00, 16.00, 19.00, 22.00 WIB)
    * Selaras dengan siklus orbit satelit NASA FIRMS (VIIRS SNPP & NOAA-20/21)
    */
-  @Cron('0 1,4,7,10,13,16,19,22 * * *')
+  @Cron('0 1,4,7,10,13,16,19,22 * * *', { timeZone: 'Asia/Jakarta' })
   async handleScheduledSync() {
     this.logger.log('Menjalankan sinkronisasi terjadwal data NASA FIRMS & re-clustering...');
     await this.triggerSync('Automated Cron Job (Setiap 3 Jam)');
