@@ -16,6 +16,37 @@ export function PostUpdatesSection({
   onAddUpdateClick,
   onMediaClick,
 }: PostUpdatesSectionProps) {
+  const hasUpdates = Boolean(updates && updates.length > 0);
+
+  // Jika tidak ada update dan pengunjung bukan pelapor, sembunyikan seksi ini agar tidak memakan ruang
+  if (!hasUpdates && !isAuthor) {
+    return null;
+  }
+
+  // Jika tidak ada update tetapi pengunjung adalah pelapor, tampilkan kartu aksi cepat yang rapi
+  if (!hasUpdates && isAuthor) {
+    return (
+      <div className="bg-white rounded-2xl border border-dashed border-orange-300 p-4 flex items-center justify-between gap-3 shadow-2xs">
+        <div className="text-left">
+          <h4 className="text-xs font-bold text-neutral-900">
+            Perbarui Situasi Lapangan
+          </h4>
+          <p className="text-[11px] text-neutral-500">
+            Kirimkan kabar perkembangan situasi terkini terkait laporan Anda.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onAddUpdateClick}
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 text-white text-xs font-bold transition shadow-xs cursor-pointer shrink-0"
+        >
+          <Plus className="w-3.5 h-3.5" />
+          <span>Tambah Update</span>
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-neutral-200 p-5 space-y-3 shadow-xs">
       <div className="flex items-center justify-between">
@@ -40,73 +71,67 @@ export function PostUpdatesSection({
         )}
       </div>
 
-      {updates && updates.length > 0 ? (
-        <div className="space-y-2.5">
-          {updates.map((update: any, idx: number) => (
-            <div
-              key={update.id}
-              className="p-3 rounded-xl bg-orange-50/50 border border-orange-200/70 space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <img
-                    src={
-                      update.author?.avatarUrl ||
-                      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80"
-                    }
-                    alt={update.author?.name}
-                    className="w-6 h-6 rounded-full object-cover"
-                  />
-                  <span className="text-xs font-bold text-neutral-900">
-                    {update.author?.name}
-                  </span>
-                  {idx === 0 && (
-                    <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-red-600 text-white">
-                      Terbaru
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] text-neutral-400">
-                  {formatTimeAgo(update.createdAt)}
+      <div className="space-y-2.5">
+        {updates?.map((update: any, idx: number) => (
+          <div
+            key={update.id}
+            className="p-3 rounded-xl bg-orange-50/50 border border-orange-200/70 space-y-2"
+          >
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <img
+                  src={
+                    update.author?.avatarUrl ||
+                    "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=256&q=80"
+                  }
+                  alt={update.author?.name}
+                  className="w-6 h-6 rounded-full object-cover"
+                />
+                <span className="text-xs font-bold text-neutral-900">
+                  {update.author?.name}
                 </span>
+                {idx === 0 && (
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-red-600 text-white">
+                    Terbaru
+                  </span>
+                )}
               </div>
-
-              <p className="text-xs text-neutral-700 leading-relaxed">
-                {update.content}
-              </p>
-
-              {update.imageUrl && (
-                <div className="mt-2 w-full max-w-sm sm:max-w-md">
-                  {isVideoMedia(update.imageUrl) ? (
-                    <div className="relative rounded-xl overflow-hidden border border-orange-200 bg-black aspect-video flex items-center justify-center shadow-xs">
-                      <CommunityVideoPlayer
-                        src={update.imageUrl}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => onMediaClick(update.imageUrl)}
-                      className="relative rounded-xl overflow-hidden border border-orange-200 bg-neutral-950 aspect-video flex items-center justify-center cursor-pointer group shadow-xs"
-                      title="Ketuk untuk melihat foto ukuran penuh"
-                    >
-                      <img
-                        src={update.imageUrl}
-                        alt="Bukti update"
-                        className="w-full h-full object-contain group-hover:scale-102 transition duration-200"
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
+              <span className="text-[10px] text-neutral-400">
+                {formatTimeAgo(update.createdAt)}
+              </span>
             </div>
-          ))}
-        </div>
-      ) : (
-        <div className="p-4 text-center rounded-xl bg-neutral-50 border border-neutral-100 text-neutral-400 text-xs">
-          Belum ada update kondisi terbaru dari pelapor.
-        </div>
-      )}
+
+            <p className="text-xs text-neutral-700 leading-relaxed">
+              {update.content}
+            </p>
+
+            {update.imageUrl && (
+              <div className="mt-2 w-full max-w-sm sm:max-w-md">
+                {isVideoMedia(update.imageUrl) ? (
+                  <div className="relative rounded-xl overflow-hidden border border-orange-200 bg-black aspect-video flex items-center justify-center shadow-xs">
+                    <CommunityVideoPlayer
+                      src={update.imageUrl}
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                ) : (
+                  <div
+                    onClick={() => onMediaClick(update.imageUrl)}
+                    className="relative rounded-xl overflow-hidden border border-orange-200 bg-neutral-950 aspect-video flex items-center justify-center cursor-pointer group shadow-xs"
+                    title="Ketuk untuk melihat foto ukuran penuh"
+                  >
+                    <img
+                      src={update.imageUrl}
+                      alt="Bukti update"
+                      className="w-full h-full object-contain group-hover:scale-102 transition duration-200"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

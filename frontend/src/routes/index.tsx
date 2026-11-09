@@ -1,18 +1,13 @@
-import { useState, useMemo } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { useMemo } from 'react'
+import { createFileRoute } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { Shield, Users } from 'lucide-react'
 import { AppLayout } from '@/components/layout/app-layout'
 import { useAuthStore } from '@/store/auth.store'
-import type { Assignment } from '@/components/assignments/assignment.types'
 import { apiRequest } from '@/lib/api'
 import { usePriorityAreas } from '@/features/hotspots'
-import { showSuccessToast, showErrorToast } from '@/lib/swal'
-import { VolunteerActiveTaskCard, type ActiveTask } from '@/components/home/VolunteerActiveTaskCard'
-import { VolunteerPrioritySection } from '@/components/home/VolunteerPrioritySection'
-import { VolunteerAvailabilityCard } from '@/components/home/VolunteerAvailabilityCard'
-import { LocationStatusCard } from '@/components/home/LocationStatusCard'
+import { VolunteerDashboard } from '@/components/home/VolunteerDashboard'
 import { CitizenDashboard } from '@/components/home/CitizenDashboard'
+import { AdminDashboard } from '@/components/home/AdminDashboard'
 import { LandingPage } from '@/components/landing/LandingPage'
 import { cn } from '@/lib/utils'
 
@@ -42,15 +37,9 @@ function RootPage() {
 }
 
 function HomePage() {
-  const { user, isAuthenticated, updateUser } = useAuthStore()
+  const { user, isAuthenticated } = useAuthStore()
   const isVolunteer = user?.role === 'RELAWAN'
   const isAdmin = user?.role === 'ADMIN'
-
-
-
-  // Volunteer availability
-  const [isAvailable, setIsAvailable] = useState<boolean>(user?.isAvailable ?? true)
-  const [isTogglingAvail, setIsTogglingAvail] = useState(false)
 
   const userProvince = user?.province || undefined
   const userRegency = user?.kabupaten || undefined
@@ -83,60 +72,24 @@ function HomePage() {
     enabled: isAuthenticated,
   })
 
-  // TanStack Query: Tugas aktif relawan (discope per user ID)
-  const { data: myTasks = [] } = useQuery<Assignment[]>({
-    queryKey: ['my-active-tasks', user?.id],
-    queryFn: () => apiRequest<Assignment[]>('/assignments/my-tasks'),
-    enabled: isAuthenticated && !!user?.id && (isVolunteer || isAdmin),
-  })
-
-  const activeTask = useMemo<ActiveTask | null>(() => {
-    const ongoing = myTasks.find((t) =>
-      ['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'].includes(t.status)
-    )
-    if (!ongoing) return null
-    return {
-      id: ongoing.id,
-      reportId: ongoing.post?.id ?? ongoing.postId ?? '',
-      title: ongoing.post?.content || ongoing.notes || 'Penugasan Lapangan',
-      locationName: ongoing.post?.address || ongoing.clusterCode || 'Lokasi tidak tersedia',
-      urgency: ongoing.priorityLevel,
-      status: ongoing.status,
-      assignedAt: new Date(ongoing.createdAt).toLocaleString('id-ID'),
+  const totalHotspots = useMemo<number | null>(() => {
+    if (!priorityData?.areas || priorityData.areas.length === 0) return null
+    let sum = 0
+    let hasValidCount = false
+    for (const area of priorityData.areas) {
+      if (typeof area.hotspotCount === 'number') {
+        sum += area.hotspotCount
+        hasValidCount = true
+      }
     }
-  }, [myTasks])
-
-  const totalHotspots = priorityData?.areas.reduce<number | null>((total, area) =>
-    total != null && area.hotspotCount != null ? total + area.hotspotCount : null, 0) ?? null
+    return hasValidCount ? sum : null
+  }, [priorityData?.areas])
   const tempText = weatherData?.temperature_c != null ? `${weatherData.temperature_c}°C` : 'Data tidak tersedia'
   const weatherText = weatherData?.weather_desc ?? 'Data tidak tersedia'
   const humidityText = weatherData?.humidity_percent != null ? `Kelembaban ${weatherData.humidity_percent}%` : 'Data tidak tersedia'
   const topAreas = (priorityData?.areas || []).slice(0, 3)
   const topCluster = topAreas[0]
   const lastSyncTime = topCluster?.lastUpdatedText ?? 'Data tidak tersedia'
-
-  // Handle availability toggle
-  const handleToggleAvailability = async () => {
-    const nextVal = !isAvailable
-    setIsTogglingAvail(true)
-    try {
-      await apiRequest('/users/profile', {
-        method: 'PATCH',
-        body: JSON.stringify({ isAvailable: nextVal }),
-      })
-      setIsAvailable(nextVal)
-      updateUser({ isAvailable: nextVal })
-      showSuccessToast(
-        nextVal
-          ? 'Status: Siap Siaga Bertugas (Available)'
-          : 'Status: Sedang Istirahat / Off Duty'
-      )
-    } catch {
-      showErrorToast('Gagal memperbarui status kesiapan')
-    } finally {
-      setIsTogglingAvail(false)
-    }
-  }
 
   const displayName = user?.name ? user.name.split(' ')[0] : 'Warga'
   const displayLocation = user?.kabupaten || 'Kabupaten Sintang'
@@ -166,7 +119,7 @@ function HomePage() {
       <div
         className={cn(
           'mx-auto text-left pb-24',
-          isVolunteer || isAdmin ? 'max-w-2xl space-y-5' : 'max-w-5xl space-y-6'
+          isVolunteer ? 'max-w-2xl space-y-5' : 'max-w-5xl space-y-6'
         )}
       >
         {/* HEADER TOP: Halo, Nama! + Role (khusus relawan/admin) + Notification Bell */}
@@ -182,7 +135,7 @@ function HomePage() {
             />
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight">
+                <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                   Halo, {displayName}!
                 </h1>
                 {(isVolunteer || isAdmin) && (
@@ -198,7 +151,7 @@ function HomePage() {
                   </span>
                 )}
               </div>
-              <p className="text-xs text-neutral-500 font-medium">
+              <p className="text-xs text-slate-600 font-medium">
                 {isVolunteer
                   ? 'Regu Tanggap Siaga Kebakaran Hutan & Lahan'
                   : isAdmin
@@ -210,74 +163,37 @@ function HomePage() {
         </div>
 
         {/* SECTION SESUAI ROLE PENGGUNA */}
-        {isVolunteer || isAdmin ? (
-          <>
-            {priorityData?.isSample && (
-              <p role="status" className="text-xs font-bold text-amber-800">
-                Data sampel • Bukan pengamatan terkini
-              </p>
-            )}
-
-            {/* LOKASI DAN STATUS WILAYAH */}
-            <LocationStatusCard
-              displayLocation={displayLocation}
-              displayProvince={displayProvince}
-              hasPriorityAlert={Boolean(priorityData?.currentAreaInside)}
-              currentLocationStatusText={priorityData?.currentLocationStatusText ?? 'Data tidak tersedia'}
-              sourceLabel={priorityData?.isSample ? 'Data sampel' : priorityData || weatherData ? 'Satelit & Cuaca' : 'Data tidak tersedia'}
-              totalHotspots={totalHotspots}
-              weatherText={weatherText}
-              tempText={tempText}
-              humidityText={humidityText}
-            />
-
-            {/* KESIAPSIAGAAN RELAWAN */}
-            <VolunteerAvailabilityCard
-              isAvailable={isAvailable}
-              isTogglingAvailability={isTogglingAvail}
-              onToggle={handleToggleAvailability}
-            />
-
-            {/* WIDGET TUGAS LAPANGAN AKTIF */}
-            <VolunteerActiveTaskCard activeTask={activeTask} />
-
-            {/* PRIORITAS TITIK PANAS (FIGMA RELAWAN) */}
-            <VolunteerPrioritySection
-              isLoadingAreas={isLoadingAreas}
-              topAreas={topAreas}
-            />
-
-            {/* QUICK ACTIONS UNTUK RELAWAN */}
-            <div className="grid grid-cols-2 gap-3 pt-2">
-              <Link to="/assignments" className="block group">
-                <div className="p-4 rounded-2xl bg-white border border-neutral-200 hover:border-emerald-500 hover:shadow-md transition space-y-2">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-105 transition">
-                    <Shield className="w-5 h-5" />
-                  </div>
-                  <h4 className="text-xs font-extrabold text-neutral-900 group-hover:text-emerald-700 transition">
-                    Lembar Penugasan
-                  </h4>
-                  <p className="text-[11px] text-neutral-500 leading-relaxed">
-                    Daftar aksi disposisi tugas verifikasi lapangan dari posko.
-                  </p>
-                </div>
-              </Link>
-
-              <Link to="/community" className="block group">
-                <div className="p-4 rounded-2xl bg-white border border-neutral-200 hover:border-orange-500 hover:shadow-md transition space-y-2">
-                  <div className="w-10 h-10 rounded-xl bg-orange-50 text-orange-600 flex items-center justify-center group-hover:scale-105 transition">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <h4 className="text-xs font-extrabold text-neutral-900 group-hover:text-orange-700 transition">
-                    Laporan Warga
-                  </h4>
-                  <p className="text-[11px] text-neutral-500 leading-relaxed">
-                    Pantau informasi langsung dari warga untuk tindakan cepat.
-                  </p>
-                </div>
-              </Link>
-            </div>
-          </>
+        {isAdmin ? (
+          <AdminDashboard
+            userLocation={{
+              province: displayProvince,
+              regency: displayLocation,
+              district: userDistrict,
+              coords: userCoords,
+            }}
+            totalHotspots={totalHotspots}
+            priorityAreas={priorityData?.areas || []}
+            isSample={priorityData?.isSample}
+            lastSyncTime={lastSyncTime}
+          />
+        ) : isVolunteer ? (
+          <VolunteerDashboard
+            userLocation={{
+              province: displayProvince,
+              regency: displayLocation,
+              district: userDistrict,
+              coords: userCoords,
+            }}
+            weatherText={weatherText}
+            tempText={tempText}
+            humidityText={humidityText}
+            totalHotspots={totalHotspots}
+            priorityAreas={priorityData?.areas || []}
+            isLoadingAreas={isLoadingAreas}
+            isSample={priorityData?.isSample}
+            lastSyncTime={lastSyncTime}
+            weatherData={weatherData}
+          />
         ) : (
           /* SECTION UNTUK WARGA (REVAMP CITIZEN DASHBOARD) */
           <CitizenDashboard
@@ -295,6 +211,7 @@ function HomePage() {
             isSample={priorityData?.isSample}
             lastSyncTime={lastSyncTime}
             observedAt={weatherData?.observed_at}
+            weatherData={weatherData}
           />
         )}
       </div>

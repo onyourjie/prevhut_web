@@ -41,7 +41,7 @@ export function LandingHero({ areas, totalHotspots = 18, highestRiskArea }: Land
   }, [totalHotspots, count]);
 
   return (
-    <section className="relative pt-28 pb-16 sm:pt-36 sm:pb-24 bg-white border-b border-neutral-200 overflow-hidden">
+    <section className="relative pt-28 pb-16 sm:pt-36 sm:pb-24 bg-white border-b border-neutral-200 overflow-hidden isolate">
       {/* Background Subtle Spatial Grid & Soft Ember Glow */}
       <div className="absolute inset-0 pointer-events-none -z-10">
         <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.025)_1px,transparent_1px),linear-gradient(to_bottom,rgba(0,0,0,0.025)_1px,transparent_1px)] bg-[size:4.5rem_4.5rem] [mask-image:radial-gradient(ellipse_70%_55%_at_50%_25%,#000_65%,transparent_100%)]" />
@@ -97,10 +97,10 @@ export function LandingHero({ areas, totalHotspots = 18, highestRiskArea }: Land
           initial={{ opacity: 0, y: 32, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 0.85, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="mt-12 sm:mt-16 max-w-6xl mx-auto relative"
+          className="mt-12 sm:mt-16 max-w-6xl mx-auto relative z-0 isolate"
         >
           {/* Main Command Window Frame */}
-          <div className="rounded-2xl sm:rounded-3xl border border-neutral-300/90 bg-white shadow-[0_25px_70px_-15px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col transition-all duration-300 hover:shadow-[0_35px_90px_-20px_rgba(0,0,0,0.12)]">
+          <div className="rounded-2xl sm:rounded-3xl border border-neutral-300/90 bg-white shadow-[0_25px_70px_-15px_rgba(0,0,0,0.08)] overflow-hidden flex flex-col transition-all duration-300 hover:shadow-[0_35px_90px_-20px_rgba(0,0,0,0.12)] relative z-0 isolate">
             {/* Window Chrome Header Bar */}
             <div className="px-4 sm:px-6 py-3 border-b border-neutral-200 bg-neutral-100/90 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
@@ -135,7 +135,7 @@ export function LandingHero({ areas, totalHotspots = 18, highestRiskArea }: Land
             </div>
 
             {/* Main Interactive Stage with Floating Telemetry HUDs */}
-            <div className="h-[380px] sm:h-[480px] lg:h-[520px] w-full relative">
+            <div className="h-[380px] sm:h-[480px] lg:h-[520px] w-full relative z-0 isolate">
               <HotspotMap
                 areas={areas}
                 selectedArea={selectedArea}

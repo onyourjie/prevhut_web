@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import { motion, AnimatePresence } from 'motion/react';
 import {
-  Flame,
   Map,
   Users,
   PhoneCall,
@@ -76,8 +75,6 @@ export function TopNavbar({ className }: TopNavbarProps) {
     setMobileMenuOpen(false);
   }, [currentPath]);
 
-  const isWarga = user?.role === 'WARGA';
-
   const navLinks = [
     {
       to: '/',
@@ -149,18 +146,15 @@ export function TopNavbar({ className }: TopNavbarProps) {
             }}
             className="flex items-center gap-2.5 group relative z-10"
           >
-            <div className="w-9 h-9 rounded-xl bg-orange-600 text-white flex items-center justify-center font-bold shadow-md shadow-orange-600/20 group-hover:scale-105 transition-transform duration-200">
-              <Flame className="w-5 h-5" />
-            </div>
+            <img
+              src="/logo-firezone.png"
+              alt="FIREZONE Logo"
+              className="w-9 h-9 rounded-xl object-contain shadow-xs group-hover:scale-105 transition-transform duration-200"
+            />
             <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-heading font-bold text-base sm:text-lg text-neutral-900 tracking-tight group-hover:text-orange-600 transition">
-                  FIREZONE
-                </span>
-                <span className="px-1.5 py-0.2 rounded text-[9px] font-extrabold uppercase bg-orange-100 text-orange-800 border border-orange-200">
-                  {isWarga ? 'WARGA' : 'KALIMANTAN'}
-                </span>
-              </div>
+              <span className="font-heading font-bold text-base sm:text-lg text-neutral-900 tracking-tight group-hover:text-orange-600 transition block">
+                FIREZONE
+              </span>
               <p className="text-[10px] text-neutral-500 font-medium hidden sm:block leading-none mt-0.5">
                 Portal Tanggap Darurat Karhutla
               </p>
@@ -194,18 +188,18 @@ export function TopNavbar({ className }: TopNavbarProps) {
             })}
           </nav>
 
-          {/* Right Action Area */}
-          <div className="hidden sm:flex items-center gap-3">
+          {/* Right Action & Controls Area */}
+          <div className="flex items-center gap-2 sm:gap-2.5">
             {isAuthenticated && user ? (
-              <div className="flex items-center gap-3">
+              <>
                 {/* Tombol Cepat Lapor Titik Api untuk Warga */}
                 {currentPath !== '/profile' && (
                   <Link
                     to="/community/create"
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-xs active:scale-98 transition duration-150"
+                    className="h-9 px-3 sm:px-3.5 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-xs active:scale-98 transition duration-150 flex items-center gap-1.5"
                   >
                     <PlusCircle className="w-3.5 h-3.5" />
-                    <span>Lapor Api</span>
+                    <span className="hidden sm:inline">Lapor Api</span>
                   </Link>
                 )}
 
@@ -218,7 +212,7 @@ export function TopNavbar({ className }: TopNavbarProps) {
                     type="button"
                     onClick={() => setProfileMenuOpen((prev) => !prev)}
                     className={cn(
-                      'relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2',
+                      'relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 cursor-pointer',
                       profileMenuOpen
                         ? 'ring-2 ring-orange-500 ring-offset-2 shadow-md'
                         : 'hover:ring-2 hover:ring-neutral-300 hover:shadow-2xs'
@@ -317,45 +311,35 @@ export function TopNavbar({ className }: TopNavbarProps) {
                     )}
                   </AnimatePresence>
                 </div>
-              </div>
+              </>
             ) : (
               currentPath !== '/profile' && (
-                <div className="flex items-center gap-2">
+                <>
                   <Link
                     to="/login"
-                    className="px-4 py-2 rounded-xl text-xs font-bold text-neutral-800 bg-white hover:bg-neutral-50 border border-neutral-300 shadow-2xs transition"
+                    className="hidden sm:inline-flex h-9 items-center justify-center px-4 rounded-xl text-xs font-bold text-neutral-800 bg-white hover:bg-neutral-50 border border-neutral-300 shadow-2xs transition"
                   >
                     Masuk
                   </Link>
                   <Link
                     to="/community/create"
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-xs active:scale-98 transition"
+                    className="h-9 inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-4 rounded-xl text-xs font-bold text-white bg-orange-600 hover:bg-orange-700 shadow-xs active:scale-98 transition"
                   >
                     <PlusCircle className="w-3.5 h-3.5" />
                     <span>Lapor Api</span>
                   </Link>
-                </div>
+                </>
               )
             )}
-          </div>
 
-          {/* Mobile Action & Hamburger Button */}
-          <div className="flex items-center gap-1.5 lg:hidden">
-            {isAuthenticated && user && (
-              <>
-                <Link to="/community/create" className="p-2 text-orange-600" title="Lapor Api">
-                  <PlusCircle className="w-5 h-5" />
-                </Link>
-                <NotificationBell />
-              </>
-            )}
+            {/* Hamburger Button (Khusus Tablet & Mobile: lg:hidden) */}
             <button
               type="button"
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl text-neutral-700 hover:bg-neutral-100 transition focus:outline-hidden"
+              className="w-9 h-9 flex items-center justify-center rounded-xl text-neutral-700 hover:bg-neutral-100 transition lg:hidden focus:outline-hidden cursor-pointer"
               aria-label="Toggle Menu"
             >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             </button>
           </div>
         </div>

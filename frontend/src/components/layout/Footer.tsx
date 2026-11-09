@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { Flame, Shield } from 'lucide-react';
+import { Shield } from 'lucide-react';
 
 export function Footer() {
   return (
@@ -9,9 +9,11 @@ export function Footer() {
           {/* Brand Info */}
           <div className="md:col-span-2 space-y-4">
             <Link to="/" className="flex items-center gap-2.5 group">
-              <div className="w-9 h-9 rounded-xl bg-orange-600 flex items-center justify-center text-white">
-                <Flame className="w-5 h-5" />
-              </div>
+              <img
+                src="/logo-firezone.png"
+                alt="FIREZONE Logo"
+                className="w-9 h-9 rounded-xl object-contain shadow-xs"
+              />
               <span className="font-extrabold text-lg tracking-tight text-neutral-900">FIREZONE</span>
             </Link>
             <p className="text-xs sm:text-sm text-neutral-600 max-w-sm leading-relaxed font-normal">

@@ -279,7 +279,7 @@ function MapPage() {
                 to="/"
                 className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-bold text-neutral-800 hover:bg-neutral-100 transition"
               >
-                <Flame className="w-4 h-4 text-orange-600" />
+                <img src="/logo-firezone.png" alt="FIREZONE" className="w-4 h-4 object-contain rounded-xs" />
                 <span>FIREZONE</span>
               </Link>
               <div className="w-px h-4 bg-neutral-200" />

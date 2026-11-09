@@ -100,7 +100,7 @@ export function ResponseTrackingSection({
   const step1 = {
     num: 1,
     title: "Laporan Diterima",
-    desc: "Laporan darurat warga tercatat di sistem Fireline",
+    desc: "Laporan darurat warga tercatat di sistem Firezone",
     time: formatTimeAgo(post.createdAt),
     done: true,
     active: false,
@@ -188,18 +188,18 @@ export function ResponseTrackingSection({
   const steps = [step1, step2, step3, step4, step5];
 
   return (
-    <div className="bg-white rounded-2xl border border-neutral-200 overflow-hidden shadow-xs p-5 space-y-4">
+    <div className="bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs p-4 sm:p-5 space-y-4">
       {/* Header Transparansi Publik */}
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-neutral-100 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-3">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-orange-100 text-orange-700 flex items-center justify-center shrink-0">
             <Activity className="w-4 h-4" />
           </div>
           <div>
-            <h3 className="font-extrabold text-xs text-neutral-900 uppercase tracking-wide">
+            <h3 className="font-extrabold text-xs text-slate-900 uppercase tracking-wide">
               Lacak Penanganan Transparan
             </h3>
-            <p className="text-[11px] text-neutral-500">
+            <p className="text-[11px] text-slate-500">
               Transparansi akuntabilitas publik tim Posko BPBD & Relawan
             </p>
           </div>
@@ -230,8 +230,8 @@ export function ResponseTrackingSection({
 
       {/* Metric Cards (Response Time & Assigned Responder) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
-        <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/80 space-y-0.5">
-          <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
+        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-0.5">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Waktu Respon Posko
           </span>
           <span
@@ -241,21 +241,21 @@ export function ResponseTrackingSection({
           >
             {responseTimeText}
           </span>
-          <span className="text-[10px] text-neutral-500 block truncate">
+          <span className="text-[10px] text-slate-500 block truncate">
             {hasResponseTime ? "Dari laporan warga masuk" : "Menunggu disposisi relawan"}
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/80 space-y-0.5">
-          <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
+        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-0.5">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Regu Lapangan
           </span>
-          <span className="text-xs font-bold text-neutral-900 block truncate">
+          <span className="text-xs font-bold text-slate-900 block truncate">
             {latestAssignment?.volunteer?.name || "Belum Ditugaskan"}
           </span>
           <span
             className={`text-[10px] font-semibold block truncate ${
-              latestAssignment ? "text-emerald-700" : "text-neutral-500"
+              latestAssignment ? "text-emerald-700" : "text-slate-500"
             }`}
           >
             {latestAssignment
@@ -264,8 +264,8 @@ export function ResponseTrackingSection({
           </span>
         </div>
 
-        <div className="p-3 rounded-xl bg-neutral-50 border border-neutral-200/80 space-y-0.5 col-span-2 sm:col-span-1">
-          <span className="text-[10px] font-bold text-neutral-400 uppercase tracking-wider block">
+        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 space-y-0.5 col-span-2 sm:col-span-1">
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
             Durasi Penanganan
           </span>
           <span
@@ -274,12 +274,12 @@ export function ResponseTrackingSection({
                 ? "text-emerald-700"
                 : isDalamPenanganan
                 ? "text-blue-700"
-                : "text-neutral-700"
+                : "text-slate-700"
             }`}
           >
             {durationText}
           </span>
-          <span className="text-[10px] text-neutral-500 block truncate">
+          <span className="text-[10px] text-slate-500 block truncate">
             {isSelesai
               ? "Tuntas dipadamkan"
               : isDalamPenanganan
@@ -291,58 +291,58 @@ export function ResponseTrackingSection({
 
       {/* Stepper Progress Timeline */}
       <div className="pt-2">
-        <div className="space-y-3">
+        <div className="space-y-0">
           {steps.map((step, index) => (
-            <div key={step.num} className="flex items-start gap-3 relative">
-              {/* Connecting line */}
+            <div key={step.num} className="flex items-start gap-3 relative pb-4.5 last:pb-0">
+              {/* Resilient Connecting line */}
               {index < steps.length - 1 && (
                 <div
-                  className={`absolute left-3.5 top-7 w-0.5 h-7 -translate-x-1/2 ${
-                    step.done ? "bg-emerald-500" : "bg-neutral-200"
+                  className={`absolute left-[13px] top-6 bottom-0 w-0.5 -translate-x-1/2 ${
+                    step.done ? "bg-emerald-500" : "bg-slate-200"
                   }`}
                 />
               )}
 
               {/* Circle number */}
               <div
-                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-black shrink-0 z-10 shadow-xs ${
+                className={`w-6.5 h-6.5 rounded-full flex items-center justify-center text-[11px] font-black shrink-0 z-10 shadow-2xs ${
                   step.done
                     ? "bg-emerald-600 text-white"
                     : step.active
-                    ? "bg-brand-600 text-white ring-4 ring-brand-100 animate-pulse"
-                    : "bg-neutral-100 text-neutral-400 border border-neutral-200"
+                    ? "bg-brand-600 text-white ring-3 ring-brand-100 animate-pulse"
+                    : "bg-slate-100 text-slate-400 border border-slate-200"
                 }`}
               >
-                {step.done ? <CheckCircle2 className="w-4 h-4" /> : step.num}
+                {step.done ? <CheckCircle2 className="w-3.5 h-3.5" /> : step.num}
               </div>
 
               {/* Step info */}
               <div className="flex-1 min-w-0 pt-0.5">
                 <div className="flex items-center justify-between gap-2">
                   <h4
-                    className={`text-xs font-extrabold ${
+                    className={`text-xs font-bold leading-tight ${
                       step.done
-                        ? "text-neutral-900"
+                        ? "text-slate-900"
                         : step.active
                         ? "text-brand-700"
-                        : "text-neutral-400"
+                        : "text-slate-500"
                     }`}
                   >
                     {step.title}
                   </h4>
                   <span
-                    className={`text-[10px] font-semibold shrink-0 px-2 py-0.5 rounded-md ${
+                    className={`text-[10px] font-bold shrink-0 px-2 py-0.5 rounded-md ${
                       step.done
                         ? "bg-emerald-50 text-emerald-800 border border-emerald-200"
                         : step.active
                         ? "bg-brand-50 text-brand-800 border border-brand-200"
-                        : "text-neutral-400"
+                        : "text-slate-400 bg-slate-50"
                     }`}
                   >
                     {step.time}
                   </span>
                 </div>
-                <p className="text-[11px] text-neutral-500 mt-0.5 leading-snug">
+                <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
                   {step.desc}
                 </p>
               </div>
