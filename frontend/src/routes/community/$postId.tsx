@@ -15,7 +15,6 @@ import { MediaLightboxModal } from '@/components/community/media-lightbox-modal'
 import { apiRequest } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { formatDateTimeIndo } from '@/lib/utils';
-import { LiveCameraViewfinder } from '@/components/camera/live-camera-viewfinder';
 import { uploadMediaToCloudinary } from '@/lib/cloudinary';
 import { showSuccessToast, showErrorToast } from '@/lib/swal';
 
@@ -160,7 +159,7 @@ function PostDetailPage() {
 
   return (
     <AppLayout title="Detail Postingan" subtitle="Kabar dan verifikasi warga">
-      <div className="max-w-2xl mx-auto space-y-4 pb-40 lg:pb-28 text-left">
+      <div className="max-w-2xl mx-auto space-y-4 pb-12 lg:pb-8 text-left">
         {/* Navigation Bar */}
         <div className="flex items-center justify-between">
           <Link
@@ -190,6 +189,10 @@ function PostDetailPage() {
                     type="button"
                     onClick={() => {
                       setShowMenu(false);
+                      if (!isAuthenticated) {
+                        showErrorToast('Silakan masuk terlebih dahulu untuk melaporkan postingan');
+                        return;
+                      }
                       setShowFlagModal(true);
                     }}
                     className="flex items-center gap-2 w-full px-3.5 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 text-left transition"
@@ -236,7 +239,7 @@ function PostDetailPage() {
           onMediaClick={(url) => setLightboxMediaUrl(url)}
         />
 
-        {/* Sticky Bottom Comment Input Bar */}
+        {/* Comment Input Card */}
         <PostCommentInputBar
           commentText={commentText}
           setCommentText={setCommentText}
@@ -276,19 +279,6 @@ function PostDetailPage() {
             fetchPostDetail();
           }}
         />
-      )}
-
-      {/* Modal Kamera & Perekam Video Komentar */}
-      {isCameraOpen && (
-        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-0 sm:p-4 animate-in fade-in">
-          <div className="w-full max-w-lg h-full sm:h-auto sm:max-h-[90vh] bg-black sm:rounded-3xl overflow-hidden relative shadow-2xl">
-            <LiveCameraViewfinder
-              onCapture={handleCommentCameraCaptured}
-              onClose={() => setIsCameraOpen(false)}
-              isUploading={isUploadingMedia}
-            />
-          </div>
-        </div>
       )}
 
       {lightboxMediaUrl && (

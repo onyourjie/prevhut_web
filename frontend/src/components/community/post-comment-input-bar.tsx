@@ -2,6 +2,8 @@ import React, { useRef } from "react";
 import { Camera, Paperclip, Send, RefreshCw, Video, X } from "lucide-react";
 import { LiveCameraViewfinder } from "@/components/camera/live-camera-viewfinder";
 import { isVideoMedia } from "@/lib/cloudinary";
+import { useAuthStore } from "@/store/auth.store";
+import { showErrorToast } from "@/lib/swal";
 
 interface PostCommentInputBarProps {
   commentText: string;
@@ -35,13 +37,30 @@ export function PostCommentInputBar({
   onFileChange,
 }: PostCommentInputBarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { isAuthenticated } = useAuthStore();
+
+  const handleCameraClick = () => {
+    if (!isAuthenticated) {
+      showErrorToast("Silakan masuk terlebih dahulu untuk mengirim komentar");
+      return;
+    }
+    setIsCameraOpen(true);
+  };
+
+  const handlePaperclipClick = () => {
+    if (!isAuthenticated) {
+      showErrorToast("Silakan masuk terlebih dahulu untuk mengirim komentar");
+      return;
+    }
+    fileInputRef.current?.click();
+  };
 
   return (
     <>
-      <div className="fixed bottom-16 lg:bottom-0 left-0 lg:left-72 right-0 z-30 bg-white/95 backdrop-blur-md border-t border-neutral-200 p-2.5 sm:p-4 shadow-md lg:shadow-xs">
+      <div className="bg-white rounded-2xl border border-neutral-200 p-3.5 sm:p-4 shadow-xs">
         <form
           onSubmit={onSendComment}
-          className="max-w-2xl mx-auto flex flex-col gap-2"
+          className="w-full flex flex-col gap-2.5"
         >
           {commentImage && (
             <div className="relative inline-flex items-center gap-2 p-1.5 rounded-xl bg-neutral-100 border border-neutral-200 w-fit animate-in fade-in">
@@ -108,7 +127,7 @@ export function PostCommentInputBar({
 
             <button
               type="button"
-              onClick={() => setIsCameraOpen(true)}
+              onClick={handleCameraClick}
               disabled={isUploadingMedia}
               className="w-9 h-9 rounded-xl border border-neutral-200 text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 flex items-center justify-center transition shrink-0 cursor-pointer disabled:opacity-50"
               title="Buka Kamera / Perekam Video Langsung"
@@ -119,7 +138,7 @@ export function PostCommentInputBar({
 
             <button
               type="button"
-              onClick={() => fileInputRef.current?.click()}
+              onClick={handlePaperclipClick}
               disabled={isUploadingMedia}
               className="w-9 h-9 rounded-xl border border-neutral-200 text-neutral-500 hover:text-neutral-900 hover:bg-neutral-100 flex items-center justify-center transition shrink-0 cursor-pointer disabled:opacity-50"
               title="Unggah Foto atau Video dari Perangkat"
