@@ -1,12 +1,9 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import {
-  MapPin,
   MessageSquare,
-  AlertTriangle,
-  Info,
   ArrowRight,
-  Sparkles,
+  Clock,
 } from 'lucide-react'
 import { formatDateTimeIndo, cn } from '@/lib/utils'
 import { FlagModal } from './flag-modal'
@@ -24,99 +21,42 @@ export function PostCard({ post }: { post: PostItem }) {
   const isEmergency = post.category === 'DARURAT'
   const commentCount = post._count?.comments ?? 0
   const updateCount = post._count?.updates ?? post.updates?.length ?? 0
+  const locationText =
+    [post.kecamatan, post.kabupaten, post.province].filter(Boolean).join(', ') ||
+    post.address ||
+    'Kalimantan Barat'
 
   return (
     <>
       <article
         className={cn(
-          'bg-white rounded-2xl border transition-all duration-200 overflow-hidden shadow-xs hover:shadow-md flex flex-col',
+          'bg-white rounded-2xl border transition-all duration-200 overflow-hidden shadow-xs hover:shadow-sm flex flex-col',
           isEmergency
-            ? 'border-red-300 hover:border-red-400 ring-1 ring-red-400/20'
-            : 'border-neutral-300 hover:border-neutral-400',
+            ? 'border-l-4 border-l-red-500 border-slate-200/90 hover:border-slate-300'
+            : 'border-l-4 border-l-brand-500 border-slate-200/90 hover:border-slate-300'
         )}
       >
-        {/* Card Header: Author info & options */}
+        {/* Card Header: Author info, location, status tag, and options */}
         <PostCardHeader
           author={post.author}
           createdAt={post.createdAt}
+          category={post.category}
+          status={post.status}
+          locationText={locationText}
+          clusterCode={post.clusterCode}
           onReportClick={() => setShowFlagModal(true)}
         />
 
-        {/* Badges Bar: Category & Location */}
-        <div className="px-4 sm:px-5 pb-2.5 flex items-center gap-2 flex-wrap text-xs">
-          <span
-            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-black text-xs border"
-            style={
-              isEmergency
-                ? { backgroundColor: '#fee2e2', color: '#b91c1c', borderColor: '#fca5a5' }
-                : { backgroundColor: '#ccfbf1', color: '#0f766e', borderColor: '#99f6e4' }
-            }
-          >
-            {isEmergency ? (
-              <AlertTriangle className="w-3.5 h-3.5 text-red-600" />
-            ) : (
-              <Info className="w-3.5 h-3.5 text-teal-700" />
-            )}
-            {isEmergency ? 'Darurat' : 'Informasi'}
-          </span>
-
-          {isEmergency && (
-            <span
-              className={cn(
-                'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border',
-                post.status === 'SELESAI'
-                  ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                  : post.status === 'DALAM_PENANGANAN'
-                  ? 'bg-blue-50 text-blue-800 border-blue-300'
-                  : 'bg-amber-50 text-amber-800 border-amber-300',
-              )}
-            >
-              <span
-                className={cn(
-                  'w-1.5 h-1.5 rounded-full',
-                  post.status === 'SELESAI'
-                    ? 'bg-emerald-600'
-                    : post.status === 'DALAM_PENANGANAN'
-                    ? 'bg-blue-600 animate-pulse'
-                    : 'bg-amber-500',
-                )}
-              />
-              <span>
-                {post.status === 'SELESAI'
-                  ? 'Padam (Selesai)'
-                  : post.status === 'DALAM_PENANGANAN'
-                  ? 'Dalam Penanganan'
-                  : 'Menunggu Verifikasi'}
-              </span>
-            </span>
-          )}
-
-          {post.clusterCode && (
-            <Link
-              to="/map"
-              search={{ area: post.clusterCode }}
-              onClick={(e) => e.stopPropagation()}
-              className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 hover:bg-orange-200 text-orange-950 border border-orange-300 transition shrink-0"
-            >
-              <span>🔥 {post.clusterCode}</span>
-              <span className="text-[10px] text-orange-700 font-extrabold underline">Peta &rarr;</span>
-            </Link>
-          )}
-
-          <span className="inline-flex items-center gap-1 text-neutral-600 text-xs font-semibold truncate max-w-[280px]">
-            <MapPin className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
-            <span className="truncate">
-              {[post.kecamatan, post.kabupaten, post.province].filter(Boolean).join(', ') || 'Kalimantan Barat'}
-            </span>
-          </span>
-        </div>
-
         {/* Post Text Content */}
-        <div className="px-4 sm:px-5 pb-3">
-          <p className="text-sm text-neutral-800 leading-relaxed whitespace-pre-line font-medium">
+        <Link
+          to="/community/$postId"
+          params={{ postId: post.id }}
+          className="px-4 sm:px-5 pb-3 block group/content text-left"
+        >
+          <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-line font-normal group-hover/content:text-slate-900 transition">
             {post.content}
           </p>
-        </div>
+        </Link>
 
         {/* Post Media (Image or Video) with Full View Lightbox */}
         {post.imageUrl && (
@@ -128,41 +68,43 @@ export function PostCard({ post }: { post: PostItem }) {
           />
         )}
 
-        {/* Has updates alert snippet if present */}
+        {/* Progress / Activity timeline notice if updates exist */}
         {updateCount > 0 && (
-          <div
-            className="mx-4 sm:mx-5 mb-3 p-2.5 rounded-xl border flex items-center justify-between text-xs"
-            style={{ backgroundColor: '#fff7ed', borderColor: '#fdba74' }}
-          >
-            <div className="flex items-center gap-1.5 text-orange-950 font-bold">
-              <Sparkles className="w-3.5 h-3.5 text-orange-600" />
-              <span>Ada {updateCount} perkembangan dari pengirim</span>
+          <div className="mx-4 sm:mx-5 mb-3 px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between text-xs text-slate-700">
+            <div className="flex items-center gap-2">
+              <Clock className="w-3.5 h-3.5 text-brand-600 shrink-0" />
+              <span>
+                Ada <strong className="font-bold text-slate-900">{updateCount} pembaruan</strong> situasi lapangan
+              </span>
             </div>
             <Link
               to="/community/$postId"
               params={{ postId: post.id }}
-              className="text-orange-700 font-extrabold hover:underline"
+              className="text-brand-700 font-bold hover:text-brand-800 transition shrink-0"
             >
-              Lihat update
+              Lihat log &rarr;
             </Link>
           </div>
         )}
 
-        {/* Card Footer: Comment Count & Detail Button */}
-        <div className="mt-auto px-4 sm:px-5 py-3 border-t border-neutral-100 bg-neutral-50/70 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-neutral-600 text-xs font-semibold">
-            <MessageSquare className="w-4 h-4 text-neutral-400" />
-            <span>{commentCount} komentar</span>
-          </div>
+        {/* Seamless Social / Interaction Footer */}
+        <div className="mt-auto px-4 sm:px-5 py-3 border-t border-slate-100 flex items-center justify-between text-xs">
+          <Link
+            to="/community/$postId"
+            params={{ postId: post.id }}
+            className="flex items-center gap-1.5 text-slate-500 hover:text-brand-700 font-medium transition"
+          >
+            <MessageSquare className="w-4 h-4 text-slate-400" />
+            <span>{commentCount} tanggapan</span>
+          </Link>
 
           <Link
             to="/community/$postId"
             params={{ postId: post.id }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white transition shadow-xs hover:opacity-90 active:scale-95"
-            style={{ backgroundColor: isEmergency ? '#eb5314' : '#262626' }}
+            className="inline-flex items-center gap-1 text-xs font-bold text-slate-700 hover:text-brand-700 transition"
           >
-            <span>Lihat detail</span>
-            <ArrowRight className="w-3.5 h-3.5 text-white" />
+            <span>Buka Laporan</span>
+            <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       </article>

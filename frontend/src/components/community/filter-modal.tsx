@@ -45,7 +45,7 @@ export function FilterModal({ currentFilter, onApply, onClose }: FilterModalProp
 
   const handleReset = () => {
     const emptyFilter: FilterState = {
-      category: '',
+      category: currentFilter.category,
       provinsi: '',
       kabupaten: '',
       kecamatan: '',
@@ -58,7 +58,10 @@ export function FilterModal({ currentFilter, onApply, onClose }: FilterModalProp
 
   const handleApply = (e: React.FormEvent) => {
     e.preventDefault();
-    onApply(filter);
+    onApply({
+      ...filter,
+      category: currentFilter.category,
+    });
     onClose();
   };
 
@@ -75,7 +78,7 @@ export function FilterModal({ currentFilter, onApply, onClose }: FilterModalProp
           <div className="flex items-center gap-2">
             <Filter className="w-4 h-4 text-brand-600" />
             <h2 className="text-base font-extrabold text-neutral-900">
-              Filter Postingan
+              Filter Wilayah
             </h2>
           </div>
           <div className="flex items-center gap-2">
@@ -99,47 +102,14 @@ export function FilterModal({ currentFilter, onApply, onClose }: FilterModalProp
 
         {/* Body */}
         <form onSubmit={handleApply} className="p-5 overflow-y-auto space-y-5 text-left">
-          {/* Kategori */}
-          <div>
-            <label className="block text-xs font-bold text-neutral-700 mb-2">
-              Kategori
-            </label>
-            <p className="text-[11px] text-neutral-400 mb-2.5">
-              Pilih kategori tag pada postingan
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { label: 'Semua', value: '' },
-                { label: 'Darurat', value: 'DARURAT' },
-                { label: 'Informasi', value: 'INFORMASI' },
-              ].map((cat) => {
-                const isActive = (filter.category || '') === cat.value;
-                return (
-                  <button
-                    key={cat.label}
-                    type="button"
-                    onClick={() => setFilter({ ...filter, category: cat.value as any })}
-                    className={`py-2 px-3 rounded-xl text-xs font-bold transition border cursor-pointer ${
-                      isActive
-                        ? 'bg-brand-600 text-white border-brand-600 shadow-xs'
-                        : 'bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50'
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Wilayah */}
-          <div className="space-y-3 pt-1 border-t border-neutral-100">
+          <div className="space-y-3">
             <div>
               <label className="block text-xs font-bold text-neutral-700 mb-1">
                 Wilayah Cakupan
               </label>
               <p className="text-[11px] text-neutral-400 mb-2.5">
-                Batasi cakupan wilayah postingan
+                Batasi kabar berdasarkan tingkatan wilayah Kalimantan
               </p>
             </div>
 
