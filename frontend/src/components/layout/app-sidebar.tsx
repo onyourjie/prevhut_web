@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import {
-  Flame,
   Home,
   Map,
   Users,
@@ -114,9 +113,11 @@ export function AppSidebar({ className }: { className?: string }) {
       {/* Brand Header */}
       <div className="p-5 border-b border-neutral-100 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white shadow-sm shadow-brand-500/30 group-hover:scale-105 transition">
-            <Flame className="w-6 h-6 animate-pulse" />
-          </div>
+          <img
+            src="/logo-firezone.png"
+            alt="FIREZONE Logo"
+            className="w-10 h-10 rounded-xl object-contain shadow-xs group-hover:scale-105 transition"
+          />
           <div>
             <div className="flex items-center gap-1.5">
               <span className="font-extrabold text-base tracking-tight text-neutral-900">FIREZONE</span>

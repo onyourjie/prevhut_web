@@ -1,7 +1,6 @@
 import { useEffect } from 'react';
 import { Link, useRouterState } from '@tanstack/react-router';
 import {
-  Flame,
   X,
   LogOut,
   ChevronRight,
@@ -67,9 +66,11 @@ export function MobileNavDrawer({ isOpen, onClose }: MobileNavDrawerProps) {
             onClick={onClose}
             className="flex items-center gap-2.5 group"
           >
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center text-white shadow-xs">
-              <Flame className="w-5 h-5 animate-pulse" />
-            </div>
+            <img
+              src="/logo-firezone.png"
+              alt="FIREZONE Logo"
+              className="w-9 h-9 rounded-xl object-contain shadow-xs"
+            />
             <div>
               <span className="font-extrabold text-sm tracking-tight text-neutral-900">
                 FIREZONE

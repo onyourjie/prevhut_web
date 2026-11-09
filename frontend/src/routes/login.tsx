@@ -98,11 +98,18 @@ function LoginPage() {
       {/* Right panel: Modern Form */}
       <div className="flex-1 flex items-center justify-center px-4 py-8 sm:px-8 sm:py-12 overflow-y-auto">
         <div className="w-full max-w-md bg-white rounded-2xl border border-neutral-200/80 shadow-lg shadow-black/5 p-6 sm:p-10">
-          {/* Header without icon box */}
+          {/* Header with Firezone Logo */}
           <div className="mb-6">
-            <span className="text-xs font-bold uppercase tracking-wider text-brand-700 block mb-1">
-              FIREZONE PLATFORM
-            </span>
+            <Link to="/" className="inline-flex items-center gap-2.5 mb-3 group">
+              <img
+                src="/logo-firezone.png"
+                alt="FIREZONE Logo"
+                className="w-9 h-9 rounded-xl object-contain shadow-xs group-hover:scale-105 transition"
+              />
+              <span className="font-extrabold text-base tracking-tight text-neutral-900 group-hover:text-orange-600 transition">
+                FIREZONE
+              </span>
+            </Link>
             <h1 className="text-xl sm:text-2xl font-bold text-neutral-1000">
               Masuk ke Akun
             </h1>
