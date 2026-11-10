@@ -75,6 +75,7 @@ function MapPage() {
     lng: number
     title: string
     subtitle?: string
+    isResolved?: boolean
   } | null>(null)
   const [isListOpen, setIsListOpen] = useState(false)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
@@ -118,27 +119,65 @@ function MapPage() {
     const latQuery = urlParams.get('lat')
     const lonQuery = urlParams.get('lon')
     const labelQuery = urlParams.get('label')
+    const statusQuery = urlParams.get('status')
 
     if (!areaQuery && !latQuery && !lonQuery) return
 
-    const paramKey = `${areaQuery || ''}_${latQuery || ''}_${lonQuery || ''}`
+    const paramKey = `${areaQuery || ''}_${latQuery || ''}_${lonQuery || ''}_${statusQuery || ''}`
     if (appliedAreaRef.current === paramKey) return
 
     // Finding 3 Fix: Jika ada areaQuery dan data kluster satelit masih dalam proses muat (areas masih kosong),
     // tunda penandaan appliedAreaRef agar pencocokan kluster satelit dapat berjalan saat data selesai diambil.
-    if (areaQuery && isLoading && areas.length === 0) {
+    if ((areaQuery || (latQuery && lonQuery)) && isLoading && areas.length === 0) {
       return
     }
 
-    // 1. Coba cocokkan dengan kluster satelit NASA jika ada
+    const parsedLat = latQuery ? parseFloat(latQuery) : NaN
+    const parsedLon = lonQuery ? parseFloat(lonQuery) : NaN
+    const hasCoords = !isNaN(parsedLat) && !isNaN(parsedLon)
+
+    // Helper jarak Haversine (km) untuk memvalidasi apakah klaster satelit benar-benar berada di lokasi laporan warga
+    const calcDistKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+      const R = 6371
+      const dLat = ((lat2 - lat1) * Math.PI) / 180
+      const dLon = ((lon2 - lon1) * Math.PI) / 180
+      const a =
+        Math.sin(dLat / 2) ** 2 +
+        Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+    }
+
+    // 1. Coba cocokkan dengan kluster satelit NASA jika status bukan padam
     let match: PriorityArea | undefined
-    if (areaQuery && areas.length > 0) {
-      match = areas.find(
-        (a) =>
-          a.name.toLowerCase() === areaQuery.toLowerCase() ||
-          a.name.toLowerCase().includes(areaQuery.toLowerCase()) ||
-          a.id === areaQuery
-      )
+    if (statusQuery !== 'padam' && areas.length > 0) {
+      if (hasCoords) {
+        // Jika ada koordinat asli laporan warga, WAJIB validasi jarak <= 25 km agar tidak lompat ke kabupaten lain!
+        const nearbyClusters = areas
+          .map((a) => ({
+            area: a,
+            dist: calcDistKm(parsedLat, parsedLon, a.coordinates.lat, a.coordinates.lng),
+          }))
+          .filter((item) => item.dist <= 25.0)
+          .sort((a, b) => a.dist - b.dist)
+
+        if (nearbyClusters.length > 0) {
+          const exactNameMatch = areaQuery
+            ? nearbyClusters.find(
+                (item) =>
+                  item.area.name.toLowerCase() === areaQuery.toLowerCase() ||
+                  item.area.id === areaQuery
+              )
+            : undefined
+          match = (exactNameMatch || nearbyClusters[0]).area
+        }
+      } else if (areaQuery) {
+        match = areas.find(
+          (a) =>
+            a.name.toLowerCase() === areaQuery.toLowerCase() ||
+            a.name.toLowerCase().includes(areaQuery.toLowerCase()) ||
+            a.id === areaQuery
+        )
+      }
     }
 
     if (match) {
@@ -148,21 +187,21 @@ function MapPage() {
       return
     }
 
-    if (latQuery && lonQuery) {
-      // 2. Jika tidak ada kluster satelit NASA, tapi ada koordinat laporan warga
-      const parsedLat = parseFloat(latQuery)
-      const parsedLon = parseFloat(lonQuery)
-      if (!isNaN(parsedLat) && !isNaN(parsedLon)) {
-        appliedAreaRef.current = paramKey
-        setSelectedArea(null)
-        setCitizenFocusPoint({
-          lat: parsedLat,
-          lng: parsedLon,
-          title: labelQuery || areaQuery || 'Laporan Titik Api Warga',
-          subtitle: 'Laporan warga belum terdeteksi satelit NASA FIRMS (Perlu Ground Checking)',
-        })
-        return
-      }
+    if (hasCoords) {
+      // 2. Jika kluster satelit di lokasi ini sudah padam/mereda atau belum terdeteksi, fokus tepat ke koordinat asli laporan warga
+      const isResolved = statusQuery === 'padam' || Boolean(areaQuery)
+      appliedAreaRef.current = paramKey
+      setSelectedArea(null)
+      setCitizenFocusPoint({
+        lat: parsedLat,
+        lng: parsedLon,
+        title: labelQuery || 'Lokasi Laporan Warga',
+        subtitle: isResolved
+          ? 'Titik panas satelit NASA pada lokasi ini sudah padam / tidak terdeteksi lagi pada orbit terbaru'
+          : 'Laporan warga belum terdeteksi satelit NASA FIRMS (Perlu Ground Checking)',
+        isResolved,
+      })
+      return
     }
 
     if (areaQuery) {
@@ -185,6 +224,7 @@ function MapPage() {
           lng: coords.lng,
           title: labelQuery || areaQuery,
           subtitle: 'Perkiraan wilayah laporan warga (Perlu Ground Checking)',
+          isResolved: statusQuery === 'padam',
         })
         return
       }
@@ -386,27 +426,50 @@ function MapPage() {
         </div>
       </div>
 
-      {/* Floating Info Banner untuk Laporan Warga Belum Ada Kluster Satelit */}
+      {/* Floating Info Banner untuk Fokus Lokasi Laporan Warga */}
       {citizenFocusPoint && !selectedArea && (
-        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[400] max-w-lg w-[92%] bg-white/95 backdrop-blur-md rounded-2xl border border-amber-300 shadow-xl p-3.5 flex items-start justify-between gap-3 animate-in fade-in slide-in-from-top-4">
+        <div
+          className={`absolute top-4 left-1/2 -translate-x-1/2 z-[400] max-w-lg w-[92%] bg-white/95 backdrop-blur-md rounded-2xl border shadow-xl p-3.5 flex items-start justify-between gap-3 animate-in fade-in slide-in-from-top-4 ${
+            citizenFocusPoint.isResolved ? 'border-emerald-300' : 'border-amber-300'
+          }`}
+        >
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 mt-0.5">
-              <Flame className="w-4 h-4 text-amber-600" />
+            <div
+              className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 mt-0.5 ${
+                citizenFocusPoint.isResolved
+                  ? 'bg-emerald-100 text-emerald-700'
+                  : 'bg-amber-100 text-amber-700'
+              }`}
+            >
+              <Flame
+                className={`w-4 h-4 ${
+                  citizenFocusPoint.isResolved ? 'text-emerald-600' : 'text-amber-600'
+                }`}
+              />
             </div>
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200">
-                  Laporan Warga
+                  Lokasi Laporan Warga
                 </span>
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">
-                  Satelit Belum Mendeteksi
-                </span>
+                {citizenFocusPoint.isResolved ? (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    Titik Api Sudah Padam / Mereda
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-600 border border-neutral-200">
+                    Satelit Belum Mendeteksi
+                  </span>
+                )}
               </div>
               <h4 className="text-xs font-black text-neutral-900 leading-tight">
                 {citizenFocusPoint.title}
               </h4>
               <p className="text-[11px] text-neutral-600 leading-tight">
-                Koordinat: {citizenFocusPoint.lat.toFixed(5)}, {citizenFocusPoint.lng.toFixed(5)} • Perlu penugasan relawan untuk *ground checking* ke lokasi.
+                Koordinat: {citizenFocusPoint.lat.toFixed(5)}, {citizenFocusPoint.lng.toFixed(5)} •{' '}
+                {citizenFocusPoint.isResolved
+                  ? 'Titik panas satelit NASA pada lokasi laporan ini sudah padam / tidak terdeteksi lagi pada pembaruan orbit terbaru.'
+                  : 'Perlu penugasan relawan untuk ground checking ke lokasi.'}
               </p>
             </div>
           </div>

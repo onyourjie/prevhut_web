@@ -11,6 +11,10 @@ interface PostCardHeaderProps {
   status?: string
   locationText?: string
   clusterCode?: string | null
+  isClusterActive?: boolean
+  activeClusterCode?: string | null
+  latitude?: number
+  longitude?: number
   onReportClick: () => void
 }
 
@@ -21,10 +25,17 @@ export function PostCardHeader({
   status,
   locationText,
   clusterCode,
+  isClusterActive,
+  activeClusterCode,
+  latitude,
+  longitude,
   onReportClick,
 }: PostCardHeaderProps) {
   const [showMenu, setShowMenu] = useState(false)
   const isEmergency = category === 'DARURAT'
+  const hasCoords = typeof latitude === 'number' && typeof longitude === 'number' && !isNaN(latitude) && !isNaN(longitude)
+  const effectiveClusterCode = activeClusterCode || clusterCode
+  const isSatelliteStillActive = status !== 'SELESAI' && isClusterActive !== false && Boolean(effectiveClusterCode)
 
   return (
     <div className="p-4 sm:p-5 pb-2.5 flex items-start justify-between gap-3">
@@ -70,18 +81,38 @@ export function PostCardHeader({
             )}
           </div>
 
-          {/* NASA Cluster Link (if tagged) */}
+          {/* NASA Cluster Link / Location Map Link */}
           {clusterCode && (
             <div className="mt-1.5">
-              <Link
-                to="/map"
-                search={{ area: clusterCode }}
-                onClick={(e) => e.stopPropagation()}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-700 hover:text-brand-800 bg-brand-50/80 hover:bg-brand-100/80 border border-brand-200/70 px-2 py-0.5 rounded-md transition"
-              >
-                <span>Satelit NASA: {clusterCode}</span>
-                <ArrowRight className="w-2.5 h-2.5" />
-              </Link>
+              {isSatelliteStillActive ? (
+                <Link
+                  to="/map"
+                  search={{
+                    area: effectiveClusterCode!,
+                    ...(hasCoords ? { lat: latitude, lon: longitude } : {}),
+                    ...(locationText ? { label: locationText } : {}),
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-brand-700 hover:text-brand-800 bg-brand-50/80 hover:bg-brand-100/80 border border-brand-200/70 px-2 py-0.5 rounded-md transition"
+                >
+                  <span>Satelit NASA: {effectiveClusterCode}</span>
+                  <ArrowRight className="w-2.5 h-2.5" />
+                </Link>
+              ) : (
+                <Link
+                  to="/map"
+                  search={{
+                    ...(hasCoords ? { lat: latitude, lon: longitude } : { area: locationText || clusterCode }),
+                    ...(locationText ? { label: locationText } : {}),
+                    status: 'padam',
+                  }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center gap-1 text-[11px] font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/70 border border-slate-200 px-2 py-0.5 rounded-md transition"
+                >
+                  <span>Titik Satelit Padam • Lihat Lokasi</span>
+                  <ArrowRight className="w-2.5 h-2.5" />
+                </Link>
+              )}
             </div>
           )}
         </div>

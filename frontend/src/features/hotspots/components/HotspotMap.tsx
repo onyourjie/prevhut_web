@@ -29,7 +29,7 @@ export interface HotspotMapProps {
   selectedArea?: PriorityArea | null
   onSelectArea?: (area: PriorityArea | null) => void
   userLocation?: { lat: number; lng: number }
-  citizenFocusPoint?: { lat: number; lng: number; title: string; subtitle?: string } | null
+  citizenFocusPoint?: { lat: number; lng: number; title: string; subtitle?: string; isResolved?: boolean } | null
   hideControlsOnMobile?: boolean
   /** Panel rincian desktop terbuka di kanan; geser kontrol peta agar tidak tertimpa. */
   desktopPanelOpen?: boolean
@@ -135,9 +135,19 @@ export function HotspotMap({
           >
             <Tooltip permanent direction="top" offset={[0, -32]} className="font-sans font-bold text-xs shadow-md rounded-xl">
               <div className="p-1 space-y-0.5 text-center">
-                <span className="text-[10px] uppercase font-black text-amber-600 block">Laporan Warga</span>
+                <span
+                  className={`text-[10px] uppercase font-black block ${
+                    citizenFocusPoint.isResolved ? 'text-emerald-600' : 'text-amber-600'
+                  }`}
+                >
+                  {citizenFocusPoint.isResolved ? 'Lokasi Laporan • Padam' : 'Laporan Warga'}
+                </span>
                 <span className="text-neutral-900 block font-black">{citizenFocusPoint.title}</span>
-                <span className="text-[9px] text-neutral-500 font-normal block">Belum ada kluster satelit NASA</span>
+                <span className="text-[9px] text-neutral-500 font-normal block">
+                  {citizenFocusPoint.isResolved
+                    ? 'Titik panas satelit sudah tidak aktif'
+                    : 'Belum ada kluster satelit NASA'}
+                </span>
               </div>
             </Tooltip>
           </Marker>

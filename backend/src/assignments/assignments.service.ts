@@ -33,8 +33,8 @@ export class AssignmentsService {
         notes: dto.notes,
       },
       include: {
-        volunteer: { select: { id: true, name: true, phone: true } },
-        post: { select: { id: true, content: true, address: true, category: true } },
+        volunteer: { select: { id: true, name: true, phone: true, kabupaten: true } },
+        post: { select: { id: true, content: true, address: true, category: true, kabupaten: true } },
       },
     });
 
@@ -46,13 +46,18 @@ export class AssignmentsService {
       });
     }
 
-    // Sinkronisasi: otomatis ubah semua laporan warga di cluster/area yang sama menjadi DALAM_PENANGANAN
+    // Sinkronisasi: otomatis ubah semua laporan warga di cluster & wilayah kabupaten yang sama menjadi DALAM_PENANGANAN
     if (dto.clusterCode) {
+      const targetKab = assignment.post?.kabupaten || assignment.volunteer?.kabupaten;
+      const cleanKab = targetKab ? targetKab.replace(/^(kabupaten|kota)\s+/i, '').trim() : '';
       await this.prisma.post.updateMany({
         where: {
           category: PostCategory.DARURAT,
           clusterCode: dto.clusterCode,
           status: PostStatus.MENUNGGU_VERIFIKASI,
+          ...(cleanKab
+            ? { kabupaten: { contains: cleanKab, mode: 'insensitive' as const } }
+            : {}),
         },
         data: { status: PostStatus.DALAM_PENANGANAN },
       });
@@ -276,6 +281,16 @@ export class AssignmentsService {
   }
 
   private async resolveClusterPosts(clusterCode: string, currentAssignmentId: string) {
+    const currentTask = await this.prisma.volunteerAssignment.findUnique({
+      where: { id: currentAssignmentId },
+      include: {
+        post: { select: { kabupaten: true } },
+        volunteer: { select: { kabupaten: true } },
+      },
+    });
+    const targetKab = currentTask?.post?.kabupaten || currentTask?.volunteer?.kabupaten;
+    const cleanKab = targetKab ? targetKab.replace(/^(kabupaten|kota)\s+/i, '').trim() : '';
+
     const stillActive = await this.prisma.volunteerAssignment.count({
       where: {
         clusterCode,
@@ -297,6 +312,9 @@ export class AssignmentsService {
           category: PostCategory.DARURAT,
           clusterCode,
           status: PostStatus.DALAM_PENANGANAN,
+          ...(cleanKab
+            ? { kabupaten: { contains: cleanKab, mode: 'insensitive' as const } }
+            : {}),
         },
         data: { status: PostStatus.SELESAI },
       });
@@ -304,6 +322,16 @@ export class AssignmentsService {
   }
 
   private async revertClusterPostsOnReject(clusterCode: string, currentAssignmentId: string) {
+    const currentTask = await this.prisma.volunteerAssignment.findUnique({
+      where: { id: currentAssignmentId },
+      include: {
+        post: { select: { kabupaten: true } },
+        volunteer: { select: { kabupaten: true } },
+      },
+    });
+    const targetKab = currentTask?.post?.kabupaten || currentTask?.volunteer?.kabupaten;
+    const cleanKab = targetKab ? targetKab.replace(/^(kabupaten|kota)\s+/i, '').trim() : '';
+
     const stillActive = await this.prisma.volunteerAssignment.count({
       where: {
         clusterCode,
@@ -325,6 +353,9 @@ export class AssignmentsService {
           category: PostCategory.DARURAT,
           clusterCode,
           status: PostStatus.DALAM_PENANGANAN,
+          ...(cleanKab
+            ? { kabupaten: { contains: cleanKab, mode: 'insensitive' as const } }
+            : {}),
         },
         data: { status: PostStatus.MENUNGGU_VERIFIKASI },
       });

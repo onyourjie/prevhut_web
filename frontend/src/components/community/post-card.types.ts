@@ -21,6 +21,8 @@ export interface PostItem {
   longitude: number
   status: string
   clusterCode?: string | null
+  isClusterActive?: boolean
+  activeClusterCode?: string | null
   createdAt: string
   author: PostAuthor
   updates?: any[]

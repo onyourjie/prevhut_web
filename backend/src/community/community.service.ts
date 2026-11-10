@@ -9,12 +9,147 @@ import { FlagPostDto } from './dto/flag-post.dto.js';
 import { PostCategory, PostStatus, Role } from '@prisma/client';
 import { normalizeDataServiceUrl } from '../common/url.util.js';
 
+function haversineDistKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371.0;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180.0;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180.0;
+  const a =
+    Math.sin(dLat / 2.0) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180.0) *
+      Math.cos((lat2 * Math.PI) / 180.0) *
+      Math.sin(dLon / 2.0) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+function isSameRegency(kabA?: string | null, kabB?: string | null): boolean {
+  if (!kabA || !kabB) return true;
+  const cleanA = kabA.toLowerCase().replace(/^(kabupaten|kota)\s+/i, '').trim();
+  const cleanB = kabB.toLowerCase().replace(/^(kabupaten|kota)\s+/i, '').trim();
+  if (!cleanA || !cleanB) return true;
+  return cleanA.includes(cleanB) || cleanB.includes(cleanA);
+}
+
 @Injectable()
 export class CommunityService {
   private readonly logger = new Logger(CommunityService.name);
   private readonly dataServiceUrl = normalizeDataServiceUrl(process.env.DATA_SERVICE_URL);
+  private liveClustersCache: { data: any[] | null; expiresAt: number } = { data: null, expiresAt: 0 };
 
   constructor(private prisma: PrismaService) {}
+
+  private async getLiveClustersSnapshot(): Promise<any[] | null> {
+    const now = Date.now();
+    if (this.liveClustersCache.data && now < this.liveClustersCache.expiresAt) {
+      return this.liveClustersCache.data;
+    }
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch(`${this.dataServiceUrl}/api/clusters`, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!res.ok) return null;
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        this.liveClustersCache = { data, expiresAt: now + 45_000 };
+        return data;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  private findMatchingActiveCluster(lat?: number | null, lon?: number | null, liveClusters?: any[] | null): any | null {
+    if (typeof lat !== 'number' || typeof lon !== 'number' || !Array.isArray(liveClusters)) {
+      return null;
+    }
+    let bestCluster: any = null;
+    let bestDist = Infinity;
+    for (const c of liveClusters) {
+      const cLat = c?.centroid?.latitude;
+      const cLon = c?.centroid?.longitude;
+      if (typeof cLat === 'number' && typeof cLon === 'number') {
+        const d = haversineDistKm(lat, lon, cLat, cLon);
+        if (d <= 25.0 && d < bestDist) {
+          bestDist = d;
+          bestCluster = c;
+        }
+      }
+    }
+    return bestCluster;
+  }
+
+  private async reconcilePostWithSatellite(p: any, liveClusters: any[] | null): Promise<any> {
+    if (!Array.isArray(liveClusters)) {
+      return {
+        ...p,
+        isClusterActive: p.status !== PostStatus.SELESAI && Boolean(p.clusterCode),
+        activeClusterCode: p.status !== PostStatus.SELESAI ? p.clusterCode : null,
+      };
+    }
+
+    const matchedCluster = this.findMatchingActiveCluster(p.latitude, p.longitude, liveClusters);
+
+    if (matchedCluster && matchedCluster.code) {
+      // Masih ada klaster satelit aktif dalam radius <= 25 km dari titik koordinat laporan warga
+      const currentCode = String(matchedCluster.code);
+      if (p.status !== PostStatus.SELESAI && p.clusterCode !== currentCode) {
+        try {
+          await this.prisma.post.update({
+            where: { id: p.id },
+            data: { clusterCode: currentCode },
+          });
+          p.clusterCode = currentCode;
+        } catch {}
+      }
+      return {
+        ...p,
+        isClusterActive: p.status !== PostStatus.SELESAI,
+        activeClusterCode: p.status !== PostStatus.SELESAI ? currentCode : null,
+      };
+    }
+
+    // TIDAK ADA klaster satelit aktif dalam radius <= 25 km dari koordinat laporan ini
+    const hasActiveAssignment = Array.isArray(p.assignments) && p.assignments.some((a: any) =>
+      ['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'].includes(a.status)
+    );
+    const ageMs = Date.now() - new Date(p.createdAt).getTime();
+    const shouldAutoResolve =
+      p.category === PostCategory.DARURAT &&
+      p.status === PostStatus.MENUNGGU_VERIFIKASI &&
+      !hasActiveAssignment &&
+      ((Boolean(p.clusterCode) && ageMs >= 15 * 60 * 1000) || ageMs >= 3 * 60 * 60 * 1000);
+
+    if (shouldAutoResolve) {
+      try {
+        await this.prisma.post.update({
+          where: { id: p.id },
+          data: { status: PostStatus.SELESAI },
+        });
+        await this.prisma.postUpdate.create({
+          data: {
+            postId: p.id,
+            authorId: p.authorId,
+            content:
+              'Status laporan diperbarui otomatis menjadi Padam karena pada pembaruan data satelit NASA FIRMS terbaru sudah tidak terdeteksi lagi titik panas aktif di sekitar lokasi laporan ini.',
+          },
+        });
+        p.status = PostStatus.SELESAI;
+        if (p._count && typeof p._count.updates === 'number') {
+          p._count.updates += 1;
+        }
+      } catch (err: any) {
+        this.logger.warn(`Gagal menjalankan auto-resolve postingan ${p.id}: ${err.message}`);
+      }
+    }
+
+    return {
+      ...p,
+      isClusterActive: false,
+      activeClusterCode: null,
+    };
+  }
 
   async getUserQuota(userId: string) {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
@@ -146,12 +281,16 @@ export class CommunityService {
       },
     });
 
+    const liveClusters = await this.getLiveClustersSnapshot();
+
     // Sinkronisasi klaster: pasangkan assignment HANYA jika sedang aktif berjalan
-    // ATAU jika selesai setelah postingan tersebut dibuat (bukan tugas masa lalu)
+    // ATAU jika selesai setelah postingan tersebut dibuat (bukan tugas masa lalu),
+    // serta pastikan berada di kabupaten yang sama (mencegah kebocoran Area Pantau lintas kabupaten).
     const enrichedPosts = await Promise.all(
       posts.map(async (p) => {
+        let postWithAssignments = p;
         if ((!p.assignments || p.assignments.length === 0) && p.clusterCode) {
-          const clusterAssignment = await this.prisma.volunteerAssignment.findFirst({
+          const clusterAssignments = await this.prisma.volunteerAssignment.findMany({
             where: {
               clusterCode: p.clusterCode,
               OR: [
@@ -165,13 +304,20 @@ export class CommunityService {
             orderBy: { createdAt: 'desc' },
             include: {
               volunteer: { select: { id: true, name: true, phone: true, avatarUrl: true, kabupaten: true } },
+              post: { select: { id: true, kabupaten: true, latitude: true, longitude: true } },
             },
           });
-          if (clusterAssignment) {
-            return { ...p, assignments: [clusterAssignment] };
+          const validAssignment = clusterAssignments.find((ca) => {
+            if (ca.post?.latitude != null && ca.post?.longitude != null && p.latitude != null && p.longitude != null) {
+              return haversineDistKm(p.latitude, p.longitude, ca.post.latitude, ca.post.longitude) <= 25.0;
+            }
+            return isSameRegency(p.kabupaten, ca.post?.kabupaten || ca.volunteer?.kabupaten);
+          });
+          if (validAssignment) {
+            postWithAssignments = { ...p, assignments: [validAssignment] };
           }
         }
-        return p;
+        return this.reconcilePostWithSatellite(postWithAssignments, liveClusters);
       })
     );
 
@@ -225,9 +371,9 @@ export class CommunityService {
     }
 
     // Jika belum ada assignment langsung tapi ada clusterCode, ambil penugasan klaster
-    // HANYA jika tugas sedang aktif atau diselesaikan setelah laporan warga dibuat
+    // HANYA jika tugas sedang aktif atau diselesaikan setelah laporan warga dibuat & berada di wilayah yang sama
     if ((!post.assignments || post.assignments.length === 0) && post.clusterCode) {
-      const clusterAssignment = await this.prisma.volunteerAssignment.findFirst({
+      const clusterAssignments = await this.prisma.volunteerAssignment.findMany({
         where: {
           clusterCode: post.clusterCode,
           OR: [
@@ -241,14 +387,36 @@ export class CommunityService {
         orderBy: { createdAt: 'desc' },
         include: {
           volunteer: { select: { id: true, name: true, phone: true, avatarUrl: true, kabupaten: true } },
+          post: { select: { id: true, kabupaten: true, latitude: true, longitude: true } },
         },
       });
-      if (clusterAssignment) {
-        post.assignments = [clusterAssignment];
+      const validAssignment = clusterAssignments.find((ca) => {
+        if (ca.post?.latitude != null && ca.post?.longitude != null && post.latitude != null && post.longitude != null) {
+          return haversineDistKm(post.latitude, post.longitude, ca.post.latitude, ca.post.longitude) <= 25.0;
+        }
+        return isSameRegency(post.kabupaten, ca.post?.kabupaten || ca.volunteer?.kabupaten);
+      });
+      if (validAssignment) {
+        post.assignments = [validAssignment];
       }
     }
 
-    return post;
+    const liveClusters = await this.getLiveClustersSnapshot();
+    const reconciled = await this.reconcilePostWithSatellite(post, liveClusters);
+
+    // Jika baru saja auto-resolved, muat ulang updates agar log otomatis langsung tampil
+    if (reconciled.status === PostStatus.SELESAI && post.updates.length === 0) {
+      const freshUpdates = await this.prisma.postUpdate.findMany({
+        where: { postId: post.id },
+        orderBy: { createdAt: 'asc' },
+        include: {
+          author: { select: { id: true, name: true, role: true, avatarUrl: true } },
+        },
+      });
+      reconciled.updates = freshUpdates;
+    }
+
+    return reconciled;
   }
 
   async createPost(userId: string, dto: CreatePostDto) {
@@ -460,15 +628,24 @@ export class CommunityService {
       ];
     }
 
-    const posts = await this.prisma.post.findMany({
+    const rawPosts = await this.prisma.post.findMany({
       where,
       orderBy: { createdAt: 'desc' },
       include: {
         author: {
           select: { id: true, name: true, phone: true, role: true, avatarUrl: true },
         },
+        assignments: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+        },
       },
     });
+
+    const liveClusters = await this.getLiveClustersSnapshot();
+    const posts = await Promise.all(
+      rawPosts.map((p) => this.reconcilePostWithSatellite(p, liveClusters))
+    );
 
     const assignments = await this.prisma.volunteerAssignment.findMany({
       orderBy: { createdAt: 'desc' },
@@ -476,22 +653,31 @@ export class CommunityService {
         volunteer: {
           select: { id: true, name: true, phone: true, avatarUrl: true, kabupaten: true, province: true },
         },
+        post: {
+          select: { id: true, kabupaten: true, latitude: true, longitude: true },
+        },
       },
     });
 
     const groupsMap = new Map<string, any>();
 
     for (const post of posts) {
+      const locSuffix = `${(post.kecamatan || '').toLowerCase().trim()}_${(post.kabupaten || '').toLowerCase().trim()}`;
       const groupKey = post.clusterCode
-        ? `cluster:${post.clusterCode}`
-        : `loc:${post.kecamatan || ''}_${post.kabupaten || ''}`;
+        ? `cluster:${post.clusterCode}_${locSuffix}`
+        : `loc:${locSuffix}`;
 
       if (!groupsMap.has(groupKey)) {
         // Cari assignment yang masih aktif, atau jika completed, completed setelah postingan terbaru dibuat
+        // serta berada di kabupaten/koordinat yang sama
         const matchAssignment =
           assignments.find((a) => {
-            const isMatch = (post.clusterCode && a.clusterCode === post.clusterCode) || a.postId === post.id;
-            if (!isMatch) return false;
+            const isDirectPost = a.postId === post.id;
+            const isClusterMatch =
+              post.clusterCode &&
+              a.clusterCode === post.clusterCode &&
+              isSameRegency(post.kabupaten, a.post?.kabupaten || a.volunteer?.kabupaten);
+            if (!isDirectPost && !isClusterMatch) return false;
             // Jika assignment masih aktif berjalan: valid
             if (['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'].includes(a.status)) return true;
             // Jika assignment sudah selesai di masa lalu: hanya valid jika selesai setelah laporan ini dibuat
@@ -501,10 +687,15 @@ export class CommunityService {
             return false;
           }) || null;
 
+        const activeClusterLabel = post.isClusterActive && post.activeClusterCode ? post.activeClusterCode : null;
+
         groupsMap.set(groupKey, {
           key: groupKey,
-          clusterCode: post.clusterCode || null,
-          title: post.clusterCode || `Titik Api ${post.kecamatan ? post.kecamatan + ', ' : ''}${post.kabupaten || 'Kalimantan'}`,
+          clusterCode: activeClusterLabel || post.clusterCode || null,
+          isClusterActive: Boolean(post.isClusterActive),
+          title:
+            activeClusterLabel ||
+            `Titik Api ${post.kecamatan ? post.kecamatan + ', ' : ''}${post.kabupaten || 'Kalimantan'}`,
           address: post.address,
           province: post.province,
           kabupaten: post.kabupaten,

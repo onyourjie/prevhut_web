@@ -93,20 +93,59 @@ export function PostDetailMainCard({
         </span>
       </div>
 
-      {/* Connected Satellite Cluster (if tagged) */}
-      {post.clusterCode && (
-        <div>
-          <Link
-            to="/map"
-            search={{ area: post.clusterCode }}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:text-brand-800 bg-brand-50/80 hover:bg-brand-100/80 border border-brand-200/70 px-2.5 py-1 rounded-lg transition"
-          >
-            <Compass className="w-3.5 h-3.5 text-brand-600" />
-            <span>Satelit NASA: {post.clusterCode}</span>
-            <ArrowRight className="w-3 h-3 text-brand-500" />
-          </Link>
-        </div>
-      )}
+      {/* Connected Satellite Cluster / Location Map Link */}
+      {post.clusterCode && (() => {
+        const hasCoords =
+          typeof post.latitude === "number" &&
+          typeof post.longitude === "number" &&
+          !isNaN(post.latitude) &&
+          !isNaN(post.longitude);
+        const locationLabel =
+          [post.kecamatan, post.kabupaten, post.province].filter(Boolean).join(", ") ||
+          post.address ||
+          "Lokasi Laporan Warga";
+        const effectiveClusterCode = post.activeClusterCode || post.clusterCode;
+        const isSatelliteStillActive =
+          post.status !== "SELESAI" &&
+          post.isClusterActive !== false &&
+          Boolean(effectiveClusterCode);
+
+        return (
+          <div>
+            {isSatelliteStillActive ? (
+              <Link
+                to="/map"
+                search={{
+                  area: effectiveClusterCode,
+                  ...(hasCoords ? { lat: post.latitude, lon: post.longitude } : {}),
+                  label: locationLabel,
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-700 hover:text-brand-800 bg-brand-50/80 hover:bg-brand-100/80 border border-brand-200/70 px-2.5 py-1 rounded-lg transition"
+              >
+                <Compass className="w-3.5 h-3.5 text-brand-600" />
+                <span>Satelit NASA: {effectiveClusterCode}</span>
+                <ArrowRight className="w-3 h-3 text-brand-500" />
+              </Link>
+            ) : (
+              <Link
+                to="/map"
+                search={{
+                  ...(hasCoords
+                    ? { lat: post.latitude, lon: post.longitude }
+                    : { area: locationLabel }),
+                  label: locationLabel,
+                  status: "padam",
+                }}
+                className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200/70 border border-slate-200 px-2.5 py-1 rounded-lg transition"
+              >
+                <Compass className="w-3.5 h-3.5 text-slate-500" />
+                <span>Titik Satelit Padam • Lihat Lokasi</span>
+                <ArrowRight className="w-3 h-3 text-slate-500" />
+              </Link>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Content Text */}
       <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-line font-normal">

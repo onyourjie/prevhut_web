@@ -44,6 +44,10 @@ export function PostCard({ post }: { post: PostItem }) {
           status={post.status}
           locationText={locationText}
           clusterCode={post.clusterCode}
+          isClusterActive={post.isClusterActive}
+          activeClusterCode={post.activeClusterCode}
+          latitude={post.latitude}
+          longitude={post.longitude}
           onReportClick={() => setShowFlagModal(true)}
         />
 

@@ -38,6 +38,7 @@ export interface IncidentPost {
 export interface IncidentGroup {
   key: string
   clusterCode?: string | null
+  isClusterActive?: boolean
   title: string
   address: string
   province: string
@@ -132,16 +133,27 @@ export function IncidentCard({
             const firstPost = incident.posts?.[0]
             const incidentLat = incident.latitude ?? firstPost?.latitude
             const incidentLon = incident.longitude ?? firstPost?.longitude
+            const locLabel =
+              [incident.kecamatan, incident.kabupaten, incident.province]
+                .filter(Boolean)
+                .join(', ') || incident.title
+            const isActiveSatellite =
+              incident.status !== 'SELESAI' &&
+              incident.isClusterActive !== false &&
+              Boolean(incident.clusterCode)
 
             return (
               <Link
                 to="/map"
                 search={{
-                  area: incident.clusterCode || incident.title,
+                  ...(isActiveSatellite ? { area: incident.clusterCode! } : {}),
                   ...(incidentLat != null && incidentLon != null
                     ? { lat: Number(incidentLat), lon: Number(incidentLon) }
                     : {}),
-                  label: incident.title,
+                  label: locLabel,
+                  ...(incident.status === 'SELESAI' || incident.isClusterActive === false
+                    ? { status: 'padam' }
+                    : {}),
                 }}
                 className="px-3 py-1.5 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 text-orange-900 text-xs font-bold transition flex items-center gap-1.5"
               >
