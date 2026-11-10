@@ -47,28 +47,36 @@ export function AdminDashboard({
   const [isSyncing, setIsSyncing] = useState(false);
   const [assignIncident, setAssignIncident] = useState<IncidentGroup | null>(null);
 
-  // 1. Ambil seluruh insiden darurat warga
+  // 1. Ambil seluruh insiden darurat warga (polling otomatis 15 detik agar sinkron saat relawan merespons)
   const { data: incidents = [], isLoading: isLoadingIncidents } = useQuery<IncidentGroup[]>({
     queryKey: ['admin-incidents'],
     queryFn: () => apiRequest<IncidentGroup[]>('/community/incidents'),
+    refetchInterval: 15000,
   });
 
   // 2. Ambil daftar relawan yang sedang standby (isAvailable: true)
   const { data: availableVolunteers = [] } = useQuery<VolunteerItem[]>({
     queryKey: ['admin-available-volunteers'],
     queryFn: () => apiRequest<VolunteerItem[]>('/users/volunteers'),
+    refetchInterval: 15000,
   });
 
   // 3. Ambil daftar seluruh penugasan untuk memantau operasi berjalan
   const { data: allAssignments = [], isLoading: isLoadingAssignments } = useQuery<Assignment[]>({
     queryKey: ['admin-assignments'],
     queryFn: () => apiRequest<Assignment[]>('/assignments'),
+    refetchInterval: 15000,
   });
 
   // 4. Hitung metrik operasional
-  const unassignedIncidents = incidents.filter(
-    (inc) => inc.status === 'MENUNGGU_VERIFIKASI'
-  );
+  // Insiden mendesak: berstatus MENUNGGU_VERIFIKASI, atau DALAM_PENANGANAN tapi tidak ada penugasan aktif (misal relawan menolak)
+  const unassignedIncidents = incidents.filter((inc) => {
+    if (inc.status === 'SELESAI') return false;
+    if (inc.status === 'MENUNGGU_VERIFIKASI') return true;
+    const hasActiveAssignment =
+      inc.assignment && ['ASSIGNED', 'ACCEPTED', 'ON_THE_WAY', 'ON_SITE'].includes(inc.assignment.status);
+    return !hasActiveAssignment;
+  });
   const activeAssignments = allAssignments.filter((a) =>
     ['ACCEPTED', 'ON_THE_WAY', 'ON_SITE'].includes(a.status)
   );
@@ -256,12 +264,20 @@ export function AdminDashboard({
           <div className="space-y-2.5">
             {unassignedIncidents.slice(0, 4).map((incident) => {
               const latestPost = incident.posts[0];
+              // Cari apakah ada riwayat penolakan tugas oleh relawan untuk insiden ini
+              const rejectedAssignment = allAssignments.find(
+                (a) =>
+                  a.status === 'REJECTED' &&
+                  ((incident.clusterCode && a.clusterCode === incident.clusterCode) ||
+                    incident.posts.some((p) => p.id === a.postId))
+              );
+
               return (
                 <div
                   key={incident.key}
                   className="p-3.5 rounded-xl border border-slate-200/90 border-l-4 border-l-red-500 bg-slate-50/50 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:bg-slate-50 transition"
                 >
-                  <div className="space-y-1 min-w-0">
+                  <div className="space-y-1.5 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-extrabold text-xs text-slate-900 truncate">
                         {incident.title}
@@ -269,6 +285,11 @@ export function AdminDashboard({
                       {incident.clusterCode && (
                         <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-amber-100 text-amber-900 border border-amber-200">
                           {incident.clusterCode}
+                        </span>
+                      )}
+                      {rejectedAssignment && (
+                        <span className="text-[10px] font-bold px-1.5 py-0.2 rounded bg-rose-100 text-rose-800 border border-rose-200">
+                          Ditolak Relawan • Butuh Disposisi Ulang
                         </span>
                       )}
                       <span className="text-[11px] text-slate-400">
@@ -280,6 +301,12 @@ export function AdminDashboard({
                       <MapPin className="w-3 h-3 text-slate-400 shrink-0" />
                       <span className="truncate">{incident.address || `${incident.kecamatan}, ${incident.kabupaten}`}</span>
                     </div>
+
+                    {rejectedAssignment?.rejectionReason && (
+                      <p className="text-[11px] text-rose-700 bg-rose-50 px-2 py-1 rounded-md border border-rose-200/60 font-medium line-clamp-1">
+                        Alasan penolakan ({rejectedAssignment.volunteer?.name || 'Relawan'}): "{rejectedAssignment.rejectionReason}"
+                      </p>
+                    )}
 
                     {latestPost?.content && (
                       <p className="text-xs text-slate-700 line-clamp-1 italic">

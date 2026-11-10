@@ -190,6 +190,36 @@ export class AssignmentsService {
       },
     });
 
+    // Kembalikan status laporan warga ke MENUNGGU_VERIFIKASI jika tidak ada penugasan aktif lain
+    // agar insiden ini otomatis muncul kembali di Antrean Darurat Mendesak Posko Admin
+    if (task.postId) {
+      const stillActivePost = await this.prisma.volunteerAssignment.count({
+        where: {
+          postId: task.postId,
+          id: { not: assignmentId },
+          status: {
+            in: [
+              AssignmentStatus.ASSIGNED,
+              AssignmentStatus.ACCEPTED,
+              AssignmentStatus.ON_THE_WAY,
+              AssignmentStatus.ON_SITE,
+            ],
+          },
+        },
+      });
+
+      if (stillActivePost === 0) {
+        await this.prisma.post.update({
+          where: { id: task.postId },
+          data: { status: PostStatus.MENUNGGU_VERIFIKASI },
+        });
+      }
+    }
+
+    if (task.clusterCode) {
+      await this.revertClusterPostsOnReject(task.clusterCode, task.id);
+    }
+
     // Notify Admin Posko about rejection via push & in-app
     await this.notificationsService.createAndSendNotification({
       userId: task.adminId,
@@ -269,6 +299,34 @@ export class AssignmentsService {
           status: PostStatus.DALAM_PENANGANAN,
         },
         data: { status: PostStatus.SELESAI },
+      });
+    }
+  }
+
+  private async revertClusterPostsOnReject(clusterCode: string, currentAssignmentId: string) {
+    const stillActive = await this.prisma.volunteerAssignment.count({
+      where: {
+        clusterCode,
+        id: { not: currentAssignmentId },
+        status: {
+          in: [
+            AssignmentStatus.ASSIGNED,
+            AssignmentStatus.ACCEPTED,
+            AssignmentStatus.ON_THE_WAY,
+            AssignmentStatus.ON_SITE,
+          ],
+        },
+      },
+    });
+
+    if (stillActive === 0) {
+      await this.prisma.post.updateMany({
+        where: {
+          category: PostCategory.DARURAT,
+          clusterCode,
+          status: PostStatus.DALAM_PENANGANAN,
+        },
+        data: { status: PostStatus.MENUNGGU_VERIFIKASI },
       });
     }
   }
