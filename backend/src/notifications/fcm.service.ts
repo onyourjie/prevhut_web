@@ -47,22 +47,62 @@ export class FcmService implements OnModuleInit {
     }
 
     try {
-      const configPath =
-        this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_PATH') ||
-        './firebase-service-account.json';
-      const resolvedPath = path.isAbsolute(configPath)
-        ? configPath
-        : path.resolve(process.cwd(), configPath);
+      let serviceAccount: any = null;
 
-      if (!fs.existsSync(resolvedPath)) {
+      // 1. Cek environment variable FIREBASE_SERVICE_ACCOUNT (raw JSON atau base64 string)
+      // Sangat berguna untuk cloud hosting (Railway, Render, Fly.io, Docker) tanpa perlu commit file rahasia
+      const envServiceAccount =
+        this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT') ||
+        process.env.FIREBASE_SERVICE_ACCOUNT;
+
+      if (envServiceAccount && envServiceAccount.trim()) {
+        const trimmed = envServiceAccount.trim();
+        try {
+          if (trimmed.startsWith('{')) {
+            serviceAccount = JSON.parse(trimmed);
+          } else {
+            const decoded = Buffer.from(trimmed, 'base64').toString('utf8');
+            serviceAccount = JSON.parse(decoded);
+          }
+          this.logger.log('[FCM] Memuat kredensial Firebase dari environment variable FIREBASE_SERVICE_ACCOUNT');
+        } catch (parseErr) {
+          this.logger.error(
+            '[FCM] Gagal mem-parse kredensial dari FIREBASE_SERVICE_ACCOUNT environment variable:',
+            parseErr,
+          );
+        }
+      }
+
+      // 2. Jika tidak ada di env, cek file fisik di disk (FIREBASE_SERVICE_ACCOUNT_PATH atau default)
+      if (!serviceAccount) {
+        const configPath =
+          this.configService.get<string>('FIREBASE_SERVICE_ACCOUNT_PATH') ||
+          './firebase-service-account.json';
+        const resolvedPath = path.isAbsolute(configPath)
+          ? configPath
+          : path.resolve(process.cwd(), configPath);
+
+        if (fs.existsSync(resolvedPath)) {
+          const fileContent = fs.readFileSync(resolvedPath, 'utf8');
+          serviceAccount = JSON.parse(fileContent);
+          this.logger.log(`[FCM] Memuat kredensial Firebase dari file: ${resolvedPath}`);
+        } else {
+          // Cek fallback di subfolder backend jika process running dari root repo
+          const altPath = path.resolve(process.cwd(), 'backend', 'firebase-service-account.json');
+          if (fs.existsSync(altPath)) {
+            const fileContent = fs.readFileSync(altPath, 'utf8');
+            serviceAccount = JSON.parse(fileContent);
+            this.logger.log(`[FCM] Memuat kredensial Firebase dari file fallback: ${altPath}`);
+          }
+        }
+      }
+
+      if (!serviceAccount) {
         this.logger.warn(
-          `[FCM] File service account tidak ditemukan di: ${resolvedPath}. Push Notification dinonaktifkan sementara.`,
+          '[FCM] Kredensial Firebase Admin SDK tidak ditemukan (FIREBASE_SERVICE_ACCOUNT env var atau file firebase-service-account.json). Push Notification dinonaktifkan sementara.',
         );
         return;
       }
-
-      const fileContent = fs.readFileSync(resolvedPath, 'utf8');
-      const serviceAccount = JSON.parse(fileContent);
 
       this.firebaseApp = initializeApp({
         credential: cert(serviceAccount),
