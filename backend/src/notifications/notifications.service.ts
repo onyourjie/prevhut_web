@@ -192,6 +192,78 @@ export class NotificationsService {
   }
 
   /**
+   * Mengirim notifikasi yang sama ke banyak pengguna sekaligus secara efisien:
+   * - 1 query createMany untuk riwayat in-app (lonceng)
+   * - 1 query ambil seluruh token perangkat
+   * - FCM multicast per batch 500 token (batas maksimal FCM)
+   * Masing-masing pengguna boleh memiliki pesan berbeda (misal jarak km), dikelompokkan per isi pesan.
+   */
+  async sendBulkNotifications(
+    items: Array<{ userId: string; title: string; message: string }>,
+    options: { type?: NotificationType; metadata?: any; url?: string } = {},
+  ) {
+    if (!items || items.length === 0) return { stored: 0, pushSuccess: 0 };
+    const { type = NotificationType.SISTEM, metadata, url } = options;
+
+    await this.prisma.notification.createMany({
+      data: items.map((it) => ({
+        userId: it.userId,
+        title: it.title,
+        message: it.message,
+        type,
+        metadata: metadata ? metadata : undefined,
+      })),
+    });
+
+    if (!this.fcmService.isReady()) {
+      this.logger.warn('[FCM] Layanan FCM belum siap. Notifikasi massal hanya disimpan in-app.');
+      return { stored: items.length, pushSuccess: 0 };
+    }
+
+    const devices = await this.prisma.userDevice.findMany({
+      where: { userId: { in: items.map((it) => it.userId) } },
+      select: { userId: true, fcmToken: true },
+    });
+    if (devices.length === 0) return { stored: items.length, pushSuccess: 0 };
+
+    // Kelompokkan token berdasarkan isi pesan yang identik agar bisa dikirim multicast
+    const msgByUser = new Map(items.map((it) => [it.userId, it]));
+    const groups = new Map<string, { title: string; message: string; tokens: string[] }>();
+    for (const d of devices) {
+      const it = msgByUser.get(d.userId);
+      if (!it) continue;
+      const key = `${it.title}||${it.message}`;
+      if (!groups.has(key)) groups.set(key, { title: it.title, message: it.message, tokens: [] });
+      groups.get(key)!.tokens.push(d.fcmToken);
+    }
+
+    let pushSuccess = 0;
+    const invalidTokens: string[] = [];
+    for (const g of groups.values()) {
+      for (let i = 0; i < g.tokens.length; i += 500) {
+        const chunk = g.tokens.slice(i, i + 500);
+        const result = await this.fcmService.sendMulticast(chunk, {
+          title: g.title,
+          body: g.message,
+          data: {
+            type,
+            ...(metadata && typeof metadata === 'object' ? { metadata: JSON.stringify(metadata) } : {}),
+          },
+          url: url || '/notifications',
+        });
+        pushSuccess += result.successCount;
+        invalidTokens.push(...result.invalidTokens);
+      }
+    }
+
+    if (invalidTokens.length > 0) {
+      await this.prisma.userDevice.deleteMany({ where: { fcmToken: { in: invalidTokens } } });
+    }
+
+    return { stored: items.length, pushSuccess };
+  }
+
+  /**
    * Mengirim notifikasi siaran berdasarkan topik (misal: 'warga-kalbar', 'peringatan-umum').
    */
   async broadcastTopicAlert(topic: string, title: string, message: string, url?: string) {

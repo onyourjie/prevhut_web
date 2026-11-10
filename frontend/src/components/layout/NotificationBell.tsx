@@ -101,7 +101,10 @@ export function NotificationBell({ className }: NotificationBellProps) {
     }
     setIsOpen(false);
 
-    if (item.metadata?.assignmentId || item.type === 'TUGAS_BARU' || item.type === 'UPDATE_STATUS') {
+    if (item.metadata?.kind === 'NEARBY_EMERGENCY' && item.metadata?.postId) {
+      // Laporan darurat warga di sekitar user -> langsung buka detail postingan
+      navigate({ to: '/community/$postId', params: { postId: String(item.metadata.postId) } });
+    } else if (item.metadata?.assignmentId || item.type === 'TUGAS_BARU' || item.type === 'UPDATE_STATUS') {
       navigate({ to: '/assignments' });
     } else if (item.type === 'ALERT_PRIORITAS') {
       navigate({ to: '/map' });

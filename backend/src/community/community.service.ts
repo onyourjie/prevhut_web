@@ -6,8 +6,15 @@ import { CreatePostDto } from './dto/create-post.dto.js';
 import { CreateUpdateDto } from './dto/create-update.dto.js';
 import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { FlagPostDto } from './dto/flag-post.dto.js';
-import { PostCategory, PostStatus, Role } from '@prisma/client';
+import { PostCategory, PostStatus, Role, NotificationType } from '@prisma/client';
 import { normalizeDataServiceUrl } from '../common/url.util.js';
+import { NotificationsService } from '../notifications/notifications.service.js';
+
+/** Konfigurasi notifikasi laporan darurat warga sekitar */
+const NEARBY_ALERT_RADIUS_KM = 10; // Penerima: warga & relawan dalam radius <= 10 km
+const NEARBY_ALERT_DEDUP_KM = 3; // Laporan dianggap "kejadian yang sama" bila berjarak <= 3 km
+const NEARBY_ALERT_DEDUP_MINUTES = 30; // ...dan terjadi dalam 30 menit terakhir
+const NEARBY_ALERT_MAX_PER_HOUR = 5; // Batas maksimal notifikasi laporan sekitar per user per jam
 
 function haversineDistKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371.0;
@@ -36,7 +43,113 @@ export class CommunityService {
   private readonly dataServiceUrl = normalizeDataServiceUrl(process.env.DATA_SERVICE_URL);
   private liveClustersCache: { data: any[] | null; expiresAt: number } = { data: null, expiresAt: 0 };
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notificationsService: NotificationsService,
+  ) {}
+
+  /**
+   * Mengirim notifikasi ke warga & relawan dalam radius <= 10 km saat ada laporan DARURAT baru.
+   * Dijalankan fire-and-forget agar tidak memperlambat proses posting.
+   *
+   * Aturan anti-spam:
+   * 1. Pembuat laporan tidak menerima notifikasi atas laporannya sendiri.
+   * 2. Dedup kejadian: jika user sudah menerima notifikasi untuk laporan lain yang berjarak <= 3 km
+   *    dalam 30 menit terakhir, notifikasi tidak dikirim lagi (kemungkinan besar api yang sama).
+   * 3. Batas maksimal 5 notifikasi laporan sekitar per user per jam.
+   */
+  private async notifyNearbyEmergency(post: {
+    id: string;
+    latitude: number;
+    longitude: number;
+    kecamatan: string;
+    kabupaten: string;
+  }, author: { id: string; name: string }) {
+    if (typeof post.latitude !== 'number' || typeof post.longitude !== 'number') return;
+
+    // 1. Pra-saring kandidat dengan bounding box (murah di database), lalu hitung jarak persis (Haversine)
+    const latDelta = NEARBY_ALERT_RADIUS_KM / 111.0;
+    const lonDelta = NEARBY_ALERT_RADIUS_KM / (111.0 * Math.max(Math.cos((post.latitude * Math.PI) / 180), 0.01));
+
+    const candidates = await this.prisma.user.findMany({
+      where: {
+        id: { not: author.id },
+        role: { in: [Role.WARGA, Role.RELAWAN] },
+        latitude: { gte: post.latitude - latDelta, lte: post.latitude + latDelta, not: 0 },
+        longitude: { gte: post.longitude - lonDelta, lte: post.longitude + lonDelta, not: 0 },
+      },
+      select: { id: true, role: true, latitude: true, longitude: true },
+    });
+
+    const recipients = candidates
+      .map((u) => ({
+        ...u,
+        distKm: haversineDistKm(post.latitude, post.longitude, u.latitude as number, u.longitude as number),
+      }))
+      .filter((u) => u.distKm <= NEARBY_ALERT_RADIUS_KM);
+
+    if (recipients.length === 0) return;
+
+    // 2. Anti-spam: ambil riwayat notifikasi laporan sekitar 1 jam terakhir milik para penerima
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+    const dedupSince = Date.now() - NEARBY_ALERT_DEDUP_MINUTES * 60 * 1000;
+    const recentAlerts = await this.prisma.notification.findMany({
+      where: {
+        userId: { in: recipients.map((r) => r.id) },
+        type: NotificationType.ALERT_PRIORITAS,
+        createdAt: { gte: oneHourAgo },
+      },
+      select: { userId: true, metadata: true, createdAt: true },
+    });
+
+    const alertsByUser = new Map<string, Array<{ metadata: any; createdAt: Date }>>();
+    for (const a of recentAlerts) {
+      const meta = a.metadata as any;
+      if (meta?.kind !== 'NEARBY_EMERGENCY') continue;
+      if (!alertsByUser.has(a.userId)) alertsByUser.set(a.userId, []);
+      alertsByUser.get(a.userId)!.push({ metadata: meta, createdAt: a.createdAt });
+    }
+
+    const finalRecipients = recipients.filter((r) => {
+      const history = alertsByUser.get(r.id) || [];
+      if (history.length >= NEARBY_ALERT_MAX_PER_HOUR) return false;
+      const isDuplicateIncident = history.some(
+        (h) =>
+          h.createdAt.getTime() >= dedupSince &&
+          typeof h.metadata?.lat === 'number' &&
+          typeof h.metadata?.lon === 'number' &&
+          haversineDistKm(post.latitude, post.longitude, h.metadata.lat, h.metadata.lon) <= NEARBY_ALERT_DEDUP_KM,
+      );
+      return !isDuplicateIncident;
+    });
+
+    if (finalRecipients.length === 0) return;
+
+    const locationText = [post.kecamatan, post.kabupaten].filter(Boolean).join(', ');
+    const items = finalRecipients.map((r) => {
+      const distText = r.distKm < 1 ? '< 1 km' : `± ${Math.round(r.distKm)} km`;
+      return {
+        userId: r.id,
+        title: `🔥 Laporan Api Darurat ${distText} dari Anda`,
+        message:
+          r.role === Role.RELAWAN
+            ? `${author.name} melaporkan titik api di ${locationText}. Siagakan diri & pantau disposisi dari Posko.`
+            : `${author.name} melaporkan titik api di ${locationText}. Tetap waspada dan ikuti arahan petugas.`,
+      };
+    });
+
+    const result = await this.notificationsService.sendBulkNotifications(items, {
+      type: NotificationType.ALERT_PRIORITAS,
+      metadata: { kind: 'NEARBY_EMERGENCY', postId: post.id, lat: post.latitude, lon: post.longitude },
+      url: `/community/${post.id}`,
+    });
+
+    this.logger.log(
+      `[NearbyAlert] Laporan ${post.id}: ${recipients.length} user dalam radius ${NEARBY_ALERT_RADIUS_KM} km, ` +
+        `${finalRecipients.length} dikirimi notifikasi (${recipients.length - finalRecipients.length} dilewati anti-spam), ` +
+        `${result.pushSuccess} push berhasil.`,
+    );
+  }
 
   private async getLiveClustersSnapshot(): Promise<any[] | null> {
     const now = Date.now();
@@ -480,6 +593,13 @@ export class CommunityService {
         }),
       }).catch((err) => this.logger.warn(`Gagal meneruskan laporan ke data service: ${err.message}`));
     } catch {}
+
+    // Notifikasi warga & relawan dalam radius <= 10 km (hanya laporan DARURAT, fire-and-forget)
+    if (dto.category === PostCategory.DARURAT) {
+      this.notifyNearbyEmergency(post, { id: user.id, name: user.name }).catch((err) =>
+        this.logger.warn(`[NearbyAlert] Gagal mengirim notifikasi laporan sekitar: ${err.message}`),
+      );
+    }
 
     return {
       message:
