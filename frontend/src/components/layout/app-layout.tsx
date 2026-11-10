@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Link } from '@tanstack/react-router';
-import { Flame } from 'lucide-react';
 import { AppSidebar } from './app-sidebar';
 import { BottomNav } from './bottom-nav';
 import { MobileNavDrawer } from './MobileNavDrawer';
@@ -87,10 +86,12 @@ export function AppLayout({
         >
           {/* Left: Mobile Hamburger & Brand & Page Title */}
           <div className="flex items-center gap-2.5 sm:gap-3">
-            <Link to="/" className="lg:hidden flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-brand-500 to-brand-700 flex items-center justify-center text-white shadow-xs">
-                <Flame className="w-4 h-4 animate-pulse" />
-              </div>
+            <Link to="/" className="lg:hidden flex items-center gap-2 group">
+              <img
+                src="/logo-firezone.png"
+                alt="FIREZONE"
+                className="w-8 h-8 rounded-xl object-contain shadow-xs group-hover:scale-105 transition"
+              />
               <span className="font-extrabold text-sm tracking-tight text-neutral-900">
                 FIREZONE
               </span>

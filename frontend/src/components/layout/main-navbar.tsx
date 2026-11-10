@@ -1,5 +1,5 @@
 import { Link, useRouterState } from '@tanstack/react-router'
-import { Flame, Map, Home, PhoneCall, LogOut, ShieldAlert, Shield, Users } from 'lucide-react'
+import { Map, Home, PhoneCall, LogOut, ShieldAlert, Shield, Users } from 'lucide-react'
 import { useAuthStore } from '@/store/auth.store'
 import { cn } from '@/lib/utils'
 
@@ -52,12 +52,14 @@ export function MainNavbar({ className }: MainNavbarProps) {
     >
       {/* Kiri: Logo Brand & Tagline */}
       <div className="flex items-center gap-8">
-        <Link to="/" className="flex items-center gap-2.5 focus-ring rounded-lg">
-          <div className="w-8 h-8 rounded-xl bg-brand-600 flex items-center justify-center text-white shadow-xs">
-            <Flame className="w-4 h-4" />
-          </div>
+        <Link to="/" className="flex items-center gap-2.5 focus-ring rounded-lg group">
+          <img
+            src="/logo-firezone.png"
+            alt="FIREZONE"
+            className="w-8 h-8 rounded-xl object-contain shadow-xs group-hover:scale-105 transition"
+          />
           <div className="flex flex-col">
-            <span className="text-base font-extrabold tracking-tight text-neutral-1000 leading-none">
+            <span className="text-base font-extrabold tracking-tight text-neutral-900 leading-none">
               FIREZONE
             </span>
             <span className="text-[10px] font-bold uppercase tracking-wider text-brand-700 mt-0.5">
