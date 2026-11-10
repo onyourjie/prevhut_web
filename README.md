@@ -149,6 +149,19 @@ Sistem penggabungan antara skor satelit dan konfirmasi warga menggunakan prinsip
 * Tombol cepat hubungi saluran darurat terpadu: **Damkar (113)**, **Tim SAR (115)**, **Kepolisian (110)**, dan **Ambulans (119)**.
 * Panduan 5 langkah evakuasi tanggap darurat Karhutla.
 
+### 9. Pusat Notifikasi Terpadu & Web Push Notification (FCM / Firebase Cloud Messaging)
+* **In-App Notification Center (Komponen `NotificationBell`):**
+  * Indikator lencana merah (*unread badge counter*) dinamis dengan pembaruan berkala setiap 30 detik.
+  * Panel dropdown notifikasi interaktif dengan animasi halus, pengelompokan riwayat (*Hari Ini* dan *Sebelumnya*), serta tombol *"Tandai Semua Dibaca"*.
+  * *Deep-linking* cerdas: klik pada kartu notifikasi langsung mengarahkan ke halaman tindakan relevan (Alert Prioritas P1 → `/map`, Penugasan Baru → `/assignments`, Laporan/Komentar Warga → `/community`).
+* **Web Push Notification via FCM & Service Worker:**
+  * Pengiriman notifikasi darurat langsung ke level sistem operasi (Windows Toast, macOS Banner, Android Shade) menggunakan Web Push API dan Service Worker (`firebase-messaging-sw.js`), bahkan saat peramban berada di latar belakang (*background*).
+  * Manajemen token perangkat multi-device (`FcmToken`) di database PostgreSQL via Prisma dengan fitur sinkronisasi ulang token perangkat sekali klik.
+* **Pemicu Notifikasi Otomatis Berbasis Event:**
+  * Notifikasi peringatan dini deteksi klaster baru prioritas tinggi (P1/P2) di wilayah pengguna.
+  * Notifikasi instan penugasan lapangan dari Admin Posko kepada Relawan terdekat.
+  * Notifikasi pembaruan status laporan dan penyelesaian verifikasi bagi warga pelapor.
+
 ---
 
 ## Matriks Hak Akses Peran (Role-Based Access Control)
@@ -167,6 +180,7 @@ Sistem penggabungan antara skor satelit dan konfirmasi warga menggunakan prinsip
 | Panel Moderasi Aduan Hoaks (`/moderation`) | Tidak | Tidak | Tidak | Ya |
 | Manajemen Insiden Posko dan Unduh Data (`/reports`) | Tidak | Tidak | Tidak | Ya |
 | Trigger Manual Sinkronisasi Satelit (`/sync`) | Tidak | Tidak | Tidak | Ya |
+| Pusat Notifikasi In-App & Push Notification FCM | Tidak | Ya | Ya | Ya |
 
 ---
 
@@ -410,6 +424,14 @@ Platform ini memiliki dua layanan API terdokumentasi penuh dengan standar OpenAP
 #### 5. Otomasi dan Sinkronisasi (/sync)
 * `GET /sync/status` — Status eksekusi cron sinkronisasi satelit (interval 3 jam).
 * `POST /sync/trigger` — *(Admin Only)* Memicu proses sinkronisasi satelit secara langsung (*on-demand*).
+
+#### 6. Pusat Notifikasi Terpadu (/notifications)
+* `GET /notifications` — Mengambil riwayat notifikasi akun aktif (`grouped.hari_ini`, `grouped.sebelumnya`, dan `unread_count`).
+* `PATCH /notifications/:id/read` — Menandai 1 notifikasi spesifik telah dibaca.
+* `PATCH /notifications/read-all` — Menandai seluruh notifikasi akun telah dibaca.
+* `POST /notifications/fcm-token` — Mendaftarkan token Web Push FCM perangkat pengguna ke server.
+* `DELETE /notifications/fcm-token` — Menghapus token perangkat saat pengguna logout.
+* `POST /notifications/test-push` — Menguji pengiriman push notification FCM ke peramban aktif.
 
 ### B. Endpoint Data & AI Microservice (FastAPI PrevHut)
 
