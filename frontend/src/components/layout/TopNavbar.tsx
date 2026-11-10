@@ -12,6 +12,7 @@ import {
   PlusCircle,
   LogOut,
   User,
+  ChevronDown,
 } from 'lucide-react';
 import { useAuthStore } from '@/store/auth.store';
 import { cn } from '@/lib/utils';
@@ -206,105 +207,97 @@ export function TopNavbar({ className }: TopNavbarProps) {
                 {/* Notification Bell with FCM Push Status */}
                 <NotificationBell />
 
-                {/* Profile Avatar Lingkaran dengan Dropdown (Profil & Logout) */}
+                {/* User Identity Pill dengan Dropdown Profil & Logout */}
                 <div className="relative" ref={profileDropdownRef}>
                   <button
                     type="button"
                     onClick={() => setProfileMenuOpen((prev) => !prev)}
                     className={cn(
-                      'relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 cursor-pointer',
+                      'relative flex items-center gap-2 pl-1 pr-1.5 sm:pr-3 py-1 rounded-full sm:rounded-2xl border transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 cursor-pointer select-none',
                       profileMenuOpen
-                        ? 'ring-2 ring-orange-500 ring-offset-2 shadow-md'
-                        : 'hover:ring-2 hover:ring-neutral-300 hover:shadow-2xs'
+                        ? 'bg-orange-50/80 border-orange-300 ring-2 ring-orange-500/20 shadow-xs'
+                        : 'bg-white hover:bg-neutral-50/90 border-neutral-200/90 hover:border-neutral-300 shadow-2xs'
                     )}
                     aria-expanded={profileMenuOpen}
                     aria-haspopup="true"
-                    aria-label="Menu Profil Pengguna"
+                    aria-label="Menu Identitas Warga"
                   >
-                    <img
-                      src={
-                        user.avatarUrl ||
-                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80'
-                      }
-                      alt={user.name}
-                      className="w-full h-full rounded-full object-cover border border-neutral-200/90"
+                    {/* Foto Profil Lingkaran / Squircle */}
+                    <div className="relative w-8 h-8 rounded-full sm:rounded-xl overflow-hidden shrink-0 border border-neutral-200/80 bg-neutral-100">
+                      <img
+                        src={
+                          user.avatarUrl ||
+                          'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80'
+                        }
+                        alt={user.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-500 ring-1.5 ring-white" />
+                    </div>
+
+                    {/* Info Teks Identitas Warga (Desktop & Tablet) */}
+                    <div className="hidden sm:flex flex-col text-left min-w-0 max-w-[120px] md:max-w-[150px]">
+                      <span className="text-xs font-bold text-neutral-900 truncate leading-tight">
+                        {user.name}
+                      </span>
+                      <span className="text-[10px] font-semibold text-orange-700 truncate leading-tight mt-0.5">
+                        {user.kabupaten
+                          ? `Warga ${user.kabupaten.replace('Kabupaten ', '')}`
+                          : user.province
+                          ? `Warga ${user.province}`
+                          : 'Warga Terdaftar'}
+                      </span>
+                    </div>
+
+                    {/* Chevron Indicator */}
+                    <ChevronDown
+                      className={cn(
+                        'w-3.5 h-3.5 text-neutral-400 transition-transform duration-200 shrink-0 hidden sm:block',
+                        profileMenuOpen && 'rotate-180 text-orange-600'
+                      )}
                     />
-                    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                   </button>
 
-                  {/* Dropdown Menu */}
+                  {/* Dropdown Menu Ringkas (Tanpa Header Redundan) */}
                   <AnimatePresence>
                     {profileMenuOpen && (
                       <motion.div
-                        initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                        initial={{ opacity: 0, y: 6, scale: 0.96 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                        transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-                        className="absolute right-0 top-full mt-2 w-60 bg-white rounded-2xl border border-neutral-200/90 shadow-xl shadow-neutral-900/10 py-1.5 z-50 overflow-hidden"
+                        exit={{ opacity: 0, y: 6, scale: 0.96 }}
+                        transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
+                        className="absolute right-0 top-full mt-2 w-48 bg-white rounded-xl border border-neutral-200/90 shadow-lg shadow-neutral-900/10 p-1.5 z-50 overflow-hidden"
                       >
-                        {/* Header Identitas User */}
-                        <div className="px-3.5 py-3 bg-neutral-50/70 border-b border-neutral-100">
-                          <div className="flex items-center gap-2.5">
-                            <img
-                              src={
-                                user.avatarUrl ||
-                                'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80'
-                              }
-                              alt={user.name}
-                              className="w-8 h-8 rounded-full object-cover border border-neutral-200"
-                            />
-                            <div className="flex-1 min-w-0 text-left">
-                              <p className="text-xs font-bold text-neutral-900 truncate">
-                                {user.name}
-                              </p>
-                              <p className="text-[11px] text-neutral-500 truncate">
-                                {user.email || 'Warga Terdaftar'}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="mt-2 flex items-center gap-1.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider bg-orange-100 text-orange-800 border border-orange-200/70">
-                              <span className="w-1.5 h-1.5 rounded-full bg-orange-600 animate-pulse" />
-                              {user.role === 'WARGA' ? 'Warga Kalimantan' : user.role}
-                            </span>
-                          </div>
+                        {/* Identitas Email Ringkas */}
+                        <div className="px-2.5 py-1.5 border-b border-neutral-100 mb-1 text-left">
+                          <p className="text-[11px] font-medium text-neutral-500 truncate">
+                            {user.email || 'Akun Warga'}
+                          </p>
                         </div>
 
                         {/* Opsi Menu */}
-                        <div className="p-1 flex flex-col gap-0.5">
-                          {/* Pilihan Profil */}
+                        <div className="flex flex-col gap-0.5">
                           <Link
                             to="/profile"
                             onClick={() => setProfileMenuOpen(false)}
-                            className="flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition duration-150 group"
+                            className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-neutral-700 hover:text-neutral-950 hover:bg-neutral-100 transition duration-150"
                           >
-                            <div className="w-7 h-7 rounded-lg bg-neutral-100 group-hover:bg-white flex items-center justify-center text-neutral-600 group-hover:text-neutral-900 border border-neutral-200/60 transition">
-                              <User className="w-3.5 h-3.5" />
-                            </div>
-                            <div className="text-left">
-                              <span className="block font-bold">Profil Saya</span>
-                              <span className="text-[10px] text-neutral-400 font-normal">Kelola akun & info diri</span>
-                            </div>
+                            <User className="w-3.5 h-3.5 text-neutral-500" />
+                            <span>Profil Saya</span>
                           </Link>
 
                           <div className="h-px bg-neutral-100 my-1" />
 
-                          {/* Pilihan Logout */}
                           <button
                             type="button"
                             onClick={() => {
                               setProfileMenuOpen(false);
                               logout();
                             }}
-                            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50/80 transition duration-150 group text-left cursor-pointer"
+                            className="w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50/80 transition duration-150 text-left cursor-pointer"
                           >
-                            <div className="w-7 h-7 rounded-lg bg-red-50 group-hover:bg-red-100 flex items-center justify-center text-red-500 group-hover:text-red-600 border border-red-200/60 transition">
-                              <LogOut className="w-3.5 h-3.5" />
-                            </div>
-                            <div className="text-left">
-                              <span className="block font-bold">Keluar Akun</span>
-                              <span className="text-[10px] text-red-400 font-normal">Selesai sesi perangkat</span>
-                            </div>
+                            <LogOut className="w-3.5 h-3.5 text-red-500" />
+                            <span>Keluar</span>
                           </button>
                         </div>
                       </motion.div>
@@ -369,8 +362,12 @@ export function TopNavbar({ className }: TopNavbarProps) {
                   />
                   <div>
                     <p className="text-xs font-bold text-neutral-900">{user.name}</p>
-                    <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 px-1.5 py-0.2 rounded border border-orange-200">
-                      Warga Terverifikasi
+                    <span className="text-[10px] font-semibold text-orange-700 bg-orange-50 px-1.5 py-0.5 rounded border border-orange-200">
+                      {user.kabupaten
+                        ? `Warga ${user.kabupaten.replace('Kabupaten ', '')}`
+                        : user.province
+                        ? `Warga ${user.province}`
+                        : 'Warga Terdaftar'}
                     </span>
                   </div>
                 </div>

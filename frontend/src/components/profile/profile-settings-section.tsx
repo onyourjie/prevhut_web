@@ -1,3 +1,4 @@
+import { Link } from '@tanstack/react-router';
 import { Navigation, Info, Globe, HelpCircle, LogOut, ChevronRight } from 'lucide-react';
 
 interface ProfileSettingsSectionProps {
@@ -49,15 +50,21 @@ export function ProfileSettingsSection({
         </div>
 
         {/* Tentang FIREZONE */}
-        <div className="p-4 flex items-center justify-between hover:bg-neutral-50 transition cursor-pointer">
+        <Link
+          to="/about"
+          className="p-4 flex items-center justify-between hover:bg-neutral-50 transition cursor-pointer group"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-neutral-100 text-neutral-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-neutral-100 group-hover:bg-orange-50 group-hover:text-orange-600 text-neutral-700 flex items-center justify-center transition">
               <Info className="w-4 h-4" />
             </div>
-            <span className="text-xs font-bold text-neutral-800">Tentang FIREZONE</span>
+            <div>
+              <span className="text-xs font-bold text-neutral-800 block">Tentang FIREZONE</span>
+              <span className="text-[10px] text-neutral-500">Misi, arsitektur sistem & data satelit</span>
+            </div>
           </div>
-          <ChevronRight className="w-4 h-4 text-neutral-400" />
-        </div>
+          <ChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-neutral-700 transition" />
+        </Link>
 
         {/* Bahasa */}
         <div className="p-4 flex items-center justify-between hover:bg-neutral-50 transition">
@@ -71,15 +78,21 @@ export function ProfileSettingsSection({
         </div>
 
         {/* Bantuan */}
-        <div className="p-4 flex items-center justify-between hover:bg-neutral-50 transition cursor-pointer">
+        <Link
+          to="/faq"
+          className="p-4 flex items-center justify-between hover:bg-neutral-50 transition cursor-pointer group"
+        >
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-neutral-100 text-neutral-700 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-lg bg-neutral-100 group-hover:bg-orange-50 group-hover:text-orange-600 text-neutral-700 flex items-center justify-center transition">
               <HelpCircle className="w-4 h-4" />
             </div>
-            <span className="text-xs font-bold text-neutral-800">Bantuan & FAQ</span>
+            <div>
+              <span className="text-xs font-bold text-neutral-800 block">Bantuan & FAQ</span>
+              <span className="text-[10px] text-neutral-500">Metodologi & pertanyaan umum</span>
+            </div>
           </div>
-          <ChevronRight className="w-4 h-4 text-neutral-400" />
-        </div>
+          <ChevronRight className="w-4 h-4 text-neutral-400 group-hover:text-neutral-700 transition" />
+        </Link>
 
         {/* Keluar */}
         <div

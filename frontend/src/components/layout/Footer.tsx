@@ -51,6 +51,11 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/about" className="hover:text-orange-600 transition">
+                  Tentang Platform FIREZONE
+                </Link>
+              </li>
+              <li>
                 <Link to="/faq" className="hover:text-orange-600 transition">
                   FAQ & Transparansi Algoritma
                 </Link>

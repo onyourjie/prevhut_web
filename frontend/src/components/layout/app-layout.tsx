@@ -27,15 +27,18 @@ export function AppLayout({
   const { user, isAuthenticated } = useAuthStore();
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
-  // Jika unauthenticated, gunakan TopNavbar
-  if (!isAuthenticated) {
+  // Warga dan pengunjung (unauthenticated) menggunakan TopNavbar publik yang leluasa
+  // Hanya ADMIN dan RELAWAN yang menggunakan layout Sidebar (Command Center)
+  const isCitizenOrGuest = !isAuthenticated || user?.role === 'WARGA';
+
+  if (isCitizenOrGuest) {
     return (
       <div className="min-h-screen bg-neutral-50/50 text-neutral-900 flex flex-col">
-        {/* Top Navbar Bersih & Luwes untuk Pengunjung/Unauthenticated */}
+        {/* Top Navbar Bersih & Luwes untuk Pengunjung dan Warga */}
         <TopNavbar />
 
-        {/* Page Main View untuk Pengunjung/Unauthenticated*/}
-        <div className="flex-1 w-full flex flex-col pt-20 sm:pt-24 pb-20">
+        {/* Page Main View untuk Pengunjung dan Warga */}
+        <div className="flex-1 w-full flex flex-col pt-18 sm:pt-20 pb-20">
           {(title || subtitle) && (
             <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-4 pb-2 text-left">
               {title && (
@@ -54,7 +57,7 @@ export function AppLayout({
           </main>
         </div>
 
-        {/* Footer untuk semua halaman pengunjung belum login */}
+        {/* Footer untuk semua halaman pengunjung dan warga */}
         <Footer />
 
         {/* Mobile Bottom Navigation */}
@@ -69,7 +72,7 @@ export function AppLayout({
     );
   }
 
-  // Jika sudah login (WARGA, RELAWAN, atau ADMIN), gunakan layout Dasbor dengan Sidebar
+  // Jika sudah login (khusus RELAWAN atau ADMIN), gunakan layout Dasbor Operasional dengan Sidebar
   return (
     <div className="min-h-screen bg-neutral-50/70 text-neutral-900 flex">
       {/* 1. Desktop & Tablet Persistent Sidebar */}

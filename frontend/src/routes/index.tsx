@@ -122,14 +122,14 @@ function HomePage() {
           ? 'Dasbor Relawan Lapangan'
           : isAdmin
           ? 'Dasbor Posko BPBD'
-          : 'Dasbor Warga Karhutla'
+          : undefined
       }
       subtitle={
         isVolunteer
           ? 'Sistem Pemantauan Titik Panas & Disposisi Aksi Lapangan'
           : isAdmin
           ? 'Pusat Komando & Manajemen Tanggap Kebakaran Hutan'
-          : 'Deteksi Dini Bahaya Kebakaran Lahan & Tanggap Bencana'
+          : undefined
       }
     >
       <div

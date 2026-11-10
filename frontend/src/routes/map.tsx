@@ -23,6 +23,7 @@ import type { PriorityArea, MapFilter } from '@/features/hotspots'
 import { BottomNav } from '@/components/layout/bottom-nav'
 import { MobileNavDrawer } from '@/components/layout/MobileNavDrawer'
 import { AppSidebar } from '@/components/layout/app-sidebar'
+import { NotificationBell } from '@/components/layout/NotificationBell'
 
 export const Route = createFileRoute('/map')({
   component: MapPage,
@@ -256,8 +257,8 @@ function MapPage() {
     ? (filter.province || userProvinceName || 'Kalimantan')
     : (filter.province || (userLocationName ? (userProvinceName || 'Kalimantan') : 'Seluruh Kalimantan'))
 
-  // sidebar jika user sudah login
-  const showSidebar = isAuthenticated
+  // sidebar jika user sudah login (khusus peran ADMIN dan RELAWAN)
+  const showSidebar = isAuthenticated && user?.role !== 'WARGA'
 
   return (
     <div className="relative w-full h-[100dvh] overflow-hidden bg-neutral-100 flex flex-row select-none">
@@ -285,7 +286,7 @@ function MapPage() {
         />
 
         <div className="flex-1 relative h-full w-full overflow-hidden">
-          {/* Floating Navigation Bar buat Unlogin */}
+          {/* Floating Navigation Bar buat Pengunjung atau Warga */}
           {!showSidebar && (
             <div className="absolute top-4 right-4 z-[400] hidden lg:flex items-center gap-2 p-1.5 rounded-2xl bg-white/95 backdrop-blur-md border border-neutral-200/90 shadow-md select-none pointer-events-auto">
               <Link
@@ -321,6 +322,37 @@ function MapPage() {
                 <PlusCircle className="w-3.5 h-3.5" />
                 <span>Lapor Api</span>
               </Link>
+
+              {isAuthenticated && user ? (
+                <>
+                  <div className="w-px h-4 bg-neutral-200" />
+                  <NotificationBell />
+                  <Link
+                    to="/profile"
+                    className="w-8 h-8 rounded-full overflow-hidden border border-neutral-200 hover:ring-2 hover:ring-orange-500 transition shrink-0"
+                    title={`Profil: ${user.name}`}
+                  >
+                    <img
+                      src={
+                        user.avatarUrl ||
+                        'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=256&q=80'
+                      }
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <div className="w-px h-4 bg-neutral-200" />
+                  <Link
+                    to="/login"
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold text-neutral-700 hover:text-neutral-900 hover:bg-neutral-100 transition"
+                  >
+                    Masuk
+                  </Link>
+                </>
+              )}
             </div>
           )}
 
