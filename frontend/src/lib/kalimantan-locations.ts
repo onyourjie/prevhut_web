@@ -535,7 +535,10 @@ export const KALIMANTAN_PROVINCES: ProvinceData[] = [
   },
 ];
 
-export function getRegencyCoordinates(provinceName?: string, regencyName?: string): { lat: number; lng: number } {
+export function getRegencyCoordinates(
+  provinceName?: string | null,
+  regencyName?: string | null
+): { lat: number; lng: number } {
   if (provinceName && regencyName) {
     const prov = KALIMANTAN_PROVINCES.find((p) => p.name.toLowerCase() === provinceName.toLowerCase());
     if (prov) {
@@ -556,6 +559,49 @@ export function getRegencyCoordinates(provinceName?: string, regencyName?: strin
 
   // Default Sintang, Kalbar
   return { lat: -0.1255, lng: 111.4822 };
+}
+
+// Koordinat presisi untuk kecamatan-kecamatan strategis dan klaster pantau utama
+export const KNOWN_DISTRICT_COORDINATES: Record<string, { lat: number; lng: number }> = {
+  // Kalimantan Timur
+  "muara badak": { lat: -0.2464, lng: 117.3481 },
+  "tenggarong": { lat: -0.4287, lng: 116.9856 },
+  "samboja": { lat: -0.9632, lng: 116.9822 },
+  "samarinda kota": { lat: -0.5022, lng: 117.1536 },
+  "balikpapan kota": { lat: -1.2654, lng: 116.8312 },
+  "bontang utara": { lat: 0.1350, lng: 117.4850 },
+  // Kalimantan Barat
+  "sintang": { lat: -0.0712, lng: 111.4981 },
+  "sungai tebelian": { lat: -0.1500, lng: 111.4500 },
+  "kelam permai": { lat: -0.0500, lng: 111.6000 },
+  "pontianak kota": { lat: -0.0263, lng: 109.3425 },
+  "sungai raya": { lat: -0.1558, lng: 109.4312 },
+  // Kalimantan Tengah
+  "palangka": { lat: -2.2077, lng: 113.9165 },
+  "jekan raya": { lat: -2.1850, lng: 113.8820 },
+  "pahandut": { lat: -2.2150, lng: 113.9250 },
+  "sebangau": { lat: -2.3167, lng: 113.8667 },
+  // Kalimantan Selatan
+  "banjarmasin tengah": { lat: -3.3194, lng: 114.5908 },
+  "banjarbaru utara": { lat: -3.4402, lng: 114.8306 },
+  "martapura": { lat: -3.4144, lng: 115.0768 },
+  // Kalimantan Utara
+  "tarakan tengah": { lat: 3.3270, lng: 117.5965 },
+  "tanjung selor": { lat: 2.8333, lng: 117.3667 },
+};
+
+export function getDistrictOrRegencyCoordinates(
+  provinceName?: string | null,
+  regencyName?: string | null,
+  districtName?: string | null
+): { lat: number; lng: number } {
+  if (districtName) {
+    const cleanKec = districtName.toLowerCase().replace(/^(kecamatan|kec\.)\s+/i, '').trim();
+    if (KNOWN_DISTRICT_COORDINATES[cleanKec]) {
+      return KNOWN_DISTRICT_COORDINATES[cleanKec];
+    }
+  }
+  return getRegencyCoordinates(provinceName, regencyName);
 }
 
 export function isInsideKalimantan(lat: number, lng: number): boolean {

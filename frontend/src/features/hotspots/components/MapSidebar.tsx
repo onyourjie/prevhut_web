@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import {
   MapPin,
   ChevronLeft,
@@ -51,12 +51,17 @@ export function MapSidebar({
 }: MapSidebarProps) {
   const [activeTab, setActiveTab] = useState<'list' | 'filter'>('list')
 
+  const todayLocalStr = useMemo(() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  }, [])
+
   const activeFilterCount =
     (filter.province ? 1 : 0) +
     (filter.regency ? 1 : 0) +
     (filter.district ? 1 : 0) +
     (filter.priorities.length < 3 ? 3 - filter.priorities.length : 0) +
-    (filter.date !== new Date().toISOString().slice(0, 10) ? 1 : 0)
+    (filter.date && filter.date !== todayLocalStr ? 1 : 0)
 
   return (
     <aside

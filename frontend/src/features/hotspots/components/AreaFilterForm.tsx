@@ -39,8 +39,17 @@ export function AreaFilterForm({
     currentFilter.district || null
   )
 
-  const todayStr = new Date().toISOString().slice(0, 10)
-  const [selectedDate, setSelectedDate] = useState(currentFilter.date || todayStr)
+  const todayStr = useMemo(() => {
+    const d = new Date()
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }, [])
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const initial = currentFilter.date || todayStr
+    return initial > todayStr ? todayStr : initial
+  })
   const [selectedPriorities, setSelectedPriorities] = useState<PriorityLevel[]>(
     currentFilter.priorities || ['P1', 'P2', 'P3']
   )
@@ -179,21 +188,34 @@ export function AreaFilterForm({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <label htmlFor="filter-form-date" className="text-xs font-bold text-neutral-800">
-            Tanggal
-          </label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="filter-form-date" className="text-xs font-bold text-neutral-800">
+              Tanggal Observasi Satelit
+            </label>
+            <span className="text-[10px] text-neutral-400 font-medium">
+              Maks. hari ini
+            </span>
+          </div>
           <div className="relative flex items-center">
             <input
               id="filter-form-date"
               type="date"
+              max={todayStr}
               value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value
+                if (val && val > todayStr) {
+                  setSelectedDate(todayStr)
+                } else {
+                  setSelectedDate(val)
+                }
+              }}
               className="w-full h-10 px-3.5 pr-10 rounded-xl border border-neutral-300 bg-white text-neutral-900 text-xs font-medium focus-ring cursor-pointer [&::-webkit-calendar-picker-indicator]:opacity-0 [&::-webkit-calendar-picker-indicator]:absolute [&::-webkit-calendar-picker-indicator]:inset-0 [&::-webkit-calendar-picker-indicator]:w-full [&::-webkit-calendar-picker-indicator]:h-full [&::-webkit-calendar-picker-indicator]:cursor-pointer [&::-webkit-inner-spin-button]:appearance-none"
             />
             <Calendar className="w-4 h-4 text-neutral-400 absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
           </div>
           <span className="text-[11px] text-neutral-500">
-            {selectedDate === todayStr ? 'Hari ini' : selectedDate}
+            {selectedDate === todayStr ? 'Hari ini (Observasi NRT Terkini)' : `Arsip Tanggal: ${selectedDate}`}
           </span>
         </div>
       </div>

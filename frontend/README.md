@@ -64,7 +64,7 @@ flowchart TD
     Root --> AuthGroup["🔐 Autentikasi<br/>( /login & /register )"]
     Root --> ProfilePage["👤 Profil Pengguna<br/>( /profile )"]
     Root --> RolePages["⚡ Modul Operasional<br/>(Khusus Relawan & Admin)"]
-    Root --> NotifModule["🔔 Pusat Notifikasi ⚠️ (Kurang UI FE)<br/>( /notifications atau Notification Drawer )"]
+    Root --> NotifModule["🔔 Pusat Notifikasi Terpadu<br/>( NotificationBell & FCM Web Push )"]
 
     %% Sub-cabang Peta
     MapPage --> MapFilter["Filter Wilayah & Waktu<br/>(MapFilterSheet / Sidebar)"]
@@ -226,21 +226,25 @@ flowchart TD
 
 ---
 
-## ⚠️ 5. Bagian yang Masih Kurang: Modul Pusat Notifikasi (`Notifications`)
+## 🔔 5. Modul Pusat Notifikasi Terpadu & Web Push FCM (`src/features/notifications/` & `NotificationBell.tsx`)
 
-Saat ini **Backend API untuk Notifikasi sudah tersedia 100%** di `backend/src/notifications/`, namun **komponen UI di Frontend belum dibuat/disambungkan**.
+Sistem notifikasi pada platform FIREZONE telah **selesai diimplementasikan 100% secara terpadu** di sisi Frontend dan Backend:
 
-### Endpoint Backend yang Sudah Siap Dipakai:
-* `GET /notifications` — Mengambil daftar notifikasi milik user yang sedang login (dikelompokkan ke dalam `grouped.hari_ini` dan `grouped.sebelumnya`, ditambah `unread_count`).
-* `PATCH /notifications/:id/read` — Menandai 1 item notifikasi telah dibaca.
-* `PATCH /notifications/read-all` — Menandai seluruh notifikasi milik user telah dibaca.
+### 1. Komponen Antarmuka Lonceng (`NotificationBell.tsx`):
+* Terintegrasi langsung pada header `AppLayout` desktop dan layar mobile.
+* Indikator lencana merah (*unread badge counter*) dinamis dengan *polling query* setiap 30 detik.
+* Panel dropdown interaktif dengan animasi halus Framer Motion:
+  * Pengelompokan riwayat pesan otomatis: **"Hari Ini"** dan **"Sebelumnya"**.
+  * Visualisasi ikon spesifik berdasarkan tipe pesan:
+    * `ALERT_PRIORITAS`: Ikon api merah untuk peringatan bahaya titik api kritis (P1).
+    * `TUGAS_BARU`: Ikon clipboard oranye untuk disposisi penugasan relawan lapangan.
+    * `UPDATE_STATUS`: Ikon centang hijau untuk verifikasi laporan tuntas.
+    * `KOMENTAR`: Ikon radio biru untuk koordinasi warga pada laporan komunitas.
+  * Tombol *"Tandai Semua Dibaca"* (`markAllNotificationsRead`).
+  * Aksi klik langsung mengarahkan pengguna ke halaman aksi relevan via TanStack Router (`/map`, `/assignments`, `/community`).
 
-### Daftar Pekerjaan Frontend yang Kurang untuk Notifikasi:
-1. **Menyambungkan Tombol Lonceng (`Bell`)**:
-   * Di `src/components/layout/app-layout.tsx` (baris 109–116): Tombol `Bell` di header kanan atas saat ini belum memiliki aksi `onClick` dan indikator titik merahnya masih statis.
-   * Di `src/routes/index.tsx` (baris 201–207): Ikon `Bell` di samping profil beranda masih mengarah ke `/emergency`.
-2. **Membuat Komponen UI `NotificationDrawer` / Modal atau Halaman `/notifications`**:
-   * Menampilkan badge jumlah `unread_count` secara *real-time* di ikon lonceng.
-   * Menampilkan daftar notifikasi dalam 2 grup: **"Hari Ini"** dan **"Sebelumnya"**.
-   * Menyediakan tombol **"Tandai Semua Dibaca"** (`PATCH /notifications/read-all`).
-   * Saat item notifikasi diklik: memanggil `PATCH /notifications/:id/read` dan mengarahkan pengguna ke halaman terkait (misal: peringatan bahaya P1 mengarah ke `/map`, dan penugasan baru relawan mengarah ke `/assignments`).
+### 2. Web Push Notification via Firebase Cloud Messaging (`useFcmNotification.ts`):
+* Hook kustom `useFcmNotification` yang mengelola perizinan Web Push (`Notification.permission`).
+* Service Worker `public/firebase-messaging-sw.js` untuk penanganan push pesan saat peramban berada di latar belakang (*background handler*).
+* Registrasi dan sinkronisasi otomatis token FCM perangkat (`registerFcmToken` dan `unregisterFcmToken` saat logout) ke database PostgreSQL via Prisma.
+* Integrasi *native OS notifications* (Windows Toast / macOS Notification / Android Shade) dan pembaruan instan *cache* TanStack Query.

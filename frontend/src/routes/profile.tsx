@@ -6,7 +6,7 @@ import { apiRequest } from '@/lib/api';
 import { useAuthStore } from '@/store/auth.store';
 import { uploadImageToCloudinary } from '@/lib/cloudinary';
 import { showSuccessToast, showErrorToast } from '@/lib/swal';
-import { getRegencyCoordinates, isInsideKalimantan } from '@/lib/kalimantan-locations';
+import { getDistrictOrRegencyCoordinates, isInsideKalimantan } from '@/lib/kalimantan-locations';
 import { resolveRegionFromCoords } from '@/lib/geocode';
 import { ProfileHeaderCard } from '@/components/profile/profile-header-card';
 import { ProfileActivitiesSection } from '@/components/profile/profile-activities-section';
@@ -73,17 +73,31 @@ function ProfilePage() {
 
       const savedProvince = profileData.province || 'Kalimantan Barat';
       const savedKabupaten = profileData.kabupaten || 'Kabupaten Sintang';
+      const savedKecamatan = profileData.kecamatan || '';
+      const fallbackCoords = getDistrictOrRegencyCoordinates(savedProvince, savedKabupaten, savedKecamatan);
+
       if (
         profileData.latitude &&
         profileData.longitude &&
         isInsideKalimantan(profileData.latitude, profileData.longitude)
       ) {
-        setEditLatitude(profileData.latitude);
-        setEditLongitude(profileData.longitude);
+        // Cek apakah koordinat latitude/longitude di database masih sinkron dengan kabupaten pengguna.
+        // Jika user ubah alamat ke Kutai Kartanegara tapi koordinatnya masih di Sintang (> 150 km),
+        // otomatis sejajarkan dengan koordinat kabupaten/kecamatan barunya!
+        const dist = Math.hypot(
+          profileData.latitude - fallbackCoords.lat,
+          profileData.longitude - fallbackCoords.lng
+        ) * 111;
+        if (dist > 150) {
+          setEditLatitude(fallbackCoords.lat);
+          setEditLongitude(fallbackCoords.lng);
+        } else {
+          setEditLatitude(profileData.latitude);
+          setEditLongitude(profileData.longitude);
+        }
       } else {
-        const coords = getRegencyCoordinates(savedProvince, savedKabupaten);
-        setEditLatitude(coords.lat);
-        setEditLongitude(coords.lng);
+        setEditLatitude(fallbackCoords.lat);
+        setEditLongitude(fallbackCoords.lng);
       }
     }
   }, [profileData]);

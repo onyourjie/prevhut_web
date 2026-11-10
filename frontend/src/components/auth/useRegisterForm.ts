@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useAuthStore } from '@/store/auth.store'
 import { showErrorAlert, showSuccessAlert } from '@/lib/swal'
-import { KALIMANTAN_PROVINCES } from '@/lib/kalimantan-locations'
+import { KALIMANTAN_PROVINCES, getDistrictOrRegencyCoordinates } from '@/lib/kalimantan-locations'
 import { PASSWORD_RULES, type RegisterFormState } from './register.types'
 
 export function useRegisterForm() {
@@ -54,32 +54,43 @@ export function useRegisterForm() {
     return selectedRegencyData ? selectedRegencyData.districts : []
   }, [selectedRegencyData])
 
-  // Handle province change: reset regency and district
+  // Handle province change: reset regency and district, dan sinkronkan koordinat wilayah
   const handleProvinceChange = (provName: string) => {
     const prov = KALIMANTAN_PROVINCES.find((p) => p.name === provName) || KALIMANTAN_PROVINCES[0]
     const firstReg = prov.regencies[0]
+    const firstKec = firstReg && firstReg.districts[0] ? firstReg.districts[0] : ''
+    const coords = getDistrictOrRegencyCoordinates(prov.name, firstReg?.name, firstKec)
     setForm((prev) => ({
       ...prev,
       province: prov.name,
       kabupaten: firstReg ? firstReg.name : '',
-      kecamatan: firstReg && firstReg.districts[0] ? firstReg.districts[0] : '',
+      kecamatan: firstKec,
+      latitude: coords.lat,
+      longitude: coords.lng,
     }))
   }
 
-  // Handle regency change: reset district
+  // Handle regency change: reset district dan sinkronkan koordinat kabupaten
   const handleRegencyChange = (regName: string) => {
     const reg = availableRegencies.find((r) => r.name === regName)
+    const firstKec = reg && reg.districts[0] ? reg.districts[0] : ''
+    const coords = getDistrictOrRegencyCoordinates(form.province, regName, firstKec)
     setForm((prev) => ({
       ...prev,
       kabupaten: regName,
-      kecamatan: reg && reg.districts[0] ? reg.districts[0] : '',
+      kecamatan: firstKec,
+      latitude: coords.lat,
+      longitude: coords.lng,
     }))
   }
 
   const handleDistrictChange = (kecName: string) => {
+    const coords = getDistrictOrRegencyCoordinates(form.province, form.kabupaten, kecName)
     setForm((prev) => ({
       ...prev,
       kecamatan: kecName,
+      latitude: coords.lat,
+      longitude: coords.lng,
     }))
   }
 

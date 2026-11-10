@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Flame, PlusCircle, X } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
 import { useAuthStore } from '@/store/auth.store'
-import { getRegencyCoordinates, KALIMANTAN_PROVINCES } from '@/lib/kalimantan-locations'
+import { getRegencyCoordinates, getDistrictOrRegencyCoordinates, KALIMANTAN_PROVINCES } from '@/lib/kalimantan-locations'
 import {
   HotspotMap,
   MapHeader,
@@ -38,21 +38,34 @@ function MapPage() {
   const userCoordinates = useMemo(() => {
     if (!isAuthenticated || !user) return undefined
     if (typeof user.latitude === 'number' && typeof user.longitude === 'number' && user.latitude !== 0) {
+      if (user.province && user.kabupaten) {
+        const expected = getDistrictOrRegencyCoordinates(user.province, user.kabupaten, user.kecamatan)
+        const dist = Math.hypot(user.latitude - expected.lat, user.longitude - expected.lng) * 111
+        if (dist > 150) {
+          return expected
+        }
+      }
       return { lat: user.latitude, lng: user.longitude }
     }
     if (userProvinceName && userLocationName) {
-      return getRegencyCoordinates(userProvinceName, userLocationName)
+      return getDistrictOrRegencyCoordinates(userProvinceName, userLocationName, user.kecamatan)
     }
     return undefined
   }, [isAuthenticated, user, userProvinceName, userLocationName])
 
   // Filter geospasial fleksibel: default menampilkan seluruh Kalimantan
-  const [filter, setFilter] = useState<MapFilter>({
-    province: null,
-    regency: null,
-    district: null,
-    date: new Date().toISOString().slice(0, 10),
-    priorities: ['P1', 'P2', 'P3'],
+  const [filter, setFilter] = useState<MapFilter>(() => {
+    const d = new Date()
+    const year = d.getFullYear()
+    const month = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return {
+      province: null,
+      regency: null,
+      district: null,
+      date: `${year}-${month}-${day}`,
+      priorities: ['P1', 'P2', 'P3'],
+    }
   })
 
   const [selectedArea, setSelectedArea] = useState<PriorityArea | null>(null)

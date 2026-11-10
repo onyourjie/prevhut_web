@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Compass, MapPin, AlertTriangle, Loader2 } from 'lucide-react';
-import { KALIMANTAN_PROVINCES, isInsideKalimantan } from '@/lib/kalimantan-locations';
+import { KALIMANTAN_PROVINCES, isInsideKalimantan, getDistrictOrRegencyCoordinates } from '@/lib/kalimantan-locations';
 import { resolveRegionFromCoords } from '@/lib/geocode';
 import { DraggableMiniMap } from '@/components/map/draggable-mini-map';
 import { showErrorToast } from '@/lib/swal';
@@ -74,20 +74,22 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
     }
   };
 
-  // Dropdown: wilayah jadi acuan, pin dipindah ke pusat wilayah tersebut
-  const applyRegion = (province: string, kabupaten: string) => {
+  // Dropdown: wilayah jadi acuan, pin dipindah ke pusat wilayah/kecamatan tersebut
+  const applyRegion = (province: string, kabupaten: string, customKecamatan?: string) => {
     requestId.current++; // batalkan pencarian wilayah yang masih berjalan
     setIsResolving(false);
     setSource('region');
     const prov = KALIMANTAN_PROVINCES.find((p) => p.name === province);
     const reg = prov?.regencies.find((r) => r.name === kabupaten);
     if (prov && reg) {
+      const kec = customKecamatan !== undefined ? customKecamatan : (reg.districts[0] || '');
+      const coords = getDistrictOrRegencyCoordinates(province, kabupaten, kec);
       onChange({
         province,
         kabupaten,
-        kecamatan: reg.districts[0] || '',
-        latitude: reg.lat,
-        longitude: reg.lng,
+        kecamatan: kec,
+        latitude: coords.lat,
+        longitude: coords.lng,
       });
     }
   };
@@ -101,7 +103,13 @@ export function LocationPicker({ value, onChange }: LocationPickerProps) {
 
   const handleKecamatanChange = (name: string) => {
     setSource('region');
-    onChange({ ...value, kecamatan: name });
+    const coords = getDistrictOrRegencyCoordinates(value.province, value.kabupaten, name);
+    onChange({
+      ...value,
+      kecamatan: name,
+      latitude: coords.lat,
+      longitude: coords.lng,
+    });
   };
 
   const handleDetectGps = () => {

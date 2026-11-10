@@ -5,6 +5,7 @@ import { AppLayout } from '@/components/layout/app-layout'
 import { useAuthStore } from '@/store/auth.store'
 import { apiRequest } from '@/lib/api'
 import { usePriorityAreas } from '@/features/hotspots'
+import { getDistrictOrRegencyCoordinates } from '@/lib/kalimantan-locations'
 import { VolunteerDashboard } from '@/components/home/VolunteerDashboard'
 import { CitizenDashboard } from '@/components/home/CitizenDashboard'
 import { AdminDashboard } from '@/components/home/AdminDashboard'
@@ -44,10 +45,25 @@ function HomePage() {
   const userProvince = user?.province || undefined
   const userRegency = user?.kabupaten || undefined
   const userDistrict = user?.kecamatan || undefined
-  const userCoords =
-    user?.latitude && user?.longitude
-      ? { lat: user.latitude, lng: user.longitude }
-      : undefined
+  const userCoords = useMemo(() => {
+    if (!user) return undefined
+    if (typeof user.latitude === 'number' && typeof user.longitude === 'number' && user.latitude !== 0) {
+      if (user.province && user.kabupaten) {
+        const expected = getDistrictOrRegencyCoordinates(user.province, user.kabupaten, user.kecamatan)
+        const dist = Math.hypot(user.latitude - expected.lat, user.longitude - expected.lng) * 111
+        // Jika koordinat tersimpan di DB meleset > 150 km dari domisili profilnya (misal koordinat Sintang saat pindah ke Kaltim),
+        // gunakan titik koordinat domisili barunya agar jarak klaster di Beranda langsung akurat!
+        if (dist > 150) {
+          return expected
+        }
+      }
+      return { lat: user.latitude, lng: user.longitude }
+    }
+    if (user.province && user.kabupaten) {
+      return getDistrictOrRegencyCoordinates(user.province, user.kabupaten, user.kecamatan)
+    }
+    return undefined
+  }, [user])
 
   // Dynamic live priority areas & meteorological data sesuai lokasi profil pengguna
   const { data: priorityData, isLoading: isLoadingAreas } = usePriorityAreas({
