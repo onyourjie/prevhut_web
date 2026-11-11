@@ -15,6 +15,14 @@
 
 ---
 
+## Video Demo Aplikasi
+
+[![Video Demo Aplikasi FIREZONE](./frontend/public/thumbnail/Thumbnail.jpeg)](https://youtu.be/Pk0sIrAAsMs)
+
+> Klik gambar di atas untuk menonton [**Video Demo Aplikasi FIREZONE di YouTube**](https://youtu.be/Pk0sIrAAsMs).
+
+---
+
 ## Tautan Deployment Production & Dokumentasi API Live
 
 | Layanan | Deskripsi | URL Production (Railway) |
