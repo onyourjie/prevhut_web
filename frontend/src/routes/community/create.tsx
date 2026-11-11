@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { AppLayout } from "@/components/layout/app-layout";
 import { apiRequest } from "@/lib/api";
+import { getTodayWibDateString } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth.store";
 import { uploadMediaToCloudinary } from "@/lib/cloudinary";
 import { showSuccessToast, showErrorToast } from "@/lib/swal";
@@ -66,11 +67,13 @@ function CreatePostPage() {
 
   const quotaBlocked = isAuthenticated && (isLoadingQuota || quotaError || quota?.canPost !== true);
 
-  // Ambil data klaster satelit NASA FIRMS untuk deteksi spasial dan fallback wilayah kabupaten
+  // Ambil data klaster satelit NASA FIRMS hari ini (WIB) agar penomoran Area Pantau identik dengan Peta
+  const todayWib = getTodayWibDateString();
   const { data: clusters = [] } = useQuery<any[]>({
-    queryKey: ["hotspots-clusters-simple"],
-    queryFn: () => apiRequest<any[]>("/hotspots/clusters"),
-    staleTime: 1000 * 60 * 5,
+    queryKey: ["hotspots-clusters-simple", todayWib],
+    queryFn: () =>
+      apiRequest<any[]>(`/hotspots/clusters?date=${encodeURIComponent(todayWib)}`),
+    staleTime: 1000 * 60,
   });
 
   // Lokasi otomatis mengikuti profil akun
@@ -126,7 +129,7 @@ function CreatePostPage() {
     }
   };
 
-  // Deteksi klaster satelit terhubung (Spasial < 20km atau Fallback Kabupaten yang sama)
+  // Deteksi klaster satelit terhubung (Spasial <= 25km atau Fallback Kabupaten yang sama)
   const clusterDetection = useMemo(() => {
     if (category !== "DARURAT" || !Array.isArray(clusters) || clusters.length === 0) return null;
 
@@ -142,7 +145,7 @@ function CreatePostPage() {
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     };
 
-    // 1. Prioritas Utama: Radius spasial <= 20 km jika koordinat valid
+    // 1. Prioritas Utama: Radius spasial <= 25 km jika koordinat valid
     if (typeof latitude === "number" && typeof longitude === "number") {
       let closest = null;
       let minDist = Infinity;
@@ -155,12 +158,12 @@ function CreatePostPage() {
           }
         }
       }
-      if (closest && minDist <= 20.0) {
+      if (closest && minDist <= 25.0) {
         return { cluster: closest, isFallback: false };
       }
     }
 
-    // 2. Fallback Wilayah Administratif: Jika di luar 20 km (misal testing dari Jawa / tanpa GPS),
+    // 2. Fallback Wilayah Administratif: Jika di luar 25 km (misal testing dari Jawa / tanpa GPS),
     // cocokkan secara otomatis dengan klaster aktif di Kabupaten yang sama
     if (kabupaten) {
       const cleanKab = kabupaten.toLowerCase().replace(/^(kabupaten|kota)\s+/i, "").trim();
@@ -272,6 +275,9 @@ function CreatePostPage() {
 
       queryClient.invalidateQueries({ queryKey: ['community-posts'] });
       queryClient.invalidateQueries({ queryKey: ['user-quota'] });
+      queryClient.invalidateQueries({ queryKey: ['hotspots'] });
+      queryClient.invalidateQueries({ queryKey: ['hotspots-clusters-simple'] });
+      queryClient.invalidateQueries({ queryKey: ['area-community-reports'] });
 
       showSuccessToast(
         category === "DARURAT"

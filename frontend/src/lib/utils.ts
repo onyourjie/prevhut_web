@@ -23,6 +23,11 @@ export function formatTimeAgo(dateString?: string | Date): string {
   });
 }
 
+export function getTodayWibDateString(): string {
+  // Tanggal kalender hari ini dalam Waktu Indonesia Barat (UTC+7), konsisten dengan backend & satelit service
+  return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
+
 export function formatDateTimeIndo(dateString?: string | Date): string {
   if (!dateString) return '';
   const date = new Date(dateString);

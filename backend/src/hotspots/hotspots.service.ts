@@ -3,6 +3,7 @@ import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service.js";
 import { PostCategory, PostStatus } from "@prisma/client";
 import { normalizeDataServiceUrl } from "../common/url.util.js";
+import { getTodayWibDateString } from "../common/date.util.js";
 
 function haversineDistKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371.0;
@@ -222,6 +223,44 @@ export class HotspotsService {
     });
   }
 
+  /**
+   * Mengambil seluruh klaster aktif untuk tanggal tertentu (default hari ini WIB),
+   * menghitung skor urgensi gabungan laporan warga, lalu menetapkan peringkat & kode
+   * kanonik `Area Pantau 01..NN` agar konsisten di Peta, Komunitas, dan Scheduler.
+   * Mengembalikan `null` jika microservice data tidak dapat dijangkau.
+   */
+  async getCanonicalClustersOrNull(targetDate?: string): Promise<any[] | null> {
+    const effectiveDate = targetDate?.trim() || getTodayWibDateString();
+    const url = `${this.dataServiceUrl}/api/clusters?date=${encodeURIComponent(effectiveDate)}`;
+    try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10_000);
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
+      if (!res.ok) throw new Error(`Data service HTTP ${res.status}`);
+      const rawClusters = await res.json();
+      if (!Array.isArray(rawClusters)) return [];
+
+      let enriched = await this.enrichClustersWithLiveReports(rawClusters, effectiveDate);
+
+      // Re-sort seluruh Kalimantan berdasarkan skor risiko final tertinggi (Prioritas P1 > P2 > P3)
+      enriched.sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0));
+
+      // Sinkronkan kode & ID kanonik setelah re-sorting boost warga agar selalu sinkron dengan urutan risiko
+      return enriched.map((c, idx) => {
+        const seq = String(idx + 1).padStart(2, "0");
+        return {
+          ...c,
+          id: `area_pantau_${seq}`,
+          code: `Area Pantau ${seq}`,
+        };
+      });
+    } catch (err: any) {
+      this.logger.error(`Gagal memanggil data service clusters: ${err.message}`);
+      return null;
+    }
+  }
+
   async getClusters(query: {
     priority?: string;
     province?: string;
@@ -230,34 +269,51 @@ export class HotspotsService {
     min_score?: number;
     date?: string;
   }) {
-    const params = new URLSearchParams();
-    if (query.province) params.append("province", query.province);
-    if (query.kabupaten) params.append("kabupaten", query.kabupaten);
-    if (query.kecamatan) params.append("kecamatan", query.kecamatan);
-    if (query.min_score !== undefined) params.append("min_score", String(query.min_score));
-    if (query.date) params.append("date", query.date);
+    const canonical = await this.getCanonicalClustersOrNull(query.date);
+    if (!canonical) return [];
 
-    const url = `${this.dataServiceUrl}/api/clusters?${params.toString()}`;
-    try {
-      const res = await fetch(url);
-      if (!res.ok) throw new Error(`Data service HTTP ${res.status}`);
-      const rawClusters = await res.json();
-      let enriched = await this.enrichClustersWithLiveReports(rawClusters, query.date);
+    let filtered = canonical;
 
-      // Re-sort berdasarkan skor risiko tertinggi (Prioritas P1 > P2 > P3)
-      enriched.sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0));
-
-      // Jika ada filter priority, saring setelah kalkulasi final skor & kenaikan kelas
-      if (query.priority) {
-        const pNorm = query.priority.toUpperCase().trim();
-        enriched = enriched.filter((c) => c.priority_level?.startsWith(pNorm));
-      }
-
-      return enriched;
-    } catch (err: any) {
-      this.logger.error(`Gagal memanggil data service clusters: ${err.message}`);
-      return [];
+    if (query.province?.trim()) {
+      const cleanProv = query.province.toLowerCase().trim();
+      filtered = filtered.filter((c) =>
+        String(c.province || "").toLowerCase().includes(cleanProv),
+      );
     }
+
+    if (query.kabupaten?.trim()) {
+      const cleanKab = query.kabupaten.toLowerCase().trim();
+      filtered = filtered.filter(
+        (c) =>
+          String(c.kabupaten || "").toLowerCase().includes(cleanKab) ||
+          (Array.isArray(c.kabupaten_list) &&
+            c.kabupaten_list.some((k: string) =>
+              String(k).toLowerCase().includes(cleanKab),
+            )),
+      );
+    }
+
+    if (query.kecamatan?.trim()) {
+      const cleanKec = query.kecamatan.toLowerCase().trim();
+      filtered = filtered.filter((c) =>
+        String(c.kecamatan || "").toLowerCase().includes(cleanKec),
+      );
+    }
+
+    if (query.min_score !== undefined && query.min_score !== null && `${query.min_score}` !== "") {
+      const minScore = Number(query.min_score);
+      if (!Number.isNaN(minScore)) {
+        filtered = filtered.filter((c) => (c.risk_score || 0) >= minScore);
+      }
+    }
+
+    // Jika ada filter priority, saring setelah kalkulasi final skor & kenaikan kelas
+    if (query.priority) {
+      const pNorm = query.priority.toUpperCase().trim();
+      filtered = filtered.filter((c) => c.priority_level?.toUpperCase().startsWith(pNorm));
+    }
+
+    return filtered;
   }
 
   async getClusterDetail(id: string, date?: string) {

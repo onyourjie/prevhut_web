@@ -3,6 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
 import { Flame, PlusCircle, X } from 'lucide-react'
 import { apiRequest } from '@/lib/api'
+import { getTodayWibDateString } from '@/lib/utils'
 import { useAuthStore } from '@/store/auth.store'
 import { getRegencyCoordinates, getDistrictOrRegencyCoordinates, KALIMANTAN_PROVINCES } from '@/lib/kalimantan-locations'
 import {
@@ -54,20 +55,14 @@ function MapPage() {
     return undefined
   }, [isAuthenticated, user, userProvinceName, userLocationName])
 
-  // Filter geospasial fleksibel: default menampilkan seluruh Kalimantan
-  const [filter, setFilter] = useState<MapFilter>(() => {
-    const d = new Date()
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return {
-      province: null,
-      regency: null,
-      district: null,
-      date: `${year}-${month}-${day}`,
-      priorities: ['P1', 'P2', 'P3'],
-    }
-  })
+  // Filter geospasial fleksibel: default menampilkan seluruh Kalimantan pada tanggal WIB hari ini
+  const [filter, setFilter] = useState<MapFilter>(() => ({
+    province: null,
+    regency: null,
+    district: null,
+    date: getTodayWibDateString(),
+    priorities: ['P1', 'P2', 'P3'],
+  }))
 
   const [selectedArea, setSelectedArea] = useState<PriorityArea | null>(null)
   const [citizenFocusPoint, setCitizenFocusPoint] = useState<{
@@ -252,10 +247,7 @@ function MapPage() {
     ? `${weatherData.temperature_c}°C • ${weatherData.weather_desc || 'Cerah'}`
     : '31°C • Cerah'
 
-  const todayWibStr = (() => {
-    const d = new Date()
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
-  })()
+  const todayWibStr = getTodayWibDateString()
 
   const activeFilterCount = useMemo(() => {
     let count = 0

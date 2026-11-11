@@ -8,7 +8,9 @@ import { CreateCommentDto } from './dto/create-comment.dto.js';
 import { FlagPostDto } from './dto/flag-post.dto.js';
 import { PostCategory, PostStatus, Role, NotificationType } from '@prisma/client';
 import { normalizeDataServiceUrl } from '../common/url.util.js';
+import { getTodayWibDateString } from '../common/date.util.js';
 import { NotificationsService } from '../notifications/notifications.service.js';
+import { HotspotsService } from '../hotspots/hotspots.service.js';
 
 /** Konfigurasi notifikasi laporan darurat warga sekitar */
 const NEARBY_ALERT_RADIUS_KM = 10; // Penerima: warga & relawan dalam radius <= 10 km
@@ -46,6 +48,7 @@ export class CommunityService {
   constructor(
     private prisma: PrismaService,
     private notificationsService: NotificationsService,
+    private hotspotsService: HotspotsService,
   ) {}
 
   /**
@@ -157,12 +160,7 @@ export class CommunityService {
       return this.liveClustersCache.data;
     }
     try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 3500);
-      const res = await fetch(`${this.dataServiceUrl}/api/clusters`, { signal: controller.signal });
-      clearTimeout(timeout);
-      if (!res.ok) return null;
-      const data = await res.json();
+      const data = await this.hotspotsService.getCanonicalClustersOrNull(getTodayWibDateString());
       if (Array.isArray(data)) {
         this.liveClustersCache = { data, expiresAt: now + 45_000 };
         return data;
@@ -296,9 +294,21 @@ export class CommunityService {
     kecamatan?: string;
     clusterCode?: string;
     status?: PostStatus;
+    lat?: number;
+    lon?: number;
+    radiusKm?: number;
     search?: string;
   }) {
     const andConditions: any[] = [];
+    const hasGeoFilter =
+      typeof query.lat === 'number' &&
+      Number.isFinite(query.lat) &&
+      typeof query.lon === 'number' &&
+      Number.isFinite(query.lon);
+    const effectiveRadiusKm =
+      typeof query.radiusKm === 'number' && Number.isFinite(query.radiusKm) && query.radiusKm > 0
+        ? query.radiusKm
+        : 25.0;
 
     if (query.category) {
       andConditions.push({ category: query.category });
@@ -310,6 +320,15 @@ export class CommunityService {
     }
     if (query.clusterCode) {
       andConditions.push({ clusterCode: { contains: query.clusterCode.trim(), mode: 'insensitive' } });
+    }
+    if (hasGeoFilter) {
+      const latDelta = effectiveRadiusKm / 111.0;
+      const cosLat = Math.max(0.2, Math.cos((query.lat! * Math.PI) / 180.0));
+      const lonDelta = effectiveRadiusKm / (111.0 * cosLat);
+      andConditions.push({
+        latitude: { gte: query.lat! - latDelta, lte: query.lat! + latDelta },
+        longitude: { gte: query.lon! - lonDelta, lte: query.lon! + lonDelta },
+      });
     }
     const provQuery = (query.province || query.provinsi || '').trim();
     if (provQuery) {
@@ -434,7 +453,28 @@ export class CommunityService {
       })
     );
 
-    return enrichedPosts;
+    if (!hasGeoFilter) {
+      return enrichedPosts;
+    }
+
+    const filteredGeo = enrichedPosts.filter(
+      (p) =>
+        typeof p.latitude === 'number' &&
+        typeof p.longitude === 'number' &&
+        haversineDistKm(query.lat!, query.lon!, p.latitude, p.longitude) <= effectiveRadiusKm,
+    );
+
+    const statusRank = (status: PostStatus): number => {
+      if (status === PostStatus.DALAM_PENANGANAN) return 0;
+      if (status === PostStatus.MENUNGGU_VERIFIKASI) return 1;
+      return 2;
+    };
+
+    return filteredGeo.sort((a, b) => {
+      const rankDiff = statusRank(a.status) - statusRank(b.status);
+      if (rankDiff !== 0) return rankDiff;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   }
 
   async getPostDetail(id: string) {
@@ -594,8 +634,28 @@ export class CommunityService {
       }).catch((err) => this.logger.warn(`Gagal meneruskan laporan ke data service: ${err.message}`));
     } catch {}
 
-    // Notifikasi warga & relawan dalam radius <= 10 km (hanya laporan DARURAT, fire-and-forget)
+    // Notifikasi warga & relawan dalam radius <= 10 km & sinkronisasi clusterCode pasca-boost (hanya laporan DARURAT)
     if (dto.category === PostCategory.DARURAT) {
+      this.liveClustersCache = { data: null, expiresAt: 0 };
+      const refreshedClusters = await this.getLiveClustersSnapshot();
+      const canonicalCluster = this.findMatchingActiveCluster(
+        post.latitude,
+        post.longitude,
+        refreshedClusters,
+      );
+      if (canonicalCluster?.code && canonicalCluster.code !== post.clusterCode) {
+        const canonicalCode = String(canonicalCluster.code);
+        try {
+          await this.prisma.post.update({
+            where: { id: post.id },
+            data: { clusterCode: canonicalCode },
+          });
+          post.clusterCode = canonicalCode;
+        } catch (err: any) {
+          this.logger.warn(`Gagal menyinkronkan clusterCode kanonik postingan ${post.id}: ${err.message}`);
+        }
+      }
+
       this.notifyNearbyEmergency(post, { id: user.id, name: user.name }).catch((err) =>
         this.logger.warn(`[NearbyAlert] Gagal mengirim notifikasi laporan sekitar: ${err.message}`),
       );

@@ -78,31 +78,43 @@ function AreaCitizenReports({ area }: { area: PriorityArea }) {
   const [isOpen, setIsOpen] = useState(true)
 
   const { data: reports = [], isLoading } = useQuery({
-    queryKey: ['area-community-reports', area.name, area.regency, area.coordinates?.lat, area.coordinates?.lng],
+    queryKey: [
+      'area-community-reports',
+      area.id,
+      area.coordinates?.lat,
+      area.coordinates?.lng,
+      area.regency,
+      area.reasons.citizenReportsCount,
+    ],
     queryFn: async () => {
       try {
+        const hasAreaCoords =
+          typeof area.coordinates?.lat === 'number' &&
+          !Number.isNaN(area.coordinates.lat) &&
+          typeof area.coordinates?.lng === 'number' &&
+          !Number.isNaN(area.coordinates.lng);
+
         let rawReports: any[] = [];
-        // 1. Ambil berdasarkan clusterCode
-        const byCluster = await apiRequest<any[]>(
-          `/community/posts?clusterCode=${encodeURIComponent(area.name)}`
-        );
-        if (Array.isArray(byCluster) && byCluster.length > 0) {
-          rawReports = byCluster;
+        if (hasAreaCoords) {
+          // Ambil semua laporan darurat warga dalam radius <= 25 km dari centroid klaster
+          // (kebal terhadap pergeseran peringkat Area Pantau XX & laporan lintas batas kabupaten)
+          const byRadius = await apiRequest<any[]>(
+            `/community/posts?category=DARURAT&lat=${area.coordinates.lat}&lon=${area.coordinates.lng}&radiusKm=25`
+          );
+          if (Array.isArray(byRadius)) rawReports = byRadius;
         } else if (area.regency) {
-          // 2. Fallback berdasarkan kabupaten klaster
           const byRegency = await apiRequest<any[]>(
-            `/community/posts?kabupaten=${encodeURIComponent(area.regency)}`
+            `/community/posts?category=DARURAT&kabupaten=${encodeURIComponent(area.regency)}`
           );
           if (Array.isArray(byRegency)) rawReports = byRegency;
         }
 
-        // 3. Validasi spasial & batas administratif ketat: Radius <= 25 km dari centroid klaster
-        return rawReports.filter((r) => {
+        const filtered = rawReports.filter((r) => {
+          if (r.category && r.category !== 'DARURAT') return false;
           if (
             typeof r.latitude === 'number' &&
             typeof r.longitude === 'number' &&
-            typeof area.coordinates?.lat === 'number' &&
-            typeof area.coordinates?.lng === 'number'
+            hasAreaCoords
           ) {
             const dist = haversineKm(
               area.coordinates.lat,
@@ -121,11 +133,19 @@ function AreaCitizenReports({ area }: { area: PriorityArea }) {
 
           return false;
         });
+
+        const rank = (status?: string) =>
+          status === 'DALAM_PENANGANAN' ? 0 : status === 'MENUNGGU_VERIFIKASI' ? 1 : 2;
+        return filtered.sort((a, b) => {
+          const diff = rank(a.status) - rank(b.status);
+          if (diff !== 0) return diff;
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
       } catch {
         return [];
       }
     },
-    staleTime: 1000 * 60 * 3,
+    staleTime: 1000 * 30,
   })
 
   return (
@@ -159,52 +179,54 @@ function AreaCitizenReports({ area }: { area: PriorityArea }) {
               Belum ada laporan darurat warga di area pantau ini.
             </div>
           ) : (
-            reports.slice(0, 3).map((report) => (
-              <Link
-                key={report.id}
-                to="/community/$postId"
-                params={{ postId: report.id }}
-                className="block p-3 rounded-xl bg-white border border-neutral-200 hover:border-brand-400 hover:shadow-xs transition space-y-1.5 cursor-pointer text-left group"
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="text-[10px] font-bold text-neutral-900 truncate">
-                      {report.author?.name || 'Warga'}
-                    </span>
-                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-neutral-100 text-neutral-600 shrink-0">
-                      {report.author?.role || 'Warga'}
+            <div className="space-y-2 max-h-72 overflow-y-auto pr-0.5">
+              {reports.map((report) => (
+                <Link
+                  key={report.id}
+                  to="/community/$postId"
+                  params={{ postId: report.id }}
+                  className="block p-3 rounded-xl bg-white border border-neutral-200 hover:border-brand-400 hover:shadow-xs transition space-y-1.5 cursor-pointer text-left group"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      <span className="text-[10px] font-bold text-neutral-900 truncate">
+                        {report.author?.name || 'Warga'}
+                      </span>
+                      <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-neutral-100 text-neutral-600 shrink-0">
+                        {report.author?.role || 'Warga'}
+                      </span>
+                    </div>
+                    <span
+                      className={cn(
+                        'text-[9px] font-black px-1.5 py-0.5 rounded-full border shrink-0',
+                        report.status === 'SELESAI'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : report.status === 'DALAM_PENANGANAN'
+                          ? 'bg-blue-50 text-blue-800 border-blue-200'
+                          : 'bg-amber-50 text-amber-800 border-amber-200'
+                      )}
+                    >
+                      {report.status === 'SELESAI'
+                        ? 'Padam'
+                        : report.status === 'DALAM_PENANGANAN'
+                        ? 'Ditangani'
+                        : 'Verifikasi'}
                     </span>
                   </div>
-                  <span
-                    className={cn(
-                      'text-[9px] font-black px-1.5 py-0.5 rounded-full border shrink-0',
-                      report.status === 'SELESAI'
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                        : report.status === 'DALAM_PENANGANAN'
-                        ? 'bg-blue-50 text-blue-800 border-blue-200'
-                        : 'bg-amber-50 text-amber-800 border-amber-200'
-                    )}
-                  >
-                    {report.status === 'SELESAI'
-                      ? 'Padam'
-                      : report.status === 'DALAM_PENANGANAN'
-                      ? 'Ditangani'
-                      : 'Verifikasi'}
-                  </span>
-                </div>
 
-                <p className="text-[11px] text-neutral-700 font-medium line-clamp-2 leading-relaxed">
-                  {report.content}
-                </p>
+                  <p className="text-[11px] text-neutral-700 font-medium line-clamp-2 leading-relaxed">
+                    {report.content}
+                  </p>
 
-                <div className="flex items-center justify-between text-[10px] text-neutral-400 pt-0.5">
-                  <span className="truncate max-w-[200px]">{report.address}</span>
-                  <span className="text-brand-600 font-bold group-hover:underline shrink-0 flex items-center gap-0.5">
-                    Lihat detail <ExternalLink className="w-2.5 h-2.5" />
-                  </span>
-                </div>
-              </Link>
-            ))
+                  <div className="flex items-center justify-between text-[10px] text-neutral-400 pt-0.5">
+                    <span className="truncate max-w-[200px]">{report.address}</span>
+                    <span className="text-brand-600 font-bold group-hover:underline shrink-0 flex items-center gap-0.5">
+                      Lihat detail <ExternalLink className="w-2.5 h-2.5" />
+                    </span>
+                  </div>
+                </Link>
+              ))}
+            </div>
           )}
         </div>
       )}

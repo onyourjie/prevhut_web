@@ -4,6 +4,8 @@ import { ConfigService } from '@nestjs/config';
 import { PostCategory, PostStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { normalizeDataServiceUrl } from '../common/url.util.js';
+import { getTodayWibDateString } from '../common/date.util.js';
+import { HotspotsService } from '../hotspots/hotspots.service.js';
 
 function haversineDistKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371.0;
@@ -27,6 +29,7 @@ export class SyncScheduler {
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
+    private hotspotsService: HotspotsService,
   ) {}
 
   /**
@@ -39,11 +42,11 @@ export class SyncScheduler {
     await this.triggerSync('Automated Cron Job (Setiap 3 Jam)');
   }
 
-  private async reconcilePostsAfterSync(dataServiceUrl: string) {
+  private async reconcilePostsAfterSync() {
     try {
-      const res = await fetch(`${dataServiceUrl}/api/clusters`);
-      if (!res.ok) return { updatedClusterCodes: 0, autoResolvedPosts: 0 };
-      const liveClusters = await res.json();
+      const liveClusters = await this.hotspotsService.getCanonicalClustersOrNull(
+        getTodayWibDateString(),
+      );
       if (!Array.isArray(liveClusters)) return { updatedClusterCodes: 0, autoResolvedPosts: 0 };
 
       const activePosts = await this.prisma.post.findMany({
@@ -138,7 +141,7 @@ export class SyncScheduler {
       }
 
       const data = await response.json();
-      const reconciliation = await this.reconcilePostsAfterSync(dataServiceUrl);
+      const reconciliation = await this.reconcilePostsAfterSync();
 
       this.lastSyncTime = new Date();
       this.lastSyncResult = {

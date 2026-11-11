@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react'
 import { Clock, Calendar, Download } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, getTodayWibDateString } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { API_URL } from '@/lib/api'
 import { KALIMANTAN_PROVINCES } from '@/lib/kalimantan-locations'
@@ -39,13 +39,7 @@ export function AreaFilterForm({
     currentFilter.district || null
   )
 
-  const todayStr = useMemo(() => {
-    const d = new Date()
-    const year = d.getFullYear()
-    const month = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${year}-${month}-${day}`
-  }, [])
+  const todayStr = useMemo(() => getTodayWibDateString(), [])
   const [selectedDate, setSelectedDate] = useState(() => {
     const initial = currentFilter.date || todayStr
     return initial > todayStr ? todayStr : initial

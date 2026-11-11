@@ -45,6 +45,9 @@ export class CommunityController {
   @ApiQuery({ name: 'kecamatan', required: false, description: 'Filter kecamatan (contoh: Kecamatan Sungai Tebelian)' })
   @ApiQuery({ name: 'status', enum: PostStatus, required: false, description: 'Filter status laporan' })
   @ApiQuery({ name: 'clusterCode', required: false, description: 'Filter kode area pantauan / cluster satelit' })
+  @ApiQuery({ name: 'lat', required: false, description: 'Latitude pusat filter radius geospasial (opsional)' })
+  @ApiQuery({ name: 'lon', required: false, description: 'Longitude pusat filter radius geospasial (opsional)' })
+  @ApiQuery({ name: 'radiusKm', required: false, description: 'Radius pencarian geospasial dalam km (default 25 km jika lat & lon diisi)' })
   @ApiQuery({ name: 'search', required: false, description: 'Pencarian kata kunci deskripsi/alamat/nama pelapor' })
   @ApiResponse({ status: 200, description: 'Daftar postingan feed komunitas' })
   getPosts(
@@ -55,9 +58,15 @@ export class CommunityController {
     @Query('kecamatan') kecamatan?: string,
     @Query('clusterCode') clusterCode?: string,
     @Query('status') status?: PostStatus,
+    @Query('lat') lat?: string,
+    @Query('lon') lon?: string,
+    @Query('radiusKm') radiusKm?: string,
     @Query('search') search?: string,
   ) {
     const selectedProvince = province || provinsi;
+    const parsedLat = lat !== undefined && lat !== '' ? Number(lat) : undefined;
+    const parsedLon = lon !== undefined && lon !== '' ? Number(lon) : undefined;
+    const parsedRadius = radiusKm !== undefined && radiusKm !== '' ? Number(radiusKm) : undefined;
     return this.communityService.getPosts({
       category,
       province: selectedProvince,
@@ -65,6 +74,9 @@ export class CommunityController {
       kecamatan,
       clusterCode,
       status,
+      lat: parsedLat !== undefined && Number.isFinite(parsedLat) ? parsedLat : undefined,
+      lon: parsedLon !== undefined && Number.isFinite(parsedLon) ? parsedLon : undefined,
+      radiusKm: parsedRadius !== undefined && Number.isFinite(parsedRadius) ? parsedRadius : undefined,
       search,
     });
   }
