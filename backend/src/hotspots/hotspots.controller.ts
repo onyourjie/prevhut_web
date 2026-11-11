@@ -34,16 +34,18 @@ export class HotspotsController {
   @ApiOperation({
     summary: "Statistik Klaster Karhutla (P1, P2, P3 & Total Titik Panas)",
   })
-  getStatistics() {
-    return this.hotspotsService.getStatistics();
+  @ApiQuery({ name: "date", required: false, description: "Tanggal observasi satelit NASA (YYYY-MM-DD)" })
+  getStatistics(@Query("date") date?: string) {
+    return this.hotspotsService.getStatistics(date);
   }
 
   @Get("clusters/:id")
   @ApiOperation({
     summary: "Rincian 1 Area Pantau lengkap dengan Bounding Box & Faktor Pendorong Skor",
   })
-  getClusterDetail(@Param("id") id: string) {
-    return this.hotspotsService.getClusterDetail(id);
+  @ApiQuery({ name: "date", required: false, description: "Tanggal observasi satelit NASA (YYYY-MM-DD)" })
+  getClusterDetail(@Param("id") id: string, @Query("date") date?: string) {
+    return this.hotspotsService.getClusterDetail(id, date);
   }
 
   @Get("live")

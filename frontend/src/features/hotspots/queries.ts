@@ -28,6 +28,23 @@ function checkUserInside(c: any, userCoords?: { lat: number; lng: number }): boo
   return false;
 }
 
+function formatHotspotWibTime(hs: any): string {
+  if (typeof hs?.acq_time_wib === "string" && hs.acq_time_wib.trim()) {
+    return `${hs.acq_time_wib.replace(":", ".")} WIB`;
+  }
+  if (typeof hs?.acq_time_utc === "string" && hs.acq_time_utc.includes(":")) {
+    const [hhRaw, mmRaw] = hs.acq_time_utc.split(":");
+    const hh = Number(hhRaw);
+    const mm = Number(mmRaw);
+    if (!Number.isNaN(hh) && !Number.isNaN(mm)) {
+      const wibHour = (hh + 7) % 24;
+      return `${String(wibHour).padStart(2, "0")}.${String(mm).padStart(2, "0")} WIB`;
+    }
+    return `${hs.acq_time_utc} UTC`;
+  }
+  return "01.12 WIB";
+}
+
 function mapClusterToPriorityArea(c: any, index: number, userCoords?: { lat: number; lng: number }): PriorityArea {
   const pCode: PriorityLevel = c.priority_level?.startsWith("P1")
     ? "P1"
@@ -66,12 +83,12 @@ function mapClusterToPriorityArea(c: any, index: number, userCoords?: { lat: num
     ],
     isUserInside: checkUserInside(c, userCoords),
     reasons: {
-      detectionCountDate: c.hotspot_count_24h || 1,
+      detectionCountDate: c.hotspot_count_24h ?? 0,
       detectionDaysRatio: {
-        days: c.days_detected_7d || 1,
+        days: c.days_detected_7d ?? 1,
         totalDays: 7,
       },
-      frpMedian: c.median_frp_mw || 20.0,
+      frpMedian: c.median_frp_mw ?? 0,
       primaryFactor:
         c.primary_factor || "Faktor utama: kerapatan deteksi satelit NASA FIRMS",
       citizenReportsCount: typeof c.citizen_reports_count === "number" ? c.citizen_reports_count : 0,
@@ -84,10 +101,10 @@ function mapClusterToPriorityArea(c: any, index: number, userCoords?: { lat: num
           id: `hs-${c.id || index}-${hsIdx + 1}`,
           lat: hs.latitude,
           lng: hs.longitude,
-          confidence: hs.confidence || "high",
-          frp: hs.frp_mw || c.median_frp_mw || 15.0,
+          confidence: hs.confidence || "nominal",
+          frp: hs.frp_mw ?? c.median_frp_mw ?? 0,
           satellite: hs.satellite || "VIIRS S-NPP 375m",
-          acquiredTime: hs.acq_time_utc ? `${hs.acq_time_utc} UTC` : "01.12 WIB",
+          acquiredTime: formatHotspotWibTime(hs),
           priority: pCode,
         }))
       : [
@@ -193,13 +210,14 @@ export function usePriorityAreas(filter?: HotspotFilterParams) {
 /**
  * Hook TanStack Query untuk memuat detail satu area pemantauan.
  */
-export function usePriorityAreaDetail(areaId: string | null) {
+export function usePriorityAreaDetail(areaId: string | null, date?: string | null) {
   return useQuery<PriorityArea | null>({
-    queryKey: ["hotspots", "area-detail", areaId],
+    queryKey: ["hotspots", "area-detail", areaId, date],
     queryFn: async () => {
       if (!areaId) return null
       try {
-        const cluster = await apiRequest<any>(`/hotspots/clusters/${areaId}`)
+        const qs = date ? `?date=${encodeURIComponent(date)}` : ""
+        const cluster = await apiRequest<any>(`/hotspots/clusters/${areaId}${qs}`)
         if (cluster && cluster.id) {
           return mapClusterToPriorityArea(cluster, 0)
         }

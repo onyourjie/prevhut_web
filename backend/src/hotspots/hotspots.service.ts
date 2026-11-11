@@ -1,7 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service.js";
-import { PostStatus } from "@prisma/client";
+import { PostCategory, PostStatus } from "@prisma/client";
 import { normalizeDataServiceUrl } from "../common/url.util.js";
 
 function haversineDistKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -49,10 +49,15 @@ export class HotspotsService {
    * Menghubungkan data laporan warga dari PostgreSQL secara live ke model scoring satelit NASA FIRMS.
    * Mengkalkulasi ulang final risk score, status prioritas, dan faktor penjelasan transparan.
    */
-  private async enrichClustersWithLiveReports(clusters: any[]) {
+  private async enrichClustersWithLiveReports(clusters: any[], targetDate?: string) {
     if (!Array.isArray(clusters) || clusters.length === 0) return clusters;
 
-    // Ambil seluruh laporan aktif warga (Menunggu Verifikasi & Sedang Ditangani)
+    const validDateFilter =
+      targetDate && /^\d{4}-\d{2}-\d{2}$/.test(targetDate.trim())
+        ? { lte: new Date(`${targetDate.trim()}T23:59:59.999+07:00`) }
+        : undefined;
+
+    // Ambil laporan darurat aktif warga (Menunggu Verifikasi & Sedang Ditangani)
     let activePosts: Array<{
       id: string;
       clusterCode: string | null;
@@ -65,7 +70,9 @@ export class HotspotsService {
     try {
       activePosts = await this.prisma.post.findMany({
         where: {
+          category: PostCategory.DARURAT,
           status: { in: [PostStatus.MENUNGGU_VERIFIKASI, PostStatus.DALAM_PENANGANAN] },
+          ...(validDateFilter ? { createdAt: validDateFilter } : {}),
         },
         select: {
           id: true,
@@ -189,6 +196,16 @@ export class HotspotsService {
         primaryFactor = `Dikonfirmasi oleh 1 laporan warga terdekat (+${citizenBoost} Poin)`;
       } else {
         citizenValidationStatus = "🛡️ Belum Ada Laporan Lapangan";
+        if (
+          typeof primaryFactor === "string" &&
+          (primaryFactor.includes("laporan warga") || primaryFactor.includes("Divalidasi"))
+        ) {
+          if (proximityUrgency > 0 && typeof c.distance_to_settlement_km === "number") {
+            primaryFactor = `Titik api sangat dekat dengan permukiman warga (${c.distance_to_settlement_km} km)`;
+          } else {
+            primaryFactor = `Kerapatan deteksi tinggi (${c.hotspot_count_24h ?? 0} titik panas satelit)`;
+          }
+        }
       }
 
       return {
@@ -225,7 +242,7 @@ export class HotspotsService {
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Data service HTTP ${res.status}`);
       const rawClusters = await res.json();
-      let enriched = await this.enrichClustersWithLiveReports(rawClusters);
+      let enriched = await this.enrichClustersWithLiveReports(rawClusters, query.date);
 
       // Re-sort berdasarkan skor risiko tertinggi (Prioritas P1 > P2 > P3)
       enriched.sort((a, b) => (b.risk_score || 0) - (a.risk_score || 0));
@@ -243,14 +260,22 @@ export class HotspotsService {
     }
   }
 
-  async getClusterDetail(id: string) {
-    const url = `${this.dataServiceUrl}/api/clusters/${id}`;
+  async getClusterDetail(id: string, date?: string) {
     try {
+      const clusters = await this.getClusters({ date });
+      const cleanId = id.toLowerCase().replace(/-/g, "_");
+      const matched = clusters.find(
+        (c) => c.id === cleanId || String(c.code || "").toLowerCase().replace(/\s+/g, "_") === cleanId
+      );
+      if (matched) return matched;
+
+      const qs = date ? `?date=${encodeURIComponent(date)}` : "";
+      const url = `${this.dataServiceUrl}/api/clusters/${id}${qs}`;
       const res = await fetch(url);
       if (!res.ok) throw new Error(`Data service HTTP ${res.status}`);
       const raw = await res.json();
       if (!raw) return null;
-      const enriched = await this.enrichClustersWithLiveReports([raw]);
+      const enriched = await this.enrichClustersWithLiveReports([raw], date);
       return enriched[0] || null;
     } catch (err: any) {
       this.logger.error(`Gagal memanggil data service cluster detail: ${err.message}`);
@@ -258,9 +283,9 @@ export class HotspotsService {
     }
   }
 
-  async getStatistics() {
+  async getStatistics(date?: string) {
     try {
-      const clusters = await this.getClusters({});
+      const clusters = await this.getClusters({ date });
       if (!clusters || clusters.length === 0) return null;
 
       const p1Count = clusters.filter((c) => c.priority_level?.startsWith("P1")).length;

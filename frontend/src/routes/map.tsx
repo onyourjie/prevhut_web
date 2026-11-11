@@ -252,22 +252,27 @@ function MapPage() {
     ? `${weatherData.temperature_c}°C • ${weatherData.weather_desc || 'Cerah'}`
     : '31°C • Cerah'
 
+  const todayWibStr = (() => {
+    const d = new Date()
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+  })()
+
   const activeFilterCount = useMemo(() => {
     let count = 0
     if (filter.province !== null) count += 1
     if (filter.regency !== null) count += 1
     if (filter.district !== null) count += 1
     if (filter.priorities.length < 3) count += 3 - filter.priorities.length
-    if (filter.date && filter.date !== new Date().toISOString().slice(0, 10)) count += 1
+    if (filter.date && filter.date !== todayWibStr) count += 1
     return count
-  }, [filter])
+  }, [filter, todayWibStr])
 
   const handleClearFilter = () => {
     setFilter({
       province: null,
       regency: null,
       district: null,
-      date: new Date().toISOString().slice(0, 10),
+      date: todayWibStr,
       priorities: ['P1', 'P2', 'P3'],
     })
   }

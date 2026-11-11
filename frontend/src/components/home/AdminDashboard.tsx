@@ -430,21 +430,21 @@ export function AdminDashboard({
             <div className="space-y-2">
               {priorityAreas.slice(0, 3).map((area, idx) => (
                 <div
-                  key={area.clusterCode || idx}
+                  key={area.id || area.name || idx}
                   className="p-3 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-between gap-2"
                 >
                   <div className="min-w-0">
                     <span className="text-xs font-extrabold text-slate-900 block truncate">
-                      {area.clusterCode}: {area.name || area.regency}
+                      {area.name} • {area.regency}
                     </span>
                     <span className="text-[11px] text-slate-500 block truncate">
-                      Skor Risiko: {area.riskScore ?? 'Sedang'} • {area.hotspotCount ?? 0} titik api
+                      {area.priority} • Skor Risiko: {typeof area.score === 'number' ? area.score : 'Sedang'} • {area.hotspotCount ?? 0} titik api
                     </span>
                   </div>
 
                   <Link
                     to="/map"
-                    search={{ area: area.clusterCode }}
+                    search={{ area: area.name }}
                     className="p-2 rounded-lg bg-white border border-slate-200 text-slate-600 hover:text-brand-600 transition shrink-0"
                     title="Lihat polygon klaster"
                   >
